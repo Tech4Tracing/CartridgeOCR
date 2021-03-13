@@ -30,3 +30,9 @@ https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html
 # Explore torchvision
 
 - potentially important: https://github.com/pytorch/vision/issues/2720
+
+Torchvision todo:
+- move to a GPU box.
+- double check batch size, epoch size
+- visualize outputs
+- understand evaluation outputs.

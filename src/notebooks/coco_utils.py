@@ -55,8 +55,12 @@ class ConvertCocoPolysToMask(object):
         image_id = torch.tensor([image_id])
 
         anno = target["annotations"]
+        
+        # TODO: now fixed in the conversion script.
+        #for obj in anno:
+        #    obj['iscrowd']=0
 
-        #anno = [obj for obj in anno if obj['iscrowd'] == 0]
+        anno = [obj for obj in anno if obj['iscrowd'] == 0]
 
         boxes = [obj["bbox"] for obj in anno]
         # guard against no boxes via resizing
@@ -96,8 +100,8 @@ class ConvertCocoPolysToMask(object):
 
         # for conversion to coco api
         area = torch.tensor([obj["area"] for obj in anno])
-        #iscrowd = torch.tensor([obj["iscrowd"] for obj in anno])
-        iscrowd = torch.tensor([0 for obj in anno])
+        iscrowd = torch.tensor([obj["iscrowd"] for obj in anno])
+        #iscrowd = torch.tensor([0 for obj in anno])
         target["area"] = area
         target["iscrowd"] = iscrowd
 
@@ -209,10 +213,10 @@ def get_coco_api_from_dataset(dataset):
 class CocoDetection(torchvision.datasets.CocoDetection):
     def __init__(self, img_folder, ann_file, transforms):
         super(CocoDetection, self).__init__(img_folder, ann_file)
-        self._transforms = transforms
+        self._transforms = transforms        
 
     def __getitem__(self, idx):
-        img, target = super(CocoDetection, self).__getitem__(idx)
+        img, target = super(CocoDetection, self).__getitem__(idx)        
         image_id = self.ids[idx]
         #print(image_id)
         target = dict(image_id=image_id, annotations=target)

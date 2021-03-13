@@ -3,7 +3,7 @@ import os
 import numpy as np
 import torch
 import torch.utils.data
-from PIL import Image
+#from PIL import Image
 import torchvision
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
@@ -11,6 +11,8 @@ from notebooks.engine import train_one_epoch, evaluate
 import notebooks.utils as utils
 import notebooks.transforms as T
 from notebooks.coco_utils import CocoDetection, ConvertCocoPolysToMask
+
+# TODO: how does nocrowd interact with casing and primer annotations?
 
 
 def rt(p):
@@ -50,10 +52,10 @@ def get_transform(train):
 if __name__ == '__main__':
     # use our dataset and defined transformations
 
-    dataset = CocoDetection(rt('data/dataset'), rt('data/dataset/coco.json'), T.Compose([ConvertCocoPolysToMask(),get_transform(train=True)]))
+    dataset = CocoDetection(rt('data/dataset'), rt('data/dataset/coco_xformed.json'), T.Compose([ConvertCocoPolysToMask(),get_transform(train=True)]))
 
     #dataset = PennFudanDataset('PennFudanPed', get_transform(train=True))
-    dataset_test = CocoDetection(rt('data/dataset'), rt('data/dataset/coco.json'), T.Compose([ConvertCocoPolysToMask(),get_transform(train=False)]))
+    dataset_test = CocoDetection(rt('data/dataset'), rt('data/dataset/coco_xformed.json'), T.Compose([ConvertCocoPolysToMask(),get_transform(train=False)]))
 
     # split the dataset in train and test set
     torch.manual_seed(1)
@@ -100,3 +102,19 @@ if __name__ == '__main__':
         lr_scheduler.step()
         # evaluate on the test dataset
         evaluate(model, data_loader_test, device=device)
+
+
+    # some rendering
+    # pick one image from the test set
+    img, _ = dataset_test[0]
+    # put the model in evaluation mode
+    model.eval()
+    with torch.no_grad():
+        prediction = model([img.to(device)])
+    #    print(prediction)
+
+
+    #Image.fromarray(img.mul(255).permute(1, 2, 0).byte().numpy())
+    # visualized segmentation mask
+    #Image.fromarray(prediction[0]['masks'][0, 0].mul(255).byte().cpu().numpy())
+
