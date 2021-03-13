@@ -33,6 +33,14 @@ class FilterAndRemapCocoCategories(object):
 def convert_coco_poly_to_mask(segmentations, height, width):
     masks = []
     for polygons in segmentations:
+        #print('polygons: ',polygons)
+        polyout = []
+        for p in polygons:
+            mult = [width,height] * (len(p)//2)
+            assert(len(mult)==len(p))
+            polyout.append([x*y for x,y in zip(p,mult)])
+        polygons = polyout        
+        #print('poly2', polygons)
         rles = coco_mask.frPyObjects(polygons, height, width)
         mask = coco_mask.decode(rles)
         if len(mask.shape) < 3:
@@ -50,6 +58,7 @@ def convert_coco_poly_to_mask(segmentations, height, width):
 class ConvertCocoPolysToMask(object):
     def __call__(self, image, target):
         w, h = image.size
+        #print(w,h)
 
         image_id = target["image_id"]
         image_id = torch.tensor([image_id])
@@ -66,6 +75,7 @@ class ConvertCocoPolysToMask(object):
         # guard against no boxes via resizing
         boxes = torch.as_tensor(boxes, dtype=torch.float32).reshape(-1, 4)
         boxes[:, 2:] += boxes[:, :2]
+        boxes *= torch.as_tensor([w,h,w,h])
         boxes[:, 0::2].clamp_(min=0, max=w)
         boxes[:, 1::2].clamp_(min=0, max=h)
 
@@ -83,7 +93,7 @@ class ConvertCocoPolysToMask(object):
             if num_keypoints:
                 keypoints = keypoints.view(num_keypoints, -1, 3)
 
-        keep = (boxes[:, 3] > boxes[:, 1]) & (boxes[:, 2] > boxes[:, 0])
+        keep = (boxes[:, 3] > boxes[:, 1]) & (boxes[:, 2] > boxes[:, 0])        
         boxes = boxes[keep]
         classes = classes[keep]
         masks = masks[keep]
