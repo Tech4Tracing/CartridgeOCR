@@ -14,7 +14,7 @@ https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html
 
 - conda install cython
 - conda install jupyter
-- pip install opencv
+- pip install opencv-python
 - pip install git+https://github.com/gautamchitnis/cocoapi.git@cocodataset-master#subdirectory=PythonAPI
 - pip install pillow
 - conda install matplotlib

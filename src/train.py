@@ -47,6 +47,7 @@ def get_transform(train):
         # during training, randomly flip the training images
         # and ground-truth for data augmentation
         transforms.append(T.RandomHorizontalFlip(0.5))
+    transforms.append(T.Resize())
     return T.Compose(transforms)
 
 if __name__ == '__main__':
