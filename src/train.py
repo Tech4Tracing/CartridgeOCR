@@ -42,11 +42,13 @@ def get_instance_segmentation_model(num_classes):
 def get_transform(train):
     transforms = []
     # converts the image, a PIL image, into a PyTorch Tensor
+    transforms.append(T.Resize())
     transforms.append(T.ToTensor())
     if train:
         # during training, randomly flip the training images
         # and ground-truth for data augmentation
         transforms.append(T.RandomHorizontalFlip(0.5))
+    
     return T.Compose(transforms)
 
 if __name__ == '__main__':
@@ -65,11 +67,11 @@ if __name__ == '__main__':
 
     # define training and validation data loaders
     data_loader = torch.utils.data.DataLoader(
-        dataset, batch_size=2, shuffle=True, num_workers=4,
+        dataset, batch_size=2, shuffle=True, num_workers=0,
         collate_fn=utils.collate_fn)
-
+    print(f'data loader has {len(data_loader)} batches')
     data_loader_test = torch.utils.data.DataLoader(
-        dataset_test, batch_size=1, shuffle=False, num_workers=4,
+        dataset_test, batch_size=1, shuffle=False, num_workers=0,
         collate_fn=utils.collate_fn)
 
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')

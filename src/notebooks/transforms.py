@@ -44,6 +44,21 @@ class RandomHorizontalFlip(object):
         return image, target
 
 
+class Resize(object):
+    def __init__(self, max_width=1080):
+        self.max_width = max_width
+
+    def __call__(self, image, target):
+        # assumes that the targets need no rescaling (they are 0:1)
+        height, width = image.size
+        #print(height,width)
+        if width>self.max_width:
+            #print('Resizing')
+            newsize = (self.max_width, int(self.max_width/width*height))
+            image=image.resize(newsize)
+        return image,target
+
+
 class ToTensor(object):
     def __call__(self, image, target):
         image = F.to_tensor(image)

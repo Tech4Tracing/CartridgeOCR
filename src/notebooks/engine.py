@@ -2,6 +2,7 @@ import math
 import sys
 import time
 import torch
+import json 
 
 import torchvision.models.detection.mask_rcnn
 
@@ -78,7 +79,7 @@ def evaluate(model, data_loader, device):
     coco = get_coco_api_from_dataset(data_loader.dataset)
     iou_types = _get_iou_types(model)
     coco_evaluator = CocoEvaluator(coco, iou_types)
-
+    #with open(result_path, 'w', encoding='utf-8') as outF:
     for image, targets in metric_logger.log_every(data_loader, 100, header):
         image = list(img.to(device) for img in image)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
@@ -94,6 +95,7 @@ def evaluate(model, data_loader, device):
         res = {target["image_id"].item(): output for target, output in zip(targets, outputs)}
         evaluator_time = time.time()
         coco_evaluator.update(res)
+        #outF.write(json.dumps(res)+'\n')
         evaluator_time = time.time() - evaluator_time
         metric_logger.update(model_time=model_time, evaluator_time=evaluator_time)
 
