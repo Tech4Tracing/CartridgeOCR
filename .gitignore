@@ -1,0 +1,6 @@
+data/
+.vscode/
+models/
+src/secrets.py
+*-checkpoint.ipynb
+__pycache__/
