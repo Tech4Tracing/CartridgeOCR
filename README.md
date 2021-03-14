@@ -1,5 +1,7 @@
 # CartridgeOCR
 
+Final deck: https://1drv.ms/p/s!Aq_TlvfieKvqu8t5DYBMbiD91PxE6Q?e=STaglB
+
 ## Roadmap
 
 Some areas to explore:
