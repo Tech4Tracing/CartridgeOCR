@@ -15,7 +15,7 @@ interactive_auth = InteractiveLoginAuthentication(tenant_id=secrets.tenant_id)
 #from azureml.core.authentication import AzureCliAuthentication
 #cli_auth = AzureCliAuthentication()
 
-workspace = Workspace(secrets.subscription_id, secrets.resource_group, workspace_name, auth=interactive_auth)
+workspace = Workspace(secrets.subscription_id, secrets.resource_group, secrets.workspace_name, auth=interactive_auth)
 
 dataset = Dataset.get_by_name(workspace, name='imagesforlabeling') # name='headstampID_20210313_041624')
 dataset.download(target_path='../data/dataset', overwrite=True)
