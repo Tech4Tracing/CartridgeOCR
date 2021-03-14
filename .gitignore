@@ -2,5 +2,6 @@ data/
 .vscode/
 models/
 src/secrets.py
+src/vision_secrets.py
 *-checkpoint.ipynb
 __pycache__/
