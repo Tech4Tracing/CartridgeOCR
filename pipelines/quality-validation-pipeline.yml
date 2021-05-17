@@ -1,0 +1,24 @@
+# Runs the linters inspecting Markdown, YAML and PowerShell files.
+#
+---
+trigger:
+  - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+  - task: Bash@3
+    inputs:
+      filePath: './scripts/agent/setup-agent-tools.sh'
+    displayName: 'Prep agent'
+
+  - task: Bash@3
+    inputs:
+      filePath: './scripts/linting/markdown-lint.sh'
+    displayName: 'Lint markdown'
+
+  - task: Bash@3
+    inputs:
+      filePath: './scripts/linting/yaml-lint.sh'
+    displayName: 'Lint YAML'
