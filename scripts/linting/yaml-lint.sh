@@ -2,4 +2,4 @@
 # Lint yaml
 
 sudo pip install yamllint
-yamllint -c ./scripts/linting/yaml-lint-config.yml --strict .
+yamllint -c ./scripts/linting/yamllintconfig.yml --strict .
