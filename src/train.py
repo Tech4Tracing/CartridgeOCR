@@ -54,6 +54,14 @@ def get_transform(train):
     
     return T.Compose(transforms)
 
+def save_snapshot(checkpoint, output_dir, epoch ):
+    utils.save_on_master(
+        checkpoint,
+        os.path.join(output_dir, 'model_{}.pth'.format(epoch)))
+    utils.save_on_master(
+        checkpoint,
+        os.path.join(output_dir, 'checkpoint.pth'))
+
 if __name__ == '__main__':
     # use our dataset and defined transformations
 
@@ -113,6 +121,14 @@ if __name__ == '__main__':
             # evaluate on the test dataset
             evaluate(model, data_loader_test, device=device)
 
+            checkpoint = {
+                'model': model.state_dict(),
+                'optimizer': optimizer.state_dict(),
+                'lr_scheduler': lr_scheduler.state_dict(),
+                'epoch': epoch,
+                #'args': args
+            }
+            save_snapshot(checkpoint, folder, epoch)
 
             # some rendering
             # pick one image from the test set
