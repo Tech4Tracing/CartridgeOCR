@@ -11,8 +11,10 @@ src folder contains the training code based on the AML annotations.
 ### Outputs:
 - data/run_data: output folder
 - loss.txt: training loss
-- p_epoch_imageid.png: prediction overlays on image
-- predictions_epoch.txt: json dumps of raw predictions
+- p_[epoch]_[imageid].png: prediction overlays on image
+- predictions_[epoch].txt: json dumps of raw predictions
+- model_[epoch].pth: model snapshots per epoch. Pytorch format, containing {'model':model, 'optimizer': optimizer, 'lr_scheduler':lr_scheduler, 'epoch':epoch}
+- checkpoint.pth: last model snapshot.
 
 ### Data prep:
 If you export a dataset from AML, some conversion is needed- see convert_coco_urls.py
