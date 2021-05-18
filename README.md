@@ -39,6 +39,54 @@ The following architecture diagram shows the major CartridgeOCR components from 
 
 ![architecture.png](./docs/assets/architecture.png)
 
+## Deployment
+
+### Clone the repository
+
+Clone the repository to your local machine (`git clone https://github.com/Tech4Tracing/CartridgeOCR.git`)
+
+### Pre-requisites
+
+You will require the following pre-requisites installed.
+
+- Terraform >= v0.15.3. The following instructions use local terraform state, you may want to consider [storing you state remotely in Azure](https://docs.microsoft.com/en-us/azure/developer/terraform/store-state-in-azure-storage)
+- Azure CLI >= 2.21.0
+- An Azure Subscription
+
+### Configuring variables
+
+The environment is going to be provisioned using Terraform scripts. In order to run Terraform, you need to set the environment variables in [/terraform/terraform.tfvars.tmpl](../templates/core/terraform/terraform.tfvars.tmpl).
+
+Rename the `terraform.tfvars.tmpl` to `terraform.tfvars`
+
+Edit the terraform.tfvars as required. As `resource_name_prefix` and `environment` are used in Azure resource names they must be alpha numeric `(a-z,0-9)`. The defaults are as follows:
+
+```hcl
+resource_name_prefix     = "cartridgeocr"
+environment              = "dev"
+location                 = "westeurope"
+```
+
+Notice that some resources require a globally unique name, so make sure that resource name prefix makes the generated resource name unique.
+
+### Log into your Azure subscription
+
+[Login and select the azure subscription you wish to deploy to](https://docs.microsoft.com/en-us/azure/developer/terraform/get-started-cloud-shell#set-the-current-azure-subscription):
+
+```cmd
+az login
+az account set -s <subscription_name_or_id>
+```
+
+### Initialize Terraform and deploy
+
+To run terraform, from the ./terraform folder run:
+
+```cmd
+terraform init
+terraform apply
+```
+
 ## Dev environment
 
 [https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html](https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html)
