@@ -1,5 +1,23 @@
 # CartridgeOCR
 
+src folder contains the training code based on the AML annotations.
+
+## Usage
+
+- pip install -r requirements.txt
+- cd src
+- python train.py
+
+### Outputs:
+- data/run_data: output folder
+- loss.txt: training loss
+- p_epoch_imageid.png: prediction overlays on image
+- predictions_epoch.txt: json dumps of raw predictions
+
+### Data prep:
+If you export a dataset from AML, some conversion is needed- see convert_coco_urls.py
+
+
 ## Roadmap
 
 Some areas to explore:
