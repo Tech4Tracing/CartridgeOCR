@@ -11,7 +11,7 @@ from .coco_eval import CocoEvaluator
 from . import utils
 
 
-def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq):
+def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq, outLog):
     model.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
     metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
@@ -24,12 +24,11 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq):
 
         lr_scheduler = utils.warmup_lr_scheduler(optimizer, warmup_iters, warmup_factor)
 
-    for images, targets in metric_logger.log_every(data_loader, print_freq, header):
+    for batch, (images, targets) in enumerate(metric_logger.log_every(data_loader, print_freq, header)):
         images = list(image.to(device) for image in images)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
 
         loss_dict = model(images, targets)
-
         losses = sum(loss for loss in loss_dict.values())
 
         # reduce losses over all GPUs for logging purposes
@@ -37,10 +36,12 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq):
         losses_reduced = sum(loss for loss in loss_dict_reduced.values())
 
         loss_value = losses_reduced.item()
-
+        outLog.write('{}\t{}\t{}\n'.format(epoch, batch, loss_value))
+        outLog.flush()
         if not math.isfinite(loss_value):
             print("Loss is {}, stopping training".format(loss_value))
             print(loss_dict_reduced)
+            print(loss_dict)
             sys.exit(1)
 
         optimizer.zero_grad()

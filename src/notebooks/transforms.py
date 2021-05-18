@@ -50,11 +50,12 @@ class Resize(object):
 
     def __call__(self, image, target):
         # assumes that the targets need no rescaling (they are 0:1)
-        height, width = image.size
+        # input is a PIL image, not a tensor
+        width, height = image.size
         #print(height,width)
         if width>self.max_width:
             #print('Resizing')
-            newsize = (self.max_width, int(self.max_width/width*height))
+            newsize = (self.max_width, int(self.max_width/width*height))            
             image=image.resize(newsize)
         return image,target
 

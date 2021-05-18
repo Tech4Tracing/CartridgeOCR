@@ -3,7 +3,8 @@ import os
 import numpy as np
 import torch
 import torch.utils.data
-#from PIL import Image
+import json
+from PIL import Image, ImageDraw
 import torchvision
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
@@ -11,6 +12,7 @@ from notebooks.engine import train_one_epoch, evaluate
 import notebooks.utils as utils
 import notebooks.transforms as T
 from notebooks.coco_utils import CocoDetection, ConvertCocoPolysToMask
+from tqdm import tqdm
 
 # TODO: how does nocrowd interact with casing and primer annotations?
 
@@ -43,6 +45,7 @@ def get_transform(train):
     transforms = []
     # converts the image, a PIL image, into a PyTorch Tensor
     transforms.append(T.Resize())
+    transforms.append(ConvertCocoPolysToMask())
     transforms.append(T.ToTensor())
     if train:
         # during training, randomly flip the training images
@@ -54,16 +57,17 @@ def get_transform(train):
 if __name__ == '__main__':
     # use our dataset and defined transformations
 
-    dataset = CocoDetection(rt('data/dataset'), rt('data/dataset/coco_xformed.json'), T.Compose([ConvertCocoPolysToMask(),get_transform(train=True)]))
+    dataset = CocoDetection(rt('data/dataset'), rt('data/dataset/coco_xformed.json'), get_transform(train=True))
 
     #dataset = PennFudanDataset('PennFudanPed', get_transform(train=True))
-    dataset_test = CocoDetection(rt('data/dataset'), rt('data/dataset/coco_xformed.json'), T.Compose([ConvertCocoPolysToMask(),get_transform(train=False)]))
+    dataset_test = CocoDetection(rt('data/dataset'), rt('data/dataset/coco_xformed.json'), get_transform(train=False))
 
     # split the dataset in train and test set
     torch.manual_seed(1)
     indices = torch.randperm(len(dataset)).tolist()
-    #dataset = torch.utils.data.Subset(dataset, indices[:-50])
-    #dataset_test = torch.utils.data.Subset(dataset_test, indices[-50:])
+    cutoff = max(10,int(0.1*len(dataset)))
+    dataset = torch.utils.data.Subset(dataset, indices[:-cutoff])
+    dataset_test = torch.utils.data.Subset(dataset_test, indices[-cutoff:])
 
     # define training and validation data loaders
     data_loader = torch.utils.data.DataLoader(
@@ -96,24 +100,77 @@ if __name__ == '__main__':
                                                 gamma=0.1)
 
     num_epochs = 10
+    folder = rt('data/run_data')
+    if not os.path.exists(folder):
+        os.makedirs(folder, exist_ok=True)
+    
+    with open(os.path.join(folder,'loss.txt'),'w', encoding='utf-8') as outLoss:
+        for epoch in range(num_epochs):
+            # train for one epoch, printing every 10 iterations
+            train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq=10, outLog=outLoss)
+            # update the learning rate
+            lr_scheduler.step()
+            # evaluate on the test dataset
+            evaluate(model, data_loader_test, device=device)
 
-    for epoch in range(num_epochs):
-        # train for one epoch, printing every 10 iterations
-        train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq=10)
-        # update the learning rate
-        lr_scheduler.step()
-        # evaluate on the test dataset
-        evaluate(model, data_loader_test, device=device)
 
+            # some rendering
+            # pick one image from the test set
+            with open(os.path.join(folder,'predictions_{}.txt'.format(epoch)),'w', encoding='utf-8') as outP:
+            # put the model in evaluation mode
+                model.eval()
+                with torch.no_grad():
+                    for ix, (img, _) in tqdm(enumerate(dataset_test)):
+                        prediction = model([img.to(device)])
+                        masks = [p['masks'] for p in prediction]                        
+                        prediction = [
+                            dict([(k, v.cpu().numpy().tolist()) for k,v in x.items() if k!='masks']) for x in prediction
+                        ]                        
+                        #print(prediction)
+                        # TODO: clean this up.
+                        masksout = []
+                        casings = []
+                        primers = []
+                        for m_i,(m,p) in enumerate(zip(masks,prediction)):
+                            #print(m.shape,p['boxes'],p['labels'])
+                            if m.shape[0]==0:
+                                continue
+                            
+                            i2 = Image.fromarray(m[0, 0].mul(255).byte().cpu().numpy())         
+                            imgOut = Image.new("RGB", i2.size)                      
+                            imgOut.paste(i2, (0,0))
+                            canvas = ImageDraw.Draw(imgOut)
+                            boxes = [(b,s,l) for (b,s,l) in zip(p['boxes'],p['scores'],p['labels']) if b[2]<i2.width and b[3]<i2.height and b[2]-b[0]>20 and b[3]-b[1]>20]
+                            casings = [(b,s,l) for (b,s,l) in zip(p['boxes'],p['scores'],p['labels']) if l==1 and b[2]<i2.width and b[3]<i2.height and b[2]-b[0]>20 and b[3]-b[1]>20]
+                            primers = [(b,s,l) for (b,s,l) in zip(p['boxes'],p['scores'],p['labels']) if l==2 and b[2]<i2.width and b[3]<i2.height and b[2]-b[0]>20 and b[3]-b[1]>20]
 
-    # some rendering
-    # pick one image from the test set
-    img, _ = dataset_test[0]
-    # put the model in evaluation mode
-    model.eval()
-    with torch.no_grad():
-        prediction = model([img.to(device)])
-    #    print(prediction)
+                            #for box,_ in list(sorted(zip(p['boxes'],p['scores']), key=lambda x: x[1], reverse=True))[:3]:
+                            for box,_,label in list(sorted(boxes, key=lambda x: x[1], reverse=True))[:3]:
+                                #print(label)
+                                canvas.rectangle(box, outline="red" if label==1 else "yellow")
+                            masksout.append(imgOut)
+                                         
+                        if len(masksout)>0:
+                            i1 = Image.fromarray(img.mul(255).permute(1, 2, 0).byte().numpy())                            
+                            #dst = Image.new('RGB', (i1.width + sum([m.width for m in masksout]), i1.height))
+                            dst = Image.new('RGB', i1.size)
+                            dst.paste(i1, (0, 0))
+                            canvas = ImageDraw.Draw(dst)
+                            for box,_,label in list(sorted(casings, key=lambda x: x[1], reverse=True))[:3]:
+                                #print(label)
+                                canvas.rectangle(box, outline="red", width=3)
+                            for box,_,label in list(sorted(primers, key=lambda x: x[1], reverse=True))[:3]:
+                                #print(label)
+                                canvas.rectangle(box, outline="yellow", width=3)
+
+                            #x = i1.width
+                            #for m2 in masksout:
+                            #    dst.paste(m2, (x, 0))
+                            #    x += m2.width
+                            fn = os.path.join(folder,'p_{}_{}.png'.format(epoch,ix))
+                            dst.save(fn)
+                        outP.write(json.dumps(prediction)+'\n')
+                        
 
 
     #Image.fromarray(img.mul(255).permute(1, 2, 0).byte().numpy())
