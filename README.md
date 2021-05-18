@@ -33,6 +33,12 @@ Some areas to explore:
 - labeling and storage workspaces
 - mobile app workflow
 
+## Base Architecture
+
+The following architecture diagram shows the major CartridgeOCR components from a Azure resource and network perspective.
+
+![architecture.png](./docs/assets/architecture.png)
+
 ## Dev environment
 
 [https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html](https://pytorch.org/tutorials/intermediate/torchvision_tutorial.html)
