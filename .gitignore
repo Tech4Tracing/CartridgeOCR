@@ -171,10 +171,12 @@ terraform.rc
 
 # vscode
 .vscode/
-
 # node
 node_modules
 
 #exclude test data
 src/data/
 src/outputData
+
+local.settings.json
+package-lock.json
