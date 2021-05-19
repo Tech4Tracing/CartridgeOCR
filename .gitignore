@@ -174,3 +174,7 @@ terraform.rc
 
 # node
 node_modules
+
+#exclude test data
+src/data/
+src/outputData
