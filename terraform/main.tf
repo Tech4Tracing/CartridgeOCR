@@ -153,20 +153,19 @@ resource "azurerm_app_service" "webapp" {
   }
 }
 
-resource "azurerm_function_app" "uploadAPI" {
-  name                       = "upload-API-${var.resource_name_prefix}-${var.environment}"
+resource "azurerm_function_app" "API" {
+  name                       = "api-${var.resource_name_prefix}-${var.environment}"
   location                   = var.location
   resource_group_name        = azurerm_resource_group.core.name
   app_service_plan_id        = azurerm_app_service_plan.plan.id
   storage_account_name       = azurerm_storage_account.stg.name
   storage_account_access_key = azurerm_storage_account.stg.primary_access_key
-}
-
-resource "azurerm_function_app" "predictionAPI" {
-  name                       = "predict-API-${var.resource_name_prefix}-${var.environment}"
-  location                   = var.location
-  resource_group_name        = azurerm_resource_group.core.name
-  app_service_plan_id        = azurerm_app_service_plan.plan.id
-  storage_account_name       = azurerm_storage_account.stg.name
-  storage_account_access_key = azurerm_storage_account.stg.primary_access_key
+  version = "~3"
+  
+  app_settings = {
+        https_only = true
+        FUNCTIONS_WORKER_RUNTIME = "node"
+        WEBSITE_NODE_DEFAULT_VERSION = "~14"
+        FUNCTION_APP_EDIT_MODE = "readonly"
+    }
 }

@@ -43,7 +43,7 @@ The following architecture diagram shows the major CartridgeOCR components from 
 
 ### Clone the repository
 
-Clone the repository to your local machine (`git clone https://github.com/Tech4Tracing/CartridgeOCR.git`)
+Clone the repository to your local machine (`git clone https://OneCSEWeek@dev.azure.com/OneCSEWeek/CartridgeOCR/_git/CartridgeOCR`)
 
 ### Pre-requisites
 
@@ -78,13 +78,24 @@ az login
 az account set -s <subscription_name_or_id>
 ```
 
-### Initialize Terraform and deploy
+### Run the deployment script
 
-To run terraform, from the ./terraform folder run:
+A [deployment script](./deploy.sh) automates the deployment process. Run the script to deploy resources to Azure as well as any code.
+The script will:
+
+- Install zip and jq that are used by the script to package files and parse JSON
+- Execute `terraform apply` provisioning all resources in Azure
+- Generate local.settings file used by API Azure function for local debugging
+- Deploy API Azure Function
+- Set configuration values to the API Azure function
+
+### Testing the image upload API
+
+To test the image upload API you can submit an upload request with curl. Replace the myImage.jpg with an image file that you want to upload, and change the URL to the one that has been outputted by the deployment script.
 
 ```cmd
-terraform init
-terraform apply
+(echo -n '{"filename": "myImage.jpg","filetype":"image/jpeg","data": "'; base64 myImage.jpg; echo '"}') |
+ curl -H "Content-Type: application/json" -d @-  https://api-cartridgeocr-dev.azurewebsites.net/api/image-upload
 ```
 
 ## Dev environment
