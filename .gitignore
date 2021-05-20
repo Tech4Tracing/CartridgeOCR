@@ -180,3 +180,6 @@ src/outputData
 
 local.settings.json
 package-lock.json
+config.json
+data/images
+data/labels

@@ -22,6 +22,30 @@ output "storageAccount" {
   value = azurerm_storage_account.stg.primary_connection_string
 }
 
+output "storageAccountName" {
+  value = azurerm_storage_account.stg.name
+}
+
+output "storageAccountKey" {
+  value = azurerm_storage_account.stg.primary_access_key
+}
+
 output "webappName" {
   value = azurerm_app_service.webapp.name
+}
+
+output "AMLWorkspaceName" {
+  value = azurerm_machine_learning_workspace.ml.name
+}
+
+output "subscriptionId" {
+  value = data.azurerm_subscription.current.subscription_id
+}
+
+output "imagesContainer" {
+  value = azurerm_storage_container.images.name
+}
+
+output "labelDataContainer" {
+  value = azurerm_storage_container.labeldata.name
 }

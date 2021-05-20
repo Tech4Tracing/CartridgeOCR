@@ -2,6 +2,7 @@
 
 sudo apt install zip
 sudo apt install jq
+pip install azureml-dataset-runtime --upgrade
 
 $homedir=`pwd`
 
@@ -11,13 +12,54 @@ terraform init
 terraform apply -auto-approve
 
 tfoutput=$(terraform output -json)
+
+env_file="$homedir/.env"
+cat <<EOF > $env_file
 cosmosEndpoint=$(echo $tfoutput | jq -r '.cosmosEndpoint.value')
 cosmosKey=$(echo $tfoutput | jq -r '.cosmosKey.value')
 cosmosDatabaseId=$(echo $tfoutput | jq -r '.cosmosDatabaseId.value')
 storageAccount=$(echo $tfoutput | jq -r '.storageAccount.value')
+storageAccountName=$(echo $tfoutput | jq -r '.storageAccountName.value')
+storageAccountKey=$(echo $tfoutput | jq -r '.storageAccountKey.value')
 resourceGroup=$(echo $tfoutput | jq -r '.resourceGroup.value')
 functionName=$(echo $tfoutput | jq -r '.functionName.value')
 webappName=$(echo $tfoutput | jq -r '.webappName.value')
+AMLWorkspaceName=$(echo $tfoutput | jq -r '.AMLWorkspaceName.value')
+subscriptionId=$(echo $tfoutput | jq -r '.subscriptionId.value')
+imagesContainer=$(echo $tfoutput | jq -r '.imagesContainer.value')
+labelDataContainer=$(echo $tfoutput | jq -r '.labelDataContainer.value')
+EOF
+
+export $(cat $env_file | xargs)
+
+# Install az extensions without prompt
+az config set extension.use_dynamic_install=yes_without_prompt
+
+# Create datastore in AML for images
+az ml datastore attach-blob --account-name $storageAccountName \
+                            --container-name $imagesContainer \
+                            --name $imagesContainer \
+                            --account-key $storageAccountKey  \
+                            -w $AMLWorkspaceName \
+                            -g $resourceGroup
+
+# Create datastore in AML for datalabels
+az ml datastore attach-blob --account-name $storageAccountName \
+                            --container-name $labelDataContainer \
+                            --name $labelDataContainer \
+                            --account-key $storageAccountKey  \
+                            -w $AMLWorkspaceName \
+                            -g $resourceGroup
+
+
+AML_settings_file="$homedir/src/AML/config.json"
+cat <<EOF > $AML_settings_file
+{
+    "subscription_id": "$subscriptionId",
+    "resource_group": "$resourceGroup",
+    "workspace_name": "$AMLWorkspaceName"
+}
+EOF
 
 cd $homedir/src/webapp/api
 
@@ -31,10 +73,10 @@ cat <<EOF > $settings_file
     "cosmosEndpoint": "$cosmosEndpoint",
     "cosmosKey": "$cosmosKey",
     "cosmosDatabaseId": "$cosmosDatabaseId",
-    "cosmosContainerId": "Images",
+    "cosmosContainerId": "$imagesContainer",
     "cosmosPartitionKey": "{ kind: \"Hash\", paths: [\"/category\"] }",
     "storageAccount": "$storageAccount",
-    "storageContainer": "images"
+    "storageContainer": "$imagesContainer"
   }
 }
 EOF
@@ -47,11 +89,10 @@ az functionapp config appsettings set -g $resourceGroup -n $functionName --setti
                 "cosmosEndpoint=$cosmosEndpoint" \
                 "cosmosKey=$cosmosKey" \
                 "cosmosDatabaseId=$cosmosDatabaseId" \
-                "CosmosContainerId=Images" \
+                "CosmosContainerId=$imagesContainer" \
                 "cosmosPartitionKey={kind:\"Hash\",paths:[\"/category\"]}" \
                 "storageAccount=$storageAccount" \
-                "storageContainer=images"
-
+                "storageContainer=$imagesContainer"
 
 cd $homedir/src/webapp/CartridgeOCRApp
 

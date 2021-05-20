@@ -13,6 +13,8 @@ provider "azurerm" {
 
 data "azurerm_client_config" "current" {}
 
+data "azurerm_subscription" "current" {}
+
 resource "azurerm_resource_group" "core" {
   location = var.location
   name     = "rg-${var.resource_name_prefix}-${var.environment}"
@@ -85,6 +87,12 @@ resource "azurerm_storage_account" "stg" {
 
 resource "azurerm_storage_container" "images" {
   name                  = "images"
+  storage_account_name  = azurerm_storage_account.stg.name
+  container_access_type = "private"
+}
+
+resource "azurerm_storage_container" "labeldata" {
+  name                  = "labeldata"
   storage_account_name  = azurerm_storage_account.stg.name
   container_access_type = "private"
 }
