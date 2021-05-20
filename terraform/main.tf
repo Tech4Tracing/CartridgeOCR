@@ -129,6 +129,7 @@ resource "azurerm_app_service" "webapp" {
 
   site_config {
     remote_debugging_enabled    = false
+    app_command_line = "pm2 serve /home/site/wwwroot --no-daemon"
     scm_use_main_ip_restriction = true
     cors {
       allowed_origins     = []

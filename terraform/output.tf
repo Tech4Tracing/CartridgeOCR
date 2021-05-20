@@ -21,3 +21,7 @@ output "cosmosDatabaseId" {
 output "storageAccount" {
   value = azurerm_storage_account.stg.primary_connection_string
 }
+
+output "webappName" {
+  value = azurerm_app_service.webapp.name
+}

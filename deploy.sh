@@ -3,7 +3,9 @@
 sudo apt install zip
 sudo apt install jq
 
-cd terraform
+$homedir=`pwd`
+
+cd $homedir/terraform
 
 terraform init
 terraform apply -auto-approve
@@ -15,8 +17,9 @@ cosmosDatabaseId=$(echo $tfoutput | jq -r '.cosmosDatabaseId.value')
 storageAccount=$(echo $tfoutput | jq -r '.storageAccount.value')
 resourceGroup=$(echo $tfoutput | jq -r '.resourceGroup.value')
 functionName=$(echo $tfoutput | jq -r '.functionName.value')
+webappName=$(echo $tfoutput | jq -r '.webappName.value')
 
-cd ../src/webapp/api
+cd $homedir/src/webapp/api
 
 settings_file="local.settings.json"
 cat <<EOF > $settings_file
@@ -50,4 +53,15 @@ az functionapp config appsettings set -g $resourceGroup -n $functionName --setti
                 "storageContainer=images"
 
 
+cd $homedir/src/webapp/CartridgeOCRApp
+
+ionic build
+
+cd $homedir/src/webapp/CartridgeOCRApp/build
+
+zip build.zip -r *
+
+az webapp deployment source config-zip --src build.zip -g $resourceGroup -n $webappName
+
 echo "Image Upload API URL: https://$functionName.azurewebsites.net/api/image-upload"
+echo "Web App URL: https://$webappName.azurewebsites.net/"
