@@ -13,6 +13,26 @@ import dataProcessing.utils as utils
 import dataProcessing.transforms as T
 from dataProcessing.coco_utils import CocoDetection, ConvertCocoPolysToMask
 from tqdm import tqdm
+import os
+
+
+if "RUNINAZURE" in os.environ:
+    
+    from azureml.core import Workspace, Experiment, Environment, ScriptRunConfig, Datastore, Dataset
+    ws = Workspace.from_config()
+    imagestore = Datastore.get(ws, datastore_name='images')
+    labeldata = Datastore.get(ws, datastore_name='labeldata')
+
+    imagestore_paths = [(imagestore, '/**')]
+    images_ds = Dataset.File.from_files(path=imagestore_paths)
+    images_ds.download(target_path='../src/data/dataset/', overwrite=True)
+
+    labeldata_paths = [(labeldata, '/**')]
+    labeldata_ds = Dataset.File.from_files(path=labeldata_paths)
+    labeldata_ds.download(target_path='../src/data/labeldata/', overwrite=True)
+
+    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
+
 
 # TODO: how does nocrowd interact with casing and primer annotations?
 
@@ -65,10 +85,10 @@ def save_snapshot(checkpoint, output_dir, epoch ):
 if __name__ == '__main__':
     # use our dataset and defined transformations
 
-    dataset = CocoDetection(rt('src/data/dataset'), rt('src/data/dataset/coco_xformed.json'), get_transform(train=True))
+    dataset = CocoDetection(rt('src/data/dataset'), rt('src/data/labeldata/coco_xformed.json'), get_transform(train=True))
 
     #dataset = PennFudanDataset('PennFudanPed', get_transform(train=True))
-    dataset_test = CocoDetection(rt('src/data/dataset'), rt('src/data/dataset/coco_xformed.json'), get_transform(train=False))
+    dataset_test = CocoDetection(rt('src/data/dataset'), rt('src/data/labeldata/coco_xformed.json'), get_transform(train=False))
 
     # split the dataset in train and test set
     torch.manual_seed(1)

@@ -88,6 +88,7 @@ The script will:
 - Generate local.settings file used by API Azure function for local debugging
 - Deploy API Azure Function
 - Set configuration values to the API Azure function
+- Deploy Ionic static web app
 
 ### Testing the image upload API
 
@@ -96,6 +97,20 @@ To test the image upload API you can submit an upload request with curl. Replace
 ```cmd
 (echo -n '{"filename": "myImage.jpg","filetype":"image/jpeg","data": "'; base64 myImage.jpg; echo '"}') |
  curl -H "Content-Type: application/json" -d @-  https://api-cartridgeocr-dev.azurewebsites.net/api/image-upload
+```
+
+### Uploading data files to Azure
+
+If you have a data (image) and label datasets that you would like to upload to Azure Storage for training, you can use the [upload.sh](./data/upload.sh) script after running the deployment script. Script will use the .env file to connect to the right storage account and look for images and labels folders to upload image and label datasets respectively.
+
+### Running training in Azure
+
+To run the training on the AML cluster provisioned in the deployment script, you can run [run_training.py](./src/AML/run_training.py) from the src folder. Notice that to run training in AML you don't have to run the full requirements.txt file locally, but you would need to pip install azure-ml and azure-ml-core.
+
+```cmd
+pip install azure-ml
+pip install azure-ml-core
+python ./AML/run_training.py
 ```
 
 ## Dev environment

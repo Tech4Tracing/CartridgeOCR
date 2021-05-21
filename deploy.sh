@@ -28,12 +28,25 @@ AMLWorkspaceName=$(echo $tfoutput | jq -r '.AMLWorkspaceName.value')
 subscriptionId=$(echo $tfoutput | jq -r '.subscriptionId.value')
 imagesContainer=$(echo $tfoutput | jq -r '.imagesContainer.value')
 labelDataContainer=$(echo $tfoutput | jq -r '.labelDataContainer.value')
+computeCluster='cpucluster'
 EOF
 
 export $(cat $env_file | xargs)
 
 # Install az extensions without prompt
 az config set extension.use_dynamic_install=yes_without_prompt
+
+# Install AML extenstion
+az extension add -n azure-cli-ml
+
+# Create compute cluster
+az ml computetarget create amlcompute --max-nodes 4 --name $computeCluster --vm-size 'Standard_DS12_v2' -w $AMLWorkspaceName -g $resourceGroup
+
+# Set system managed identity to cluster and permission for AML 
+az ml computetarget amlcompute identity assign --identities '[system]' --name $computeCluster -w $AMLWorkspaceName -g $resourceGroup
+computeMSI=$(az ml computetarget amlcompute identity show  --name $computeCluster -w $AMLWorkspaceName -g $resourceGroup | jq -r '.principalId')
+acrScope=$(az resource show -n $AMLWorkspaceName -g $resourceGroup --resource-type 'Microsoft.MachineLearningServices/workspaces' | jq -r '.id')
+az role assignment create --assignee-object-id $computeMSI --role Owner --scope $acrScope
 
 # Create datastore in AML for images
 az ml datastore attach-blob --account-name $storageAccountName \
@@ -52,7 +65,7 @@ az ml datastore attach-blob --account-name $storageAccountName \
                             -g $resourceGroup
 
 
-AML_settings_file="$homedir/src/AML/config.json"
+AML_settings_file="$homedir/src/config.json"
 cat <<EOF > $AML_settings_file
 {
     "subscription_id": "$subscriptionId",
