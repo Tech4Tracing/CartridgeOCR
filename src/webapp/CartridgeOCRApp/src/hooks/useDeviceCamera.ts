@@ -3,6 +3,7 @@ import { useCamera } from '@ionic/react-hooks/camera';
 import { base64FromPath } from '@ionic/react-hooks/filesystem';
 import { isPlatform } from '@ionic/react';
 import { CameraResultType, CameraSource, CameraPhoto, Capacitor, FilesystemDirectory, Filesystem, Storage } from "@capacitor/core";
+import config from "../appConfig.json";
 
 export interface Photo {
   filepath: string;
@@ -65,7 +66,7 @@ export function useDeviceCamera() {
     const savePicture = async (photo: CameraPhoto, fileName: string): Promise<Photo> => {
       let base64Data: string;
 
-      // "hybrid" will detect Cordova or Capacitor;
+      // "hybrid" will detect Cordova or Capacitor (i.e. running on iOS or Android)
       if (isPlatform('hybrid')) {
         const file = await Filesystem.readFile({
           path: photo.path!
@@ -75,11 +76,15 @@ export function useDeviceCamera() {
         base64Data = await base64FromPath(photo.webPath!);
       }
 
+      // Save the file to local storage
       const savedFile = await Filesystem.writeFile({
         path: fileName,
         data: base64Data,
         directory: FilesystemDirectory.Data
       });
+
+      // Upload the file to the uploadAPI
+      const uploadResult = await uploadPhoto(base64Data, fileName);
 
       if (isPlatform('hybrid')) {
         // Display the new image by rewriting the 'file://' path to HTTP
@@ -98,6 +103,42 @@ export function useDeviceCamera() {
         };
       }
     };
+
+    const uploadPhoto = async (photoBase64: string, fileName: string): Promise<void | Response> => {
+  
+      const uploadAPIURI = config.imageAPIURI;
+      
+      // As the base64 string contains the filetype metadata at the start, we should split it out
+      const base64Items = photoBase64.split(",", 2);
+      // And trim the "data:" from the start to get the fileType
+      const fileType = base64Items[0].replace('data:','');
+
+      const body = {
+        filename: fileName,
+        filetype: fileType,
+        data: base64Items[1]
+      };
+
+      console.log(body);
+
+      // Call the upload API
+      return fetch(
+        uploadAPIURI, 
+        { 
+          method: "POST", 
+          body: JSON.stringify(body),
+          headers: new Headers({ 
+              //'Authorization': 'Bearer ' + idToken,
+              'Content-Type': 'application/json'
+          })
+        }
+      ).catch((error: any) => {
+        // Handle errors posting to API
+        console.error("Error calling upload API: ", error);
+        // TODO: add a failed icon over the image to indicate to user that image hasn't been uploaded
+      });
+
+    }
 
     return {
       photos,
