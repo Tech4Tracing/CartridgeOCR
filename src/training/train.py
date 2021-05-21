@@ -13,7 +13,7 @@ import dataProcessing.utils as utils
 import dataProcessing.transforms as T
 from dataProcessing.coco_utils import CocoDetection, ConvertCocoPolysToMask
 from tqdm import tqdm
-import os
+from training.model_utils import rt, get_transform,get_transform,get_instance_segmentation_model, save_snapshot
 
 
 if "RUNINAZURE" in os.environ:
@@ -32,55 +32,6 @@ if "RUNINAZURE" in os.environ:
     labeldata_ds.download(target_path='../src/data/labeldata/', overwrite=True)
 
     print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
-
-
-# TODO: how does nocrowd interact with casing and primer annotations?
-
-
-def rt(p):
-    return os.path.join('../',p)
-
-      
-def get_instance_segmentation_model(num_classes):
-    # load an instance segmentation model pre-trained on COCO
-    model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True)
-
-    # get the number of input features for the classifier
-    in_features = model.roi_heads.box_predictor.cls_score.in_features
-    # replace the pre-trained head with a new one
-    model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
-
-    # now get the number of input features for the mask classifier
-    in_features_mask = model.roi_heads.mask_predictor.conv5_mask.in_channels
-    hidden_layer = 256
-    # and replace the mask predictor with a new one
-    model.roi_heads.mask_predictor = MaskRCNNPredictor(in_features_mask,
-                                                       hidden_layer,
-                                                       num_classes)
-
-    return model
-
-
-def get_transform(train):
-    transforms = []
-    # converts the image, a PIL image, into a PyTorch Tensor
-    transforms.append(T.Resize())
-    transforms.append(ConvertCocoPolysToMask())
-    transforms.append(T.ToTensor())
-    if train:
-        # during training, randomly flip the training images
-        # and ground-truth for data augmentation
-        transforms.append(T.RandomHorizontalFlip(0.5))
-    
-    return T.Compose(transforms)
-
-def save_snapshot(checkpoint, output_dir, epoch ):
-    utils.save_on_master(
-        checkpoint,
-        os.path.join(output_dir, 'model_{}.pth'.format(epoch)))
-    utils.save_on_master(
-        checkpoint,
-        os.path.join(output_dir, 'checkpoint.pth'))
 
 if __name__ == '__main__':
     # use our dataset and defined transformations
@@ -149,67 +100,4 @@ if __name__ == '__main__':
                 #'args': args
             }
             save_snapshot(checkpoint, folder, epoch)
-
-            # some rendering
-            # pick one image from the test set
-            with open(os.path.join(folder,'predictions_{}.txt'.format(epoch)),'w', encoding='utf-8') as outP:
-            # put the model in evaluation mode
-                model.eval()
-                with torch.no_grad():
-                    for ix, (img, _) in tqdm(enumerate(dataset_test)):
-                        prediction = model([img.to(device)])
-                        masks = [p['masks'] for p in prediction]                        
-                        prediction = [
-                            dict([(k, v.cpu().numpy().tolist()) for k,v in x.items() if k!='masks']) for x in prediction
-                        ]                        
-                        #print(prediction)
-                        # TODO: clean this up.
-                        masksout = []
-                        casings = []
-                        primers = []
-                        for m_i,(m,p) in enumerate(zip(masks,prediction)):
-                            #print(m.shape,p['boxes'],p['labels'])
-                            if m.shape[0]==0:
-                                continue
-                            
-                            i2 = Image.fromarray(m[0, 0].mul(255).byte().cpu().numpy())         
-                            imgOut = Image.new("RGB", i2.size)                      
-                            imgOut.paste(i2, (0,0))
-                            canvas = ImageDraw.Draw(imgOut)
-                            boxes = [(b,s,l) for (b,s,l) in zip(p['boxes'],p['scores'],p['labels']) if b[2]<i2.width and b[3]<i2.height and b[2]-b[0]>20 and b[3]-b[1]>20]
-                            casings = [(b,s,l) for (b,s,l) in zip(p['boxes'],p['scores'],p['labels']) if l==1 and b[2]<i2.width and b[3]<i2.height and b[2]-b[0]>20 and b[3]-b[1]>20]
-                            primers = [(b,s,l) for (b,s,l) in zip(p['boxes'],p['scores'],p['labels']) if l==2 and b[2]<i2.width and b[3]<i2.height and b[2]-b[0]>20 and b[3]-b[1]>20]
-
-                            #for box,_ in list(sorted(zip(p['boxes'],p['scores']), key=lambda x: x[1], reverse=True))[:3]:
-                            for box,_,label in list(sorted(boxes, key=lambda x: x[1], reverse=True))[:3]:
-                                #print(label)
-                                canvas.rectangle(box, outline="red" if label==1 else "yellow")
-                            masksout.append(imgOut)
-                                         
-                        if len(masksout)>0:
-                            i1 = Image.fromarray(img.mul(255).permute(1, 2, 0).byte().numpy())                            
-                            #dst = Image.new('RGB', (i1.width + sum([m.width for m in masksout]), i1.height))
-                            dst = Image.new('RGB', i1.size)
-                            dst.paste(i1, (0, 0))
-                            canvas = ImageDraw.Draw(dst)
-                            for box,_,label in list(sorted(casings, key=lambda x: x[1], reverse=True))[:3]:
-                                #print(label)
-                                canvas.rectangle(box, outline="red", width=3)
-                            for box,_,label in list(sorted(primers, key=lambda x: x[1], reverse=True))[:3]:
-                                #print(label)
-                                canvas.rectangle(box, outline="yellow", width=3)
-
-                            #x = i1.width
-                            #for m2 in masksout:
-                            #    dst.paste(m2, (x, 0))
-                            #    x += m2.width
-                            fn = os.path.join(folder,'p_{}_{}.png'.format(epoch,ix))
-                            dst.save(fn)
-                        outP.write(json.dumps(prediction)+'\n')
-                        
-
-
-    #Image.fromarray(img.mul(255).permute(1, 2, 0).byte().numpy())
-    # visualized segmentation mask
-    #Image.fromarray(prediction[0]['masks'][0, 0].mul(255).byte().cpu().numpy())
 
