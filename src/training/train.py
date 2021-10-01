@@ -1,5 +1,8 @@
 # https://colab.research.google.com/github/pytorch/vision/blob/temp-tutorial/tutorials/torchvision_finetuning_instance_segmentation.ipynb
 import os
+import sys
+sys.path+=['.']
+import logging
 import numpy as np
 import torch
 import torch.utils.data
@@ -15,31 +18,39 @@ from dataProcessing.coco_utils import CocoDetection, ConvertCocoPolysToMask
 from tqdm import tqdm
 from training.model_utils import rt, get_transform,get_transform,get_instance_segmentation_model, save_snapshot
 
+logging.basicConfig(level=logging.INFO)
 
-if "RUNINAZURE" in os.environ:
-    
+# TODO: output path wired up to blob storage.
+# TODO: command-line parameters for these folders
+datapath = rt('data/dataset')
+labelpath = rt('data/labeldata')
+outputpath = rt('outputData')
+
+if "RUNINAZURE" in os.environ:    
     from azureml.core import Workspace, Experiment, Environment, ScriptRunConfig, Datastore, Dataset
+
+    logging.info('Downloading datasets')
     ws = Workspace.from_config()
     imagestore = Datastore.get(ws, datastore_name='images')
     labeldata = Datastore.get(ws, datastore_name='labeldata')
 
     imagestore_paths = [(imagestore, '/**')]
     images_ds = Dataset.File.from_files(path=imagestore_paths)
-    images_ds.download(target_path='../src/data/dataset/', overwrite=True)
+    images_ds.download(target_path=datapath, overwrite=True)
 
     labeldata_paths = [(labeldata, '/**')]
     labeldata_ds = Dataset.File.from_files(path=labeldata_paths)
-    labeldata_ds.download(target_path='../src/data/labeldata/', overwrite=True)
+    labeldata_ds.download(target_path=labelpath, overwrite=True)
 
     print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>><<<<<<<<<<<<<<<<<<<<<<<<<<<<<<")
 
 if __name__ == '__main__':
     # use our dataset and defined transformations
 
-    dataset = CocoDetection(rt('src/data/dataset'), rt('src/data/labeldata/coco_xformed.json'), get_transform(train=True))
+    dataset = CocoDetection(datapath, os.path.join(labelpath,'coco_xformed.json'), get_transform(train=True))
 
     #dataset = PennFudanDataset('PennFudanPed', get_transform(train=True))
-    dataset_test = CocoDetection(rt('src/data/dataset'), rt('src/data/labeldata/coco_xformed.json'), get_transform(train=False))
+    dataset_test = CocoDetection(datapath, os.path.join(labelpath,'coco_xformed.json'), get_transform(train=False))
 
     # split the dataset in train and test set
     torch.manual_seed(1)
@@ -79,7 +90,7 @@ if __name__ == '__main__':
                                                 gamma=0.1)
 
     num_epochs = 10
-    folder = rt('src/outputData')
+    folder = outputpath
     if not os.path.exists(folder):
         os.makedirs(folder, exist_ok=True)
     

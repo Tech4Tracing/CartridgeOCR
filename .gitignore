@@ -176,10 +176,14 @@ node_modules
 
 #exclude test data
 src/data/
-src/outputData
+outputData
 
 local.settings.json
 package-lock.json
 config.json
-data/images
-data/labels
+data/dataset
+data/labeldata
+data/outimages
+rsim_data
+src/webapp/api/api.zip
+src/webapp/CartridgeOCRApp/build.zip

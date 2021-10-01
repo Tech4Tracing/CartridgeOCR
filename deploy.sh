@@ -2,9 +2,11 @@
 
 sudo apt install zip
 sudo apt install jq
+sudo apt install npm
+sudo npm install -g @ionic/cli
 pip install azureml-dataset-runtime --upgrade
 
-$homedir=`pwd`
+homedir=`pwd`
 
 cd $homedir/terraform
 
@@ -40,7 +42,7 @@ az config set extension.use_dynamic_install=yes_without_prompt
 az extension add -n azure-cli-ml
 
 # Create compute cluster
-az ml computetarget create amlcompute --max-nodes 4 --name $computeCluster --vm-size 'Standard_DS12_v2' -w $AMLWorkspaceName -g $resourceGroup
+az ml computetarget create amlcompute --max-nodes 4 --name $computeCluster --vm-size 'Standard_DS12_v2' --remote-login-port-public-access Disabled -w $AMLWorkspaceName -g $resourceGroup
 
 # Set system managed identity to cluster and permission for AML 
 az ml computetarget amlcompute identity assign --identities '[system]' --name $computeCluster -w $AMLWorkspaceName -g $resourceGroup

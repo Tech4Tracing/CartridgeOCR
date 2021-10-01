@@ -37,7 +37,7 @@ backports.tempfile==1.0
 backports.weakref==1.0.post1
 bcrypt==3.2.0
 bleach
-certifi==2020.12.5
+certifi
 cffi
 chardet==4.0.0
 cloudpickle==1.6.0
