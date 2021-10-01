@@ -1,0 +1,7 @@
+{
+  "name": "CartridgeOCRApp",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "react"
+}
