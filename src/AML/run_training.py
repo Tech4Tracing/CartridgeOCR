@@ -5,7 +5,8 @@ from azureml.core.compute_target import ComputeTargetException
 ws = Workspace.from_config()
 
 # Choose a name for your CPU cluster
-cpu_cluster_name = "cpucluster"
+# cpu_cluster_name = "cpucluster"
+cpu_cluster_name = "gpucompute"
 experiment_name = "main"
 src_dir = "."
 script = "train.py"

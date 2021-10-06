@@ -1,11 +1,30 @@
+## Deployment
+
+Add more to the onboarding docs, especially for personal subsciption deployments.
+
+deploy.sh is destructive and sometimes we just want to update something.
+deploy.sh ensure it doesn't nuke training sets
+deply.sh last deployment failed to assign service principal to gpucompute
+[learn more about terraform plans, management]
+Set up T4T azure subscription
+DONE: Create an NC6 GPU node instead of CPU cluster
+
 ## Labeler
 
-Re-upload the labeler to Rob's subscription
+A new labeler was created but it has lots of images that were already labeled- separate the labeled from unlabeled images and create a new dataset.
+
+Lack hackathon Simon noted some additional EXIF tags we may want to capture. I'm not sure what the status is of those tags or where they were documented. 
 
 ## Training
 
-GPU compute
-Wire up an output folder for the model.
+
+Model output folder should use experiment display name
+Deploy model to FE prediction service.
+Fix and post evaluation metrics
+Revive training_predictions for in-experiment and offline prediction.
+There is a major bug in evaluate that prevents proper metrics evaluation.  In a nutshell the transforms are bypassed when the evaluator grabs the coco API from the dataset. We need the dataset to replace the coco instance with a corrected instance. See effort to fix this in coco_utils.py (transform function.  It's still a mess)  
+
+Bounding box vs segmentation
 
 ## Webapp
 ionic build a clean repo yields a lot of deprecation warnings:
@@ -27,6 +46,8 @@ ionic build a clean repo yields a lot of deprecation warnings:
 - npm WARN deprecated @hapi/hoek@8.5.1: This version has been deprecated and is no longer supported or maintained
 - npm WARN deprecated @hapi/address@2.1.4: Moved to 'npm install @sideway/address'
 - npm WARN deprecated core-js@2.6.12: core-js@<3.3 is no longer maintained and not recommended for usage due to the number of issues. Because of the V8 engine whims, feature detection in old core-js versions could cause a slowdown up to 100x even if nothing is polyfilled. Please, upgrade your dependencies to the actual version of core-js.
+
+Eventually we need the app to work in offline mode as well.
 
 ## Prediction endpoint
 

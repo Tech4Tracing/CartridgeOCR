@@ -1,3 +1,10 @@
+"""
+    Evaluation aggregator.
+    For details of how COCO aggregates results, refer to https://cocodataset.org/#format-results
+    Will document as much as possible here too.
+    https://cocodataset.org/#detection-eval
+"""
+
 import json
 import tempfile
 

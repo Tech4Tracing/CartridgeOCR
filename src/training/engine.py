@@ -3,6 +3,7 @@ import sys
 import time
 import torch
 import json 
+from azureml.core import Run
 
 import torchvision.models.detection.mask_rcnn
 
@@ -36,6 +37,7 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq, ou
         losses_reduced = sum(loss for loss in loss_dict_reduced.values())
 
         loss_value = losses_reduced.item()
+        Run.get_context().log('loss', loss_value)
         outLog.write('{}\t{}\t{}\n'.format(epoch, batch, loss_value))
         outLog.flush()
         if not math.isfinite(loss_value):
@@ -80,19 +82,19 @@ def evaluate(model, data_loader, device):
     coco = get_coco_api_from_dataset(data_loader.dataset)
     iou_types = _get_iou_types(model)
     coco_evaluator = CocoEvaluator(coco, iou_types)
-    #with open(result_path, 'w', encoding='utf-8') as outF:
+    # with open(result_path, 'w', encoding='utf-8') as outF:
     for image, targets in metric_logger.log_every(data_loader, 100, header):
         image = list(img.to(device) for img in image)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
-
+        
         if torch.cuda.is_available():
             torch.cuda.synchronize()
         model_time = time.time()
         outputs = model(image)
-
+        
         outputs = [{k: v.to(cpu_device) for k, v in t.items()} for t in outputs]
         model_time = time.time() - model_time
-
+        
         res = {target["image_id"].item(): output for target, output in zip(targets, outputs)}
         evaluator_time = time.time()
         coco_evaluator.update(res)

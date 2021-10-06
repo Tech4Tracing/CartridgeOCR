@@ -97,6 +97,13 @@ resource "azurerm_storage_container" "labeldata" {
   container_access_type = "private"
 }
 
+
+resource "azurerm_storage_container" "models" {
+  name                  = "models"
+  storage_account_name  = azurerm_storage_account.stg.name
+  container_access_type = "private"
+}
+
 resource "azurerm_machine_learning_workspace" "ml" {
   name                    = "ml-${var.resource_name_prefix}-${var.environment}"
   location                = azurerm_resource_group.core.location

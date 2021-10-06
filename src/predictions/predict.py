@@ -41,7 +41,7 @@ def predict(img, prediction):
 
 if __name__ == '__main__':
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    folder = rt('src/outputData')
+    folder = rt('outputData')
     model = load_snapshot(folder + '/checkpoint.pth')
     model.to(device)
     model.eval()

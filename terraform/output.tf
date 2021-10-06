@@ -52,3 +52,7 @@ output "imagesContainer" {
 output "labelDataContainer" {
   value = azurerm_storage_container.labeldata.name
 }
+
+output "modelContainer" {
+  value = azurerm_storage_container.models.name
+}
