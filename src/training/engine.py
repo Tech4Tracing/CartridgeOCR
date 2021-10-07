@@ -84,15 +84,15 @@ def evaluate(model, data_loader, device):
     for image, targets in metric_logger.log_every(data_loader, 100, header):
         image = list(img.to(device) for img in image)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
-        
+
         if torch.cuda.is_available():
             torch.cuda.synchronize()
         model_time = time.time()
         outputs = model(image)
-        
+
         outputs = [{k: v.to(cpu_device) for k, v in t.items()} for t in outputs]
         model_time = time.time() - model_time
-        
+
         res = {target["image_id"].item(): output for target, output in zip(targets, outputs)}
         evaluator_time = time.time()
         coco_evaluator.update(res)
