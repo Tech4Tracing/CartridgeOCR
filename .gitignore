@@ -184,6 +184,8 @@ config.json
 data/dataset
 data/labeldata
 data/outimages
+data/dataset_annotated
+data/dataset_to_annotate
 rsim_data
 src/webapp/api/api.zip
 src/webapp/CartridgeOCRApp/build.zip

@@ -1,15 +1,12 @@
 import copy
 import os
-from PIL import Image
-
 import torch
 import torch.utils.data
 import torchvision
-
 from pycocotools import mask as coco_mask
 from pycocotools.coco import COCO
-
 import dataProcessing.transforms as T
+import logging
 
 
 class FilterAndRemapCocoCategories(object):
@@ -30,17 +27,33 @@ class FilterAndRemapCocoCategories(object):
         return image, target
 
 
+def convert_polygons(polygons, height, width):
+    max_width = 1080
+    if width > max_width:
+        logging.warn('invalid width needs normalizing')
+    polyout = []
+    for p in polygons:
+        mult = [width, height] * (len(p) // 2)
+        assert(len(mult) == len(p))
+        polyout.append([x * y for x, y in zip(p, mult)])
+    return polyout
+
+
+def transform_coco_polygon(segmentations, height, width):
+    result = []
+    for polygons in segmentations:
+        # print('polygons: ',polygons)
+        polyout = convert_polygons(polygons, height, width)    
+        result.append(polyout)
+    return result
+
+
 def convert_coco_poly_to_mask(segmentations, height, width):
     masks = []
     for polygons in segmentations:
-        #print('polygons: ',polygons)
-        polyout = []
-        for p in polygons:
-            mult = [width,height] * (len(p)//2)
-            assert(len(mult)==len(p))
-            polyout.append([x*y for x,y in zip(p,mult)])
-        polygons = polyout        
-        #print('poly2', polygons)
+        # print('polygons: ',polygons)
+        polygons = convert_polygons(polygons, height, width)
+        # print('poly2', polygons)
         rles = coco_mask.frPyObjects(polygons, height, width)
         mask = coco_mask.decode(rles)
         if len(mask.shape) < 3:
@@ -55,10 +68,17 @@ def convert_coco_poly_to_mask(segmentations, height, width):
     return masks
 
 
+def transform_coco_annotation(anno, height, width):
+    anno['segmentation'] = convert_polygons(anno['segmentation'], height, width)
+    anno['bbox'] = [x * y for (x, y) in zip(anno['bbox'], [width, height, width, height])]
+    for i in range(2, len(anno['bbox'])):
+        anno['bbox'][i] += anno['bbox'][i - 2]
+
+
 class ConvertCocoPolysToMask(object):
     def __call__(self, image, target):
         w, h = image.size
-        #print(w,h)
+        # print(w,h)
 
         image_id = target["image_id"]
         image_id = torch.tensor([image_id])
@@ -66,7 +86,7 @@ class ConvertCocoPolysToMask(object):
         anno = target["annotations"]
         
         # TODO: now fixed in the conversion script.
-        #for obj in anno:
+        # for obj in anno:
         #    obj['iscrowd']=0
 
         anno = [obj for obj in anno if obj['iscrowd'] == 0]
@@ -75,7 +95,7 @@ class ConvertCocoPolysToMask(object):
         # guard against no boxes via resizing
         boxes = torch.as_tensor(boxes, dtype=torch.float32).reshape(-1, 4)
         boxes[:, 2:] += boxes[:, :2]
-        boxes *= torch.as_tensor([w,h,w,h])
+        boxes *= torch.as_tensor([w, h, w, h])
         boxes[:, 0::2].clamp_(min=0, max=w)
         boxes[:, 1::2].clamp_(min=0, max=h)
 
@@ -111,7 +131,7 @@ class ConvertCocoPolysToMask(object):
         # for conversion to coco api
         area = torch.tensor([obj["area"] for obj in anno])
         iscrowd = torch.tensor([obj["iscrowd"] for obj in anno])
-        #iscrowd = torch.tensor([0 for obj in anno])
+        # iscrowd = torch.tensor([0 for obj in anno])
         target["area"] = area
         target["iscrowd"] = iscrowd
 
@@ -209,55 +229,6 @@ def convert_to_coco_api(ds):
     coco_ds.createIndex()
     return coco_ds
 
-# TODO
-def transform_coco_api(ds):
-    image_shapes = {}
-    for img_idx in range(len(ds)):
-        # find better way to get target
-        # targets = ds.get_annotations(img_idx)
-        img, targets = ds[img_idx]
-        image_id = targets["image_id"].item()
-        height = img.shape[-2]
-        width = img.shape[-1]
-        image_shapes[image_id] = (width, height)
-
-    for ann in ds.coco.dataset['annotations']:
-
-        bboxes = targets["boxes"]
-        bboxes[:, 2:] -= bboxes[:, :2]
-        bboxes = bboxes.tolist()
-        labels = targets['labels'].tolist()
-        areas = targets['area'].tolist()
-        iscrowd = targets['iscrowd'].tolist()
-        if 'masks' in targets:
-            masks = targets['masks']
-            # make masks Fortran contiguous for coco_mask
-            masks = masks.permute(0, 2, 1).contiguous().permute(0, 2, 1)
-        if 'keypoints' in targets:
-            keypoints = targets['keypoints']
-            keypoints = keypoints.reshape(keypoints.shape[0], -1).tolist()
-        num_objs = len(bboxes)
-        for i in range(num_objs):
-            ann = {}
-            ann['image_id'] = image_id
-            ann['bbox'] = bboxes[i]
-            ann['category_id'] = labels[i]
-            categories.add(labels[i])
-            ann['area'] = areas[i]
-            ann['iscrowd'] = iscrowd[i]
-            ann['id'] = ann_id
-            if 'masks' in targets:
-                ann["segmentation"] = coco_mask.encode(masks[i].numpy())
-            if 'keypoints' in targets:
-                ann['keypoints'] = keypoints[i]
-                ann['num_keypoints'] = sum(k != 0 for k in keypoints[i][2::3])
-            dataset['annotations'].append(ann)
-            ann_id += 1
-    dataset['categories'] = [{'id': i} for i in sorted(categories)]
-    coco_ds.dataset = dataset
-    coco_ds.createIndex()
-    return coco_ds
-
 
 def get_coco_api_from_dataset(dataset):
     for i in range(10):
@@ -274,17 +245,44 @@ class CocoDetection(torchvision.datasets.CocoDetection):
     def __init__(self, img_folder, ann_file, transforms):
         super(CocoDetection, self).__init__(img_folder, ann_file)
         self._transforms = transforms
-        # TODO: complete this work.
-        # self.coco = transform_coco_api(self)
 
     def __getitem__(self, idx):
-        img, target = super(CocoDetection, self).__getitem__(idx)        
+        img, target = super(CocoDetection, self).__getitem__(idx)
         image_id = self.ids[idx]
-        #print(image_id)
+        # print(image_id)
         target = dict(image_id=image_id, annotations=target)
         if self._transforms is not None:
             img, target = self._transforms(img, target)
         return img, target
+
+    @staticmethod
+    def get_coco_api(dataset, transform=False):        
+        for i in range(10):
+            if isinstance(dataset, torchvision.datasets.CocoDetection):
+                break
+            if isinstance(dataset, torch.utils.data.Subset):
+                dataset = dataset.dataset
+        if isinstance(dataset, torchvision.datasets.CocoDetection):
+            if not transform:
+                return dataset.coco
+            else:
+                return dataset.transform_coco_api()
+        raise Exception("No instance of CocoDetection found")
+
+    def transform_coco_api(self):
+        coco = copy.deepcopy(self.coco)
+
+        image_sizes = {}
+        for img, target in self:
+            image_sizes[target['image_id'].item()] = img.size()[1:]  # TODO: width vs height. Always len 3?
+
+        for ann in coco.dataset['annotations']:
+            id = ann['image_id']
+            (h, w) = image_sizes[id]
+            transform_coco_annotation(ann, h, w)
+
+        coco.createIndex()
+        return coco
 
 
 def get_coco(root, image_set, transforms, mode='instances'):

@@ -6,11 +6,9 @@
 """
 
 import json
-import tempfile
 
 import numpy as np
 import copy
-import time
 import torch
 import torch._six
 
@@ -21,6 +19,7 @@ import pycocotools.mask as mask_util
 from collections import defaultdict
 
 import dataProcessing.utils as utils
+from azureml.core import Run
 
 
 class CocoEvaluator(object):
@@ -62,9 +61,29 @@ class CocoEvaluator(object):
             coco_eval.accumulate()
 
     def summarize(self):
+        run = Run.get_context()
         for iou_type, coco_eval in self.coco_eval.items():
             print("IoU metric: {}".format(iou_type))
             coco_eval.summarize()
+            # print(coco_eval.stats)
+            # stats[0] = _summarize(1)
+            # stats[1] = _summarize(1, iouThr=.5, maxDets=self.params.maxDets[2])
+            # stats[2] = _summarize(1, iouThr=.75, maxDets=self.params.maxDets[2])
+            # stats[3] = _summarize(1, areaRng='small', maxDets=self.params.maxDets[2])
+            # stats[4] = _summarize(1, areaRng='medium', maxDets=self.params.maxDets[2])
+            # stats[5] = _summarize(1, areaRng='large', maxDets=self.params.maxDets[2])
+            # stats[6] = _summarize(0, maxDets=self.params.maxDets[0])
+            # stats[7] = _summarize(0, maxDets=self.params.maxDets[1])
+            # stats[8] = _summarize(0, maxDets=self.params.maxDets[2])
+            # stats[9] = _summarize(0, areaRng='small', maxDets=self.params.maxDets[2])
+            # stats[10] = _summarize(0, areaRng='medium', maxDets=self.params.maxDets[2])
+            # stats[11] = _summarize(0, areaRng='large', maxDets=self.params.maxDets[2])
+            run.log(f'{iou_type} Precision @ 0.5:0.95', coco_eval.stats[0])
+            run.log(f'{iou_type} Precision @ 0.5', coco_eval.stats[1])
+            run.log(f'{iou_type} Precision @ 0.75', coco_eval.stats[2])
+            run.log(f'{iou_type} Recall @ maxDets=1', coco_eval.stats[6])
+            run.log(f'{iou_type} Recall @ maxDets=10', coco_eval.stats[7])
+            run.log(f'{iou_type} Recall @ maxDets=100', coco_eval.stats[8])
 
     def prepare(self, predictions, iou_type):
         if iou_type == "bbox":

@@ -2,12 +2,10 @@ import math
 import sys
 import time
 import torch
-import json 
 from azureml.core import Run
 
 import torchvision.models.detection.mask_rcnn
-
-from dataProcessing.coco_utils import get_coco_api_from_dataset
+from dataProcessing.coco_utils import CocoDetection
 from training.coco_eval import CocoEvaluator
 import dataProcessing.utils as utils
 
@@ -79,26 +77,26 @@ def evaluate(model, data_loader, device):
     metric_logger = utils.MetricLogger(delimiter="  ")
     header = 'Test:'
 
-    coco = get_coco_api_from_dataset(data_loader.dataset)
+    coco = CocoDetection.get_coco_api(data_loader.dataset, transform=True)
     iou_types = _get_iou_types(model)
     coco_evaluator = CocoEvaluator(coco, iou_types)
     # with open(result_path, 'w', encoding='utf-8') as outF:
     for image, targets in metric_logger.log_every(data_loader, 100, header):
         image = list(img.to(device) for img in image)
         targets = [{k: v.to(device) for k, v in t.items()} for t in targets]
-        
+
         if torch.cuda.is_available():
             torch.cuda.synchronize()
         model_time = time.time()
         outputs = model(image)
-        
+
         outputs = [{k: v.to(cpu_device) for k, v in t.items()} for t in outputs]
         model_time = time.time() - model_time
-        
+
         res = {target["image_id"].item(): output for target, output in zip(targets, outputs)}
         evaluator_time = time.time()
         coco_evaluator.update(res)
-        #outF.write(json.dumps(res)+'\n')
+        # outF.write(json.dumps(res)+'\n')
         evaluator_time = time.time() - evaluator_time
         metric_logger.update(model_time=model_time, evaluator_time=evaluator_time)
 
