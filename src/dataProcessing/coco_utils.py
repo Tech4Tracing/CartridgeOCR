@@ -276,6 +276,11 @@ class CocoDetection(torchvision.datasets.CocoDetection):
         for img, target in self:
             image_sizes[target['image_id'].item()] = img.size()[1:]  # TODO: width vs height. Always len 3?
 
+        for img in coco.dataset['images']:
+            (h, w) = image_sizes[img['id']]
+            img['width'] = w
+            img['height'] = h
+
         for ann in coco.dataset['annotations']:
             id = ann['image_id']
             (h, w) = image_sizes[id]

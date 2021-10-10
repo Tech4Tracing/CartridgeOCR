@@ -42,9 +42,9 @@ if "RUNINAZURE" in os.environ:
 
 if __name__ == '__main__':
     # use our dataset and defined transformations
-
-    dataset = CocoDetection(datapath, os.path.join(labelpath, 'coco_xformed.json'), get_transform(train=True))
-    dataset_test = CocoDetection(datapath, os.path.join(labelpath, 'coco_xformed.json'), get_transform(train=False))
+    label_fn = 'coco_all_annotations_xformed.json'  # coco_xformed.json
+    dataset = CocoDetection(datapath, os.path.join(labelpath, label_fn), get_transform(train=True))
+    dataset_test = CocoDetection(datapath, os.path.join(labelpath, label_fn), get_transform(train=False))
 
     # split the dataset in train and test set
     torch.manual_seed(1)
