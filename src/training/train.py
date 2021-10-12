@@ -108,10 +108,8 @@ if __name__ == '__main__':
             save_snapshot(checkpoint, folder, epoch)
 
     if "RUNINAZURE" in os.environ:
-        from azureml.core import Workspace
         from azureml.core.model import Model
 
-        ws = Workspace.from_config()
         logging.info("Registering Model")
         model = Model.register(model_name="APImodel",
                            model_path=outputpath,
