@@ -6,9 +6,15 @@ h4g deck is [here](https://1drv.ms/p/s!Aq_TlvfieKvqu8t5DYBMbiD91PxE6Q?e=STaglB)
 
 ## Usage
 
-- pip install -r requirements.txt
+### Local training on Windows (requires local dataset)
+
+- Install anaconda or miniconda
+- Install VS C++ build tools from https://visualstudio.microsoft.com/visual-cpp-build-tools/ (choose the Visual C++ Desktop development option. Note it's a large download)
+- conda create -n t4t python==3.8
+- activate t4t
 - cd src
-- python train.py
+- pip install -r requirements.txt
+- python training/train.py
 
 ### Outputs
 
@@ -43,7 +49,7 @@ The following architecture diagram shows the major CartridgeOCR components from 
 
 ### Clone the repository
 
-Clone the repository to your local machine (`git clone https://OneCSEWeek@dev.azure.com/OneCSEWeek/CartridgeOCR/_git/CartridgeOCR`)
+Clone the repository to your local machine (`git clone https://github.com/Tech4Tracing/CartridgeOCR.git`)
 
 ### Pre-requisites
 
@@ -55,7 +61,7 @@ You will require the following pre-requisites installed.
 
 ### Configuring variables
 
-The environment is going to be provisioned using Terraform scripts. In order to run Terraform, you need to set the environment variables in [/terraform/terraform.tfvars.tmpl](../templates/core/terraform/terraform.tfvars.tmpl).
+The environment is going to be provisioned using Terraform scripts. In order to run Terraform, you need to set the environment variables in [/terraform/terraform.tfvars.tmpl](terraform/terraform.tfvars.tmpl).
 
 Rename the `terraform.tfvars.tmpl` to `terraform.tfvars`
 
@@ -90,6 +96,8 @@ The script will:
 - Set configuration values to the API Azure function
 - Deploy Ionic static web app
 
+You may wish to grant an exception to the webapp folder in Defender settings- running a build churns the malware scanner.
+
 ### Testing the image upload API
 
 To test the image upload API you can submit an upload request with curl. Replace the myImage.jpg with an image file that you want to upload, and change the URL to the one that has been outputted by the deployment script.
@@ -108,10 +116,11 @@ If you have a data (image) and label datasets that you would like to upload to A
 To run the training on the AML cluster provisioned in the deployment script, you can run [run_training.py](./src/AML/run_training.py) from the src folder. Notice that to run training in AML you don't have to run the full requirements.txt file locally, but you would need to pip install azure-ml and azure-ml-core.
 
 ```cmd
-pip install azure-ml
-pip install azure-ml-core
+pip install azureml-core
 python ./AML/run_training.py
 ```
+
+## The following instructions may be deprecated...
 
 ## Dev environment
 

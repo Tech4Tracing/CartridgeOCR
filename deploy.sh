@@ -2,9 +2,11 @@
 
 sudo apt install zip
 sudo apt install jq
+sudo apt install npm
+sudo npm install -g @ionic/cli
 pip install azureml-dataset-runtime --upgrade
 
-$homedir=`pwd`
+homedir=`pwd`
 
 cd $homedir/terraform
 
@@ -28,7 +30,8 @@ AMLWorkspaceName=$(echo $tfoutput | jq -r '.AMLWorkspaceName.value')
 subscriptionId=$(echo $tfoutput | jq -r '.subscriptionId.value')
 imagesContainer=$(echo $tfoutput | jq -r '.imagesContainer.value')
 labelDataContainer=$(echo $tfoutput | jq -r '.labelDataContainer.value')
-computeCluster='cpucluster'
+modelContainer=$(echo $tfoutput | jq -r '.modelContainer.value')
+computeCluster='gpucompute'
 EOF
 
 export $(cat $env_file | xargs)
@@ -40,7 +43,8 @@ az config set extension.use_dynamic_install=yes_without_prompt
 az extension add -n azure-cli-ml
 
 # Create compute cluster
-az ml computetarget create amlcompute --max-nodes 4 --name $computeCluster --vm-size 'Standard_DS12_v2' -w $AMLWorkspaceName -g $resourceGroup
+# az ml computetarget create amlcompute --max-nodes 4 --name $computeCluster --vm-size 'Standard_DS12_v2' --remote-login-port-public-access Disabled -w $AMLWorkspaceName -g $resourceGroup
+az ml computetarget create amlcompute --max-nodes 4 --name $computeCluster --vm-size 'Standard_NC6' --remote-login-port-public-access Disabled -w $AMLWorkspaceName -g $resourceGroup
 
 # Set system managed identity to cluster and permission for AML 
 az ml computetarget amlcompute identity assign --identities '[system]' --name $computeCluster -w $AMLWorkspaceName -g $resourceGroup
@@ -64,6 +68,13 @@ az ml datastore attach-blob --account-name $storageAccountName \
                             -w $AMLWorkspaceName \
                             -g $resourceGroup
 
+# Create datastore in AML for models
+az ml datastore attach-blob --account-name $storageAccountName \
+                            --container-name $modelContainer \
+                            --name $modelContainer \
+                            --account-key $storageAccountKey  \
+                            -w $AMLWorkspaceName \
+                            -g $resourceGroup
 
 AML_settings_file="$homedir/src/config.json"
 cat <<EOF > $AML_settings_file

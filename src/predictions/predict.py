@@ -1,7 +1,9 @@
+import sys
+sys.path+=['.','..']
 from PIL import Image
 import numpy as np, os, torch, torch.utils.data, torchvision
 from PIL import Image, ImageDraw
-from training.model_utils import rt, get_transform, isRectangleOverlap, isContained,get_transform, load_snapshot
+from training.model_utils import rt, get_transform, isRectangleOverlap, isContained, get_transform, load_snapshot
 
 def predict(img, prediction):
     masksout = []
@@ -41,11 +43,11 @@ def predict(img, prediction):
 
 if __name__ == '__main__':
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    folder = rt('src/outputData')
+    folder = rt('outputData')
     model = load_snapshot(folder + '/checkpoint.pth')
     model.to(device)
     model.eval()
-    image_path = '../src/data/dataset/Image E13 8x headstamps.jpg'
+    image_path = '../data/dataset/Image E13 8x headstamps.jpg'
     transform = get_transform(train=False)
     with torch.no_grad():
         img = Image.open(image_path).convert('RGB')

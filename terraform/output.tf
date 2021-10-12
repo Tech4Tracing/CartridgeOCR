@@ -12,6 +12,7 @@ output "cosmosEndpoint" {
 
 output "cosmosKey" {
   value = azurerm_cosmosdb_account.cosmos.primary_key
+  sensitive = true
 }
 
 output "cosmosDatabaseId" {
@@ -20,6 +21,7 @@ output "cosmosDatabaseId" {
 
 output "storageAccount" {
   value = azurerm_storage_account.stg.primary_connection_string
+  sensitive = true
 }
 
 output "storageAccountName" {
@@ -28,6 +30,7 @@ output "storageAccountName" {
 
 output "storageAccountKey" {
   value = azurerm_storage_account.stg.primary_access_key
+  sensitive = true
 }
 
 output "webappName" {
@@ -48,4 +51,8 @@ output "imagesContainer" {
 
 output "labelDataContainer" {
   value = azurerm_storage_container.labeldata.name
+}
+
+output "modelContainer" {
+  value = azurerm_storage_container.models.name
 }
