@@ -1,4 +1,5 @@
 # https://colab.research.google.com/github/pytorch/vision/blob/temp-tutorial/tutorials/torchvision_finetuning_instance_segmentation.ipynb
+import azureml.core
 import os
 import sys
 sys.path += ['.']
@@ -23,7 +24,7 @@ logging.info(f'Using pytorch version {torch.__version__}')
 logging.info(f'Using numpy version {np.__version__}')
 
 if "RUNINAZURE" in os.environ:
-    from azureml.core import Workspace, Datastore, Dataset, Run
+    from azureml.core import Workspace, Datastore, Dataset
 
     logging.info('Downloading datasets')
     ws = Workspace.from_config()
@@ -107,8 +108,18 @@ if __name__ == '__main__':
             save_snapshot(checkpoint, folder, epoch)
 
     if "RUNINAZURE" in os.environ:
-        targetpath = Run.get_context().display_name
-        logging.info(f"uploading results to {targetpath}")
-        files = [os.path.join(outputpath, f) for f in os.listdir(outputpath)]
-        modeldata = Datastore.get(ws, datastore_name='models')
-        modeldata.upload_files(files, target_path=targetpath)
+        from azureml.core import Workspace
+        from azureml.core.model import Model
+
+        ws = Workspace.from_config()
+        logging.info("Registering Model")
+        model = Model.register(model_name="APImodel",
+                           model_path=outputpath,
+                           description="",
+                           workspace=ws)
+        
+        # targetpath = Run.get_context().display_name
+        # logging.info(f"uploading results to {targetpath}")
+        # files = [os.path.join(outputpath, f) for f in os.listdir(outputpath)]
+        # modeldata = Datastore.get(ws, datastore_name='models')
+        # modeldata.upload_files(files, target_path=targetpath)
