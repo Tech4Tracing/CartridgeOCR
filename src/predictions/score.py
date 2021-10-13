@@ -1,10 +1,10 @@
-import sys
+import sys, json
 sys.path+=['.','..']
 from PIL import Image
 import numpy as np, os, torch, torch.utils.data, torchvision
 from PIL import Image, ImageDraw
 from azureml.core.model import Model
-# from training.model_utils import rt, get_transform, isRectangleOverlap, isContained, get_transform, load_snapshot
+from azure.storage.blob import BlobServiceClient
 
 def predict(img, prediction):
     masksout = []
@@ -55,19 +55,45 @@ def init():
     
     model = load_snapshot(model_path + '/checkpoint.pth')
     
-def run(image):
-    # img = Image.open(image_path).convert('RGB')
-    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
-    transform = get_transform(train=False)
-    with torch.no_grad():
-        img, _ = transform(image, {'image_id':0,  'boxes':[],  'annotations':[]})
-        prediction = model([img.to(device)])
-        masks = [p['masks'] for p in prediction]
-        prediction = [dict([(k, v.cpu().numpy().tolist()) for k, v in x.items() if k != 'masks']) for x in prediction]
-        print(masks, prediction)
-        dst = predict(img, prediction)
-        folder = rt('outputData')
-        fn = os.path.join(folder, 'predictions.png')
-        dst.save(fn)
-        return dst
+def run(request):
+    print("Request:" + request)
+    parsed = json.loads(request)
+    filepath = parsed["filepath"]
+    
+    try:
+        # Download image to run predict on
+        blob_service_client = BlobServiceClient.from_connection_string(os.getenv('AZURE_STORAGE_CONNECTION_STRING'))
+        image_blob_client = blob_service_client.get_blob_client(container="images", blob=filepath)
+        print("\nDownloading blob to \n\t" + filepath)
+        with open(filepath, "wb") as downloaded_img:
+            downloaded_img.write(image_blob_client.download_blob().readall())
+        
+        device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+        model.to(device)
+        model.eval()
+
+        img = Image.open(filepath).convert('RGB')
+        transform = get_transform(train=False)        
+        img, _ = transform(img, {'image_id':0,  'boxes':[],  'annotations':[]})
+        
+        with torch.no_grad():
+            prediction = model([img.to(device)])
+            masks = [p['masks'] for p in prediction]
+            prediction = [dict([(k, v.cpu().numpy().tolist()) for k, v in x.items() if k != 'masks']) for x in prediction]
+            print(masks, prediction)
+            dst = predict(img, prediction)           
+            dst.save(filepath)
+            
+            # Upload prediction to storage
+            prediction_blob_client = blob_service_client.get_blob_client(container="predictions", blob=filepath)
+            print("\nUploading to Azure Storage as blob:\n\t" + filepath)
+            with open(filepath, "rb") as data:
+                prediction_blob_client.upload_blob(data, overwrite=True)
+            
+            print(prediction_blob_client.url)
+            return prediction_blob_client.url
+    except Exception as ex:
+        print('Exception:')
+        print(ex)
+        return "Failed with error: " + ex
 
