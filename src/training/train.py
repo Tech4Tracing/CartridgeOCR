@@ -4,6 +4,7 @@ import os
 import sys
 sys.path += ['.']
 import logging
+from shutil import copy
 import numpy as np
 import torch
 import torch.utils.data
@@ -88,7 +89,11 @@ if __name__ == '__main__':
     folder = outputpath
     if not os.path.exists(folder):
         os.makedirs(folder, exist_ok=True)
-    
+    copy('training/model_utils.py', folder)
+    copy('training/engine.py', folder)
+    copy('dataProcessing/coco_utils.py', folder)
+    copy('dataProcessing/utils.py', folder)
+    copy('dataProcessing/transform.py', folder)
     with open(os.path.join(folder, 'loss.txt'), 'w', encoding='utf-8') as outLoss:
         for epoch in range(num_epochs):
             # train for one epoch, printing every 10 iterations

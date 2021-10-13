@@ -4,7 +4,7 @@ from PIL import Image
 import numpy as np, os, torch, torch.utils.data, torchvision
 from PIL import Image, ImageDraw
 from azureml.core.model import Model
-from training.model_utils import rt, get_transform, isRectangleOverlap, isContained, get_transform, load_snapshot
+# from training.model_utils import rt, get_transform, isRectangleOverlap, isContained, get_transform, load_snapshot
 
 def predict(img, prediction):
     masksout = []
@@ -42,9 +42,17 @@ def predict(img, prediction):
                     return dst
 
 def init():
-    global model
+    global model, rt, isRectangleOverlap, isContained, get_transform, load_snapshot
     model_name = os.getenv("AZUREML_MODEL_DIR").split('/')[-2]
     model_path = Model.get_model_path(model_name)
+    print(sys.path)
+    try:
+        sys.path.append('src/training')
+        sys.path.append('src/dataProcessing')
+        from training.model_utils import rt, isRectangleOverlap, isContained, get_transform, load_snapshot
+    except:
+        print('Not appended')
+    
     model = load_snapshot(model_path + '/checkpoint.pth')
     
 def run(image):
