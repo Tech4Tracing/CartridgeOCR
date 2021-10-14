@@ -7,7 +7,7 @@ model = Model(ws, 'APImodel')
 
 
 env = Environment(name='myenv')
-python_packages = ['Pillow', 'numpy', 'azureml-core', 'torch', 'torchvision', 'pycocotools', 'azureml-sdk']
+python_packages = ['Pillow', 'numpy', 'azureml-core', 'torch', 'torchvision', 'pycocotools', 'azureml-sdk', 'azure-storage-blob']
 for package in python_packages:
     env.python.conda_dependencies.add_pip_package(package)
 dummy_inference_config = InferenceConfig(
