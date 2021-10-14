@@ -1,10 +1,9 @@
-import sys, json
+import sys, json, io, base64
 sys.path+=['.','..']
 from PIL import Image
 import numpy as np, os, torch, torch.utils.data, torchvision
 from PIL import Image, ImageDraw
 from azureml.core.model import Model
-from azure.storage.blob import BlobServiceClient
 
 def predict(img, prediction):
     masksout = []
@@ -58,21 +57,17 @@ def init():
 def run(request):
     print("Request:" + request)
     parsed = json.loads(request)
-    filepath = parsed["filepath"]
+    encodedImage = parsed["image"]
     
-    try:
-        # Download image to run predict on
-        blob_service_client = BlobServiceClient.from_connection_string(os.getenv('AZURE_STORAGE_CONNECTION_STRING'))
-        image_blob_client = blob_service_client.get_blob_client(container="images", blob=filepath)
-        print("\nDownloading blob to \n\t" + filepath)
-        with open(filepath, "wb") as downloaded_img:
-            downloaded_img.write(image_blob_client.download_blob().readall())
-        
+    try:      
         device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
         model.to(device)
         model.eval()
 
-        img = Image.open(filepath).convert('RGB')
+        # Convert request from base64 to a PIL Image
+        img_bytes = base64.b64decode(encodedImage)  # img_bytes is a binary image
+        img_file = io.BytesIO(img_bytes)            # convert image to file-like object
+        img = Image.open(img_file)                  # img is now PIL Image object
         transform = get_transform(train=False)        
         img, _ = transform(img, {'image_id':0,  'boxes':[],  'annotations':[]})
         
@@ -82,16 +77,12 @@ def run(request):
             prediction = [dict([(k, v.cpu().numpy().tolist()) for k, v in x.items() if k != 'masks']) for x in prediction]
             print(masks, prediction)
             dst = predict(img, prediction)           
-            dst.save(filepath)
             
-            # Upload prediction to storage
-            prediction_blob_client = blob_service_client.get_blob_client(container="predictions", blob=filepath)
-            print("\nUploading to Azure Storage as blob:\n\t" + filepath)
-            with open(filepath, "rb") as data:
-                prediction_blob_client.upload_blob(data, overwrite=True)
-            
-            print(prediction_blob_client.url)
-            return prediction_blob_client.url
+            in_mem_file = io.BytesIO()
+            dst.save(in_mem_file, format = "JPEG")  # temporary file to store image data
+            dst_bytes = in_mem_file.getvalue()      # image in binary format
+            dst_b64 = base64.b64encode(dst_bytes)   # encode in base64 for response
+            return dst_b64.decode()
     except Exception as ex:
         print('Exception:')
         print(ex)
