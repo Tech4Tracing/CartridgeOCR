@@ -1,4 +1,5 @@
-from azureml.core import Workspace, Experiment, Environment, ScriptRunConfig, environment
+import sys
+from azureml.core import Workspace, Experiment, Environment, ScriptRunConfig
 from azureml.core.compute import ComputeTarget, AmlCompute
 from azureml.core.compute_target import ComputeTargetException
 
@@ -26,13 +27,16 @@ cpu_cluster.wait_for_completion(show_output=True)
 experiment = Experiment(workspace=ws, name=experiment_name)
 
 
-myenv = Environment.from_pip_requirements(name = "myenv",
-                                          file_path = "requirements.txt") 
+myenv = Environment.from_pip_requirements(name="myenv",
+                                          file_path="requirements.txt")
 
 myenv.environment_variables['PYTHONPATH'] = './src'
 myenv.environment_variables['RUNINAZURE'] = 'true'
 
-config = ScriptRunConfig(source_directory=src_dir, script="./training/train.py", compute_target=cpu_cluster_name, environment=myenv)
+config = ScriptRunConfig(source_directory=src_dir,
+                         script="./training/train.py",
+                         arguments=sys.argv[1:] if len(sys.argv) > 1 else None,
+                         compute_target=cpu_cluster_name, environment=myenv)
 
 run = experiment.submit(config)
 aml_url = run.get_portal_url()

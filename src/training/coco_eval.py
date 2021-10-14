@@ -20,7 +20,6 @@ import pycocotools.mask as mask_util
 from collections import defaultdict
 
 import dataProcessing.utils as utils
-from azureml.core import Run
 
 
 class CocoEvaluator(object):
@@ -62,7 +61,7 @@ class CocoEvaluator(object):
             coco_eval.accumulate()
 
     def summarize(self):
-        run = Run.get_context()
+        self.summary_stats = {}
         for iou_type, coco_eval in self.coco_eval.items():
             print("IoU metric: {}".format(iou_type))
             coco_eval.summarize()
@@ -79,13 +78,14 @@ class CocoEvaluator(object):
             # stats[9] = _summarize(0, areaRng='small', maxDets=self.params.maxDets[2])
             # stats[10] = _summarize(0, areaRng='medium', maxDets=self.params.maxDets[2])
             # stats[11] = _summarize(0, areaRng='large', maxDets=self.params.maxDets[2])
-            run.log(f'{iou_type} Precision @ 0.5:0.95', coco_eval.stats[0])
-            run.log(f'{iou_type} Precision @ 0.5', coco_eval.stats[1])
-            run.log(f'{iou_type} Precision @ 0.75', coco_eval.stats[2])
-            run.log(f'{iou_type} Recall @ maxDets=1', coco_eval.stats[6])
-            run.log(f'{iou_type} Recall @ maxDets=10', coco_eval.stats[7])
-            run.log(f'{iou_type} Recall @ maxDets=100', coco_eval.stats[8])
-            run.log(f'{iou_type} F1', sqrt(coco_eval.stats[0] * coco_eval.stats[8]))
+            self.summary_stats[f'{iou_type} Precision @ 0.5:0.95'] = coco_eval.stats[0]
+            self.summary_stats[f'{iou_type} Precision @ 0.5'] = coco_eval.stats[1]
+            self.summary_stats[f'{iou_type} Precision @ 0.75'] = coco_eval.stats[2]
+            self.summary_stats[f'{iou_type} Recall @ maxDets=1'] = coco_eval.stats[6]
+            self.summary_stats[f'{iou_type} Recall @ maxDets=10'] = coco_eval.stats[7]
+            self.summary_stats[f'{iou_type} Recall @ maxDets=100'] = coco_eval.stats[8]
+            self.summary_stats[f'{iou_type} F1'] = sqrt(coco_eval.stats[0] * coco_eval.stats[8])
+        return self.summary_stats
 
     def prepare(self, predictions, iou_type):
         if iou_type == "bbox":
