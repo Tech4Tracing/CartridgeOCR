@@ -11,6 +11,7 @@ import numpy as np
 import copy
 import torch
 import torch._six
+from math import sqrt
 
 from pycocotools.cocoeval import COCOeval
 from pycocotools.coco import COCO
@@ -84,6 +85,7 @@ class CocoEvaluator(object):
             run.log(f'{iou_type} Recall @ maxDets=1', coco_eval.stats[6])
             run.log(f'{iou_type} Recall @ maxDets=10', coco_eval.stats[7])
             run.log(f'{iou_type} Recall @ maxDets=100', coco_eval.stats[8])
+            run.log(f'{iou_type} F1', sqrt(coco_eval.stats[0] * coco_eval.stats[8]))
 
     def prepare(self, predictions, iou_type):
         if iou_type == "bbox":
