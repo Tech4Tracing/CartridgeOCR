@@ -1,11 +1,12 @@
-import os, numpy as np
-from training.engine import train_one_epoch, evaluate
+import os
 import dataProcessing.utils as utils
 import dataProcessing.transforms as T
 from dataProcessing.coco_utils import ConvertCocoPolysToMask
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
-import torchvision, torch
+import torchvision
+import torch
+
 
 def rt(p):
     return os.path.join('../', p)
@@ -31,10 +32,11 @@ def get_transform(train):
     return T.Compose(transforms)
 
 
-def isRectangleOverlap(R1,R2):
-    if (R1[0]>=R2[2]) or (R1[2]<=R2[0]) or (R1[3]<=R2[1]) or(R1[1]>=R2[3]):
-         return False
+def isRectangleOverlap(R1, R2):
+    if (R1[0] >= R2[2]) or (R1[2] <= R2[0]) or (R1[3] <= R2[1]) or (R1[1] >= R2[3]):
+        return False
     return True
+
 
 def isContained(R1, R2):
     if (R1[0] > R2[0]) and (R1[2] < R2[2]) and (R1[3] < R2[3]) and (R1[1] > R2[1]):
@@ -42,8 +44,8 @@ def isContained(R1, R2):
     return False
 
 
-def save_snapshot(checkpoint, output_dir, epoch):
-    utils.save_on_master(checkpoint, os.path.join(output_dir, 'model_{}.pth'.format(epoch)))
+def save_snapshot(checkpoint, output_dir, fold, epoch):
+    utils.save_on_master(checkpoint, os.path.join(output_dir, 'model_{}_{}.pth'.format(fold, epoch)))
     utils.save_on_master(checkpoint, os.path.join(output_dir, 'checkpoint.pth'))
 
 
