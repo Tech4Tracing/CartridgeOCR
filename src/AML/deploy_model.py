@@ -18,12 +18,9 @@ python_packages = ['Pillow', 'numpy', 'azureml-core', 'torch', 'torchvision', 'p
 for package in python_packages:
     env.python.conda_dependencies.add_pip_package(package)
 
-if os.path.exists('./webapp/cartridgeOCR/build'):
-    raise Exception("Can't deploy with webapp build- rm -rf webapp/cartridgeOCR/build to continue")
-
 dummy_inference_config = InferenceConfig(
     environment=env,
-    source_directory=".",
+    source_directory="./model",
     entry_script="predictions/score.py",    
 )
 
@@ -52,7 +49,7 @@ else:
                                                          description="testing versions",
                                                          version_name=version_name,
                                                          traffic_percentile=100)
-    endpoint = Model.deploy(ws, endpoint_name, [model], dummy_inference_config, deployment_config, compute)
+    service = Model.deploy(ws, endpoint_name, [model], dummy_inference_config, deployment_config, compute)
 
 service.wait_for_deployment(show_output=True)
 

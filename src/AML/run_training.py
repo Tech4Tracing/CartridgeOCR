@@ -8,7 +8,7 @@ ws = Workspace.from_config()
 # cpu_cluster_name = "cpucluster"
 cpu_cluster_name = "gpucompute"
 experiment_name = "main"
-src_dir = "."
+src_dir = "model"
 script = "train.py"
 
 # Verify that cluster does not exist already
