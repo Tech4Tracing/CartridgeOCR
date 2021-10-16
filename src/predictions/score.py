@@ -1,5 +1,5 @@
 import sys, json, io, base64
-sys.path+=['.','..']
+sys.path += ['.', '..']
 from PIL import Image
 import numpy as np, os, torch, torch.utils.data, torchvision
 from PIL import Image, ImageDraw
