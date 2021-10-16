@@ -112,7 +112,7 @@ if __name__ == '__main__':
             optimizer = SGD(params, lr=init_lr,
                             momentum=0.9, weight_decay=0.0005)
         elif args.optimizer == 'adam':
-            optimizer = Adam(lr=init_lr)  # weight_decay = ?
+            optimizer = Adam(params, lr=init_lr)  # weight_decay = ?
 
         # and a learning rate scheduler which decreases the learning rate by
         # 10x every 3 epochs
