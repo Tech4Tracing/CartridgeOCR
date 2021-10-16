@@ -36,7 +36,7 @@ resource "azurerm_container_registry" "acr" {
   name                     = "acr${var.resource_name_prefix}${var.environment}"
   resource_group_name      = azurerm_resource_group.core.name
   location                 = var.location
-  sku                      = "Premium"
+  sku                      = "Basic"
   admin_enabled            = false
 }
 

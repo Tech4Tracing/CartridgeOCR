@@ -60,11 +60,12 @@ if __name__ == '__main__':
 
     all_stats = {}
 
-    def log_summary(summary, fold, epoch):
+    def log_summary(summary, fold, epoch, best_score_key=None):
         '''
         After each epoch in each fold, compiles statistics organized by epoch
         for future collation.
         Logs current epoch result to the current fold for per-fold plotting. 
+        best_score_key indicates the key metric to check if we've reached the best overall score.
         '''
         run = Run.get_context()
         for k in summary:
@@ -76,6 +77,9 @@ if __name__ == '__main__':
             # We'll just log the raw values to a single metric to avoid clutter (they will reset on each fold)
             run.log(k, summary[k])
 
+        return best_score_key is not None and best_score_key in summary and \
+            summary[best_score_key] >= max([max(all_stats[e][best_score_key]) for e in all_stats])
+
     def log_final_stats():
         run = Run.get_context()
         for epoch in all_stats:
@@ -83,7 +87,7 @@ if __name__ == '__main__':
                 run.log(f'mean {k}', np.mean(all_stats[epoch][k]))
                 run.log(f'std {k}', np.std(all_stats[epoch][k]))
 
-    def train(fold, dataset, dataset_test):
+    def train(fold, dataset, dataset_test, save_best=False):
         # define training and validation data loaders
         data_loader = torch.utils.data.DataLoader(
             dataset, batch_size=2, shuffle=True, num_workers=0,
@@ -133,7 +137,7 @@ if __name__ == '__main__':
                 lr_scheduler.step()
                 # evaluate on the test dataset
                 summary = evaluate(model, data_loader_test, device=device)
-                log_summary(summary, fold, epoch)
+                is_best = log_summary(summary, fold, epoch, best_score_key='segm f1' if save_best else None)
 
                 checkpoint = {
                     'model': model.state_dict(),
@@ -142,7 +146,7 @@ if __name__ == '__main__':
                     'epoch': epoch,
                     # 'args': args
                 }
-                save_snapshot(checkpoint, folder, fold, epoch)
+                save_snapshot(checkpoint, folder, fold, epoch, is_best)
 
     # Run the main training part, maybe with cross-validation
     if args.cv <= 1:
@@ -151,7 +155,8 @@ if __name__ == '__main__':
         cutoff = max(10, int(0.1 * len(dataset_base)))
         dataset = torch.utils.data.Subset(dataset_base, indices[:-cutoff])
         dataset_test = torch.utils.data.Subset(dataset_test_base, indices[-cutoff:])
-        train(0, dataset, dataset_test)
+        # we only set save_best for single 90/10 split runs, not cross-validation
+        train(0, dataset, dataset_test, save_best=True)
     else:
         kfold = KFold(n_splits=args.cv, shuffle=True)
         #

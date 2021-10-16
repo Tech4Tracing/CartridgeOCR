@@ -44,9 +44,11 @@ def isContained(R1, R2):
     return False
 
 
-def save_snapshot(checkpoint, output_dir, fold, epoch):
+def save_snapshot(checkpoint, output_dir, fold, epoch, is_best=False):
     utils.save_on_master(checkpoint, os.path.join(output_dir, 'model_{}_{}.pth'.format(fold, epoch)))
     utils.save_on_master(checkpoint, os.path.join(output_dir, 'checkpoint.pth'))
+    if is_best:
+        utils.save_on_master(checkpoint, os.path.join(output_dir, 'best_model.pth'))
 
 
 def load_snapshot(checkpoint):
