@@ -14,7 +14,7 @@ model = Model(ws, 'APImodel')
 
 
 env = Environment(name='myenv')
-python_packages = ['Pillow', 'numpy', 'azureml-core', 'torch', 'torchvision', 'pycocotools', 'azureml-sdk', 'azure-storage-blob']
+python_packages = ['Pillow', 'numpy', 'azureml-core', 'torch', 'torchvision', 'pycocotools', 'azureml-sdk', 'azure-storage-blob', 'azureml-contrib-services']
 for package in python_packages:
     env.python.conda_dependencies.add_pip_package(package)
 
@@ -43,9 +43,12 @@ else:
     version_name = 'version1'
     endpoint_name = 'cartridgeocraks'
     compute = ComputeTarget(ws, 'cartridgeocraks')
+    
+    # compute.delete()
+    # compute.wait_for_completion()
     deployment_config = AksEndpoint.deploy_configuration(cpu_cores=1, memory_gb=8,
                                                          enable_app_insights=False,  # True,
-                                                         tags={'sckitlearn': 'demo'},
+                                                         # tags={'sckitlearn': 'demo'},
                                                          description="testing versions",
                                                          version_name=version_name,
                                                          traffic_percentile=100)
