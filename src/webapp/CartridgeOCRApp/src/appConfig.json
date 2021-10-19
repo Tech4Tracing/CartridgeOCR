@@ -1,3 +1,4 @@
 {
-    "imageAPIURI": "http://localhost:7071/api/image-upload"
+    "imageAPIURI": "http://localhost:7071/api/image-upload",
+    "predictAPIURI": "http://3ca4da63-9969-4a9e-b85a-3d28ae14b212.westeurope.azurecontainer.io/score"
 }

@@ -11,25 +11,38 @@ DONE: Create an NC6 GPU node instead of CPU cluster
 
 ## Labeler
 
-A new labeler was created but it has lots of images that were already labeled- separate the labeled from unlabeled images and create a new dataset.
+new dataset.
 
-Lack hackathon Simon noted some additional EXIF tags we may want to capture. I'm not sure what the status is of those tags or where they were documented. 
+Last hackathon Simon noted some additional EXIF tags we may want to capture. I'm not sure what the status is of those tags or where they were documented. 
 
-Images have been uploaded for fresh annotation. we need a better workflow for organizing/staging incoming images and saving them for training.
+We need a better workflow for organizing/staging incoming images and saving them for training.
+
+DONE - All annotations in current set. Images have been uploaded for fresh annotation.
+DONE - A new labeler was created but it has lots of images that were already labeled- separate the labeled from unlabeled images and create a 
 
 ## Training
 
 
-Model output folder should use experiment display name
 Deploy model to FE prediction service.
-Fix and post evaluation metrics - work in progress, see below.
 
 Revive training_predictions for in-experiment and offline prediction. -- Predict.py has some good code for filtering spurious detections, and merging the casing and primer predictions to yield a more confident detection.
 
-There is a major bug in evaluate that prevents proper metrics evaluation.  In a nutshell the transforms are bypassed when the evaluator grabs the coco API from the dataset. We need the dataset to replace the coco instance with a corrected instance. This has been partially mitigated by "converting" the coco api at evaluation time. It's expensive because it requires re-opening every image and collecting its size- this should be fixed.  Also the mitigation only seems to work for the bounding boxes and not the polygons.
+Cross-validation, hyperparameter optimization
 
-Bounding box vs segmentation evaluation
+render some outputs, look at the bad performers
+
+Model selection - track best validation model
+
+DONE - Model output folder should use experiment display name
+
+DONE - Fix and post evaluation metrics - work in progress, see below.
+
+DONE - There is a major bug in evaluate that prevents proper metrics evaluation.  In a nutshell the transforms are bypassed when the evaluator grabs the coco API from the dataset. We need the dataset to replace the coco instance with a corrected instance. This has been partially mitigated by "converting" the coco api at evaluation time. It's expensive because it requires re-opening every image and collecting its size- this should be fixed.  Also the mitigation only seems to work for the bounding boxes and not the polygons.
+
+DONE - Bounding box vs segmentation evaluation
 The evaluation metrics seem pretty poor but maybe this is expected. It may be worth validating on one or two images. We also need a lot more training data.
+
+DONE - Add F1 metric to training progress.
 
 ## Webapp
 ionic build a clean repo yields a lot of deprecation warnings:
