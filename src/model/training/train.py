@@ -1,8 +1,10 @@
 # https://colab.research.google.com/github/pytorch/vision/blob/temp-tutorial/tutorials/torchvision_finetuning_instance_segmentation.ipynb
+from azureml.core import Run
 import os
 import sys
 sys.path += ['.']
 import logging
+from shutil import copy
 import numpy as np
 import torch
 import torch.utils.data
@@ -31,7 +33,7 @@ parser.add_argument('--cv', type=int, default=1, help='cross-validation slices (
 parser.add_argument('--optimizer', default='sgd', help='Optimizer: sgd or adam for now')
 
 if "RUNINAZURE" in os.environ:
-    from azureml.core import Workspace, Datastore, Dataset, Run
+    from azureml.core import Workspace, Datastore, Dataset
 
     logging.info('Downloading datasets')
     ws = Workspace.from_config()
@@ -133,7 +135,7 @@ if __name__ == '__main__':
             for epoch in range(num_epochs):
                 # train for one epoch, printing every 10 iterations
                 train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq=10, outLog=outLoss)
-                # update the learning rate
+                # update the learning rate  
                 lr_scheduler.step()
                 # evaluate on the test dataset
                 summary = evaluate(model, data_loader_test, device=device)
@@ -169,6 +171,20 @@ if __name__ == '__main__':
         log_final_stats()
 
     if "RUNINAZURE" in os.environ:
+        folder = outputpath
+        copy('training/model_utils.py', folder)
+        copy('training/engine.py', folder)
+        copy('dataProcessing/coco_utils.py', folder)
+        copy('dataProcessing/utils.py', folder)
+        copy('dataProcessing/transforms.py', folder)
+        from azureml.core.model import Model
+
+        logging.info("Registering Model")
+        model = Model.register(model_name="APImodel",
+                               model_path=outputpath,
+                               description="",
+                               workspace=ws)
+
         targetpath = Run.get_context().display_name
         logging.info(f"uploading results to {targetpath}")
         files = [os.path.join(outputpath, f) for f in os.listdir(outputpath)]
