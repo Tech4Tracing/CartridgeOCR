@@ -16,6 +16,8 @@ h4g deck is [here](https://1drv.ms/p/s!Aq_TlvfieKvqu8t5DYBMbiD91PxE6Q?e=STaglB)
 - pip install -r requirements.txt
 - python training/train.py
 
+You might alo need the Workspace configuration. You can find it by going to the Machine Learning workspace in Azure Portal, then in the overview it's next to the delete button as `Download config.json`. Ask a teammate for a copy of this if you don't have access in Azure.
+
 ### Outputs
 
 - data/run_data: output folder

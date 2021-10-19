@@ -2,6 +2,7 @@ import sys
 from azureml.core import Workspace, Experiment, Environment, ScriptRunConfig
 from azureml.core.compute import ComputeTarget, AmlCompute
 from azureml.core.compute_target import ComputeTargetException
+from shutil import copy
 
 ws = Workspace.from_config()
 
@@ -9,7 +10,7 @@ ws = Workspace.from_config()
 # cpu_cluster_name = "cpucluster"
 cpu_cluster_name = "gpucompute"
 experiment_name = "main"
-src_dir = "."
+src_dir = "model"
 script = "train.py"
 
 # Verify that cluster does not exist already
@@ -25,12 +26,12 @@ cpu_cluster.wait_for_completion(show_output=True)
 
 
 experiment = Experiment(workspace=ws, name=experiment_name)
-
+copy('./config.json', 'model/config.json')
 
 myenv = Environment.from_pip_requirements(name="myenv",
                                           file_path="requirements.txt")
 
-myenv.environment_variables['PYTHONPATH'] = './src'
+myenv.environment_variables['PYTHONPATH'] = './model'
 myenv.environment_variables['RUNINAZURE'] = 'true'
 
 config = ScriptRunConfig(source_directory=src_dir,

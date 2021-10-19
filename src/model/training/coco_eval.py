@@ -20,6 +20,7 @@ import pycocotools.mask as mask_util
 from collections import defaultdict
 
 import dataProcessing.utils as utils
+from azureml.core import Run
 
 
 class CocoEvaluator(object):
