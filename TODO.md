@@ -1,6 +1,7 @@
 ## Deployment
 
 Add more to the onboarding docs, especially for personal subsciption deployments.
+Add AML endpoint configuration/setup scripts
 
 deploy.sh is destructive and sometimes we just want to update something.
 deploy.sh ensure it doesn't nuke training sets
