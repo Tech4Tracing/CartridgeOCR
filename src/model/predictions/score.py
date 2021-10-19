@@ -56,15 +56,19 @@ class Inference():
 
     def init(self):
         global model, rt, isRectangleOverlap, isContained, get_transform, load_snapshot
+        print('AZURE_MODEL_DIR', os.getenv('AZUREML_MODEL_DIR'))
         model_name = os.getenv("AZUREML_MODEL_DIR").split('/')[-2]
+        print('model name:', model_name)
         model_path = Model.get_model_path(model_name)
+        print('model_path', model_path)
         print(sys.path)
         try:
-            sys.path.append('src/training')
-            sys.path.append('src/dataProcessing')
-            from training.model_utils import rt, isRectangleOverlap, isContained, get_transform, load_snapshot
+            sys.path.append('model')
+            sys.path.append('model/training')
+            sys.path.append('model/dataProcessing')
+            from model.training.model_utils import rt, isRectangleOverlap, isContained, get_transform, load_snapshot
         except Exception as e:
-            print('Not appended')
+            print('Not appended', str(e))
         
         self.model = load_snapshot(model_path + '/checkpoint.pth')
         
@@ -119,7 +123,7 @@ def run(request):
         respBody = str.encode(request.full_path)
         return AMLResponse(respBody, 200)
     elif request.method == 'POST':
-        reqBody = request.get_data(False)
+        reqBody = request.get_data(False).decode('utf-8')
         
         result = inference.run(reqBody)
         

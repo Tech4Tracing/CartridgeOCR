@@ -1,5 +1,5 @@
 # https://colab.research.google.com/github/pytorch/vision/blob/temp-tutorial/tutorials/torchvision_finetuning_instance_segmentation.ipynb
-import azureml.core
+from azureml.core import Run
 import os
 import sys
 sys.path += ['.']
@@ -93,7 +93,7 @@ if __name__ == '__main__':
     copy('training/engine.py', folder)
     copy('dataProcessing/coco_utils.py', folder)
     copy('dataProcessing/utils.py', folder)
-    copy('dataProcessing/transform.py', folder)
+    copy('dataProcessing/transforms.py', folder)
     with open(os.path.join(folder, 'loss.txt'), 'w', encoding='utf-8') as outLoss:
         for epoch in range(num_epochs):
             # train for one epoch, printing every 10 iterations
@@ -117,12 +117,12 @@ if __name__ == '__main__':
 
         logging.info("Registering Model")
         model = Model.register(model_name="APImodel",
-                           model_path=outputpath,
-                           description="",
-                           workspace=ws)
-        
-        # targetpath = Run.get_context().display_name
-        # logging.info(f"uploading results to {targetpath}")
-        # files = [os.path.join(outputpath, f) for f in os.listdir(outputpath)]
-        # modeldata = Datastore.get(ws, datastore_name='models')
-        # modeldata.upload_files(files, target_path=targetpath)
+                               model_path=outputpath,
+                               description="",
+                               workspace=ws)
+
+        targetpath = Run.get_context().display_name
+        logging.info(f"uploading results to {targetpath}")
+        files = [os.path.join(outputpath, f) for f in os.listdir(outputpath)]
+        modeldata = Datastore.get(ws, datastore_name='models')
+        modeldata.upload_files(files, target_path=targetpath)
