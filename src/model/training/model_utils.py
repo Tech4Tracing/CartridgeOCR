@@ -50,6 +50,7 @@ def save_snapshot(checkpoint, output_dir, fold, epoch):
 
 
 def load_snapshot(checkpoint):
+    '''Loads a snapshot. Call model.to(device) to move to GPU'''
     cp = torch.load(checkpoint, map_location=torch.device('cpu'))
     num_classes = 3
     model = get_instance_segmentation_model(num_classes)
