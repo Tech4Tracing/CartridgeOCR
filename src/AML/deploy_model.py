@@ -58,7 +58,7 @@ else:
     version_name = 'version1'
     endpoint_name = 'cartridgeocraks'
     compute = ComputeTarget(ws, 'cartridgeocraks')
-    
+
     if args.update:
         # Retrieve existing service.
         service = Webservice(name=endpoint_name, workspace=ws)
@@ -66,7 +66,7 @@ else:
         # Update to new model(s).
         print(service)
         service.update(models=[model], inference_config=dummy_inference_config)
-        
+
     else:
         # compute.delete()
         # compute.wait_for_completion()
