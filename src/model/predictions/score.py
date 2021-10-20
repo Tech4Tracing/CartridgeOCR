@@ -1,4 +1,4 @@
-import sys 
+import sys
 import json
 import io
 import base64
@@ -8,7 +8,7 @@ import torch
 import torch.utils.data
 import torchvision
 from azureml.core.model import Model
-from azureml.contrib.services.aml_request import AMLRequest, rawhttp
+from azureml.contrib.services.aml_request import rawhttp, AMLRequest
 from azureml.contrib.services.aml_response import AMLResponse
 
 
@@ -28,7 +28,7 @@ class Inference():
             imgOut = Image.new('RGB', i2.size)
             imgOut.paste(i2, (0, 0))
             canvas = ImageDraw.Draw(imgOut)
-            boxes = [(b, s, l) for b, s, l in zip(p['boxes'], p['scores'], p['labels']) if b[2] < i2.width if b[3] < i2.height if b[2] - b[0] > 20 if b[3] - b[1] > 20]
+            # boxes = [(b, s, l) for b, s, l in zip(p['boxes'], p['scores'], p['labels']) if b[2] < i2.width if b[3] < i2.height if b[2] - b[0] > 20 if b[3] - b[1] > 20]
             casings = [(b, s, l) for b, s, l in zip(p['boxes'], p['scores'], p['labels']) if l == 1 if b[2] < i2.width if b[3] < i2.height if b[2] - b[0] > 20 if b[3] - b[1] > 20]
             primers = [(b, s, l) for b, s, l in zip(p['boxes'], p['scores'], p['labels']) if l == 2 if b[2] < i2.width if b[3] < i2.height if b[2] - b[0] > 20 if b[3] - b[1] > 20]
             masksout.append(imgOut)
@@ -52,7 +52,7 @@ class Inference():
                         if not any(map(lambda x: isRectangleOverlap(box, x), primersOut)):
                             primersOut.append(box)
                             canvas.rectangle(box, outline='yellow', width=3)
-                        return dst
+                return dst, boxesOut, primersOut
 
     def init(self):
         global model, rt, isRectangleOverlap, isContained, get_transform, load_snapshot
@@ -69,15 +69,15 @@ class Inference():
             from model.training.model_utils import rt, isRectangleOverlap, isContained, get_transform, load_snapshot
         except Exception as e:
             print('Not appended', str(e))
-        
+
         self.model = load_snapshot(model_path + '/checkpoint.pth')
-        
+
     def run(self, request):
         print("Request:" + request)
         parsed = json.loads(request)
         encodedImage = parsed["image"]
-        
-        try:      
+
+        try:
             device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
             self.model.to(device)
             self.model.eval()
@@ -86,21 +86,21 @@ class Inference():
             img_bytes = base64.b64decode(encodedImage)  # img_bytes is a binary image
             img_file = io.BytesIO(img_bytes)            # convert image to file-like object
             img = Image.open(img_file)                  # img is now PIL Image object
-            transform = get_transform(train=False)        
-            img, _ = transform(img, {'image_id':0,  'boxes':[],  'annotations':[]})
-            
+            transform = get_transform(train=False)
+            img, _ = transform(img, {'image_id': 0, 'boxes': [], 'annotations': []})
+
             with torch.no_grad():
                 prediction = self.model([img.to(device)])
                 masks = [p['masks'] for p in prediction]
                 prediction = [dict([(k, v.cpu().numpy().tolist()) for k, v in x.items() if k != 'masks']) for x in prediction]
                 print(masks, prediction)
-                dst = self.predict(img, prediction)           
+                dst, boxes, primers = self.predict(img, prediction)
 
                 in_mem_file = io.BytesIO()
                 dst.save(in_mem_file, format="JPEG")  # temporary file to store image data
                 dst_bytes = in_mem_file.getvalue()      # image in binary format
                 dst_b64 = base64.b64encode(dst_bytes)   # encode in base64 for response
-                return dst_b64.decode()
+                return {'image': dst_b64.decode(), 'boxes': boxes, 'primers': primers }
         except Exception as ex:
             print('Exception:')
             print(ex)
@@ -120,15 +120,27 @@ def run(request):
     # print("Request: [{0}]".format(request))
     if request.method == 'GET':
         # TODO: should GET requests be serviced?  Return 502 error?
-        respBody = str.encode(request.full_path)
+        # respBody = str.encode(request.full_path)
+        respBody = str.encode(json.dumps(request.headers()))
         return AMLResponse(respBody, 200)
     elif request.method == 'POST':
         reqBody = request.get_data(False).decode('utf-8')
-        
+
         result = inference.run(reqBody)
-        
-        resp = AMLResponse(result, 200)
+        # result = {'image': result, 'requestheaders': request.headers()}
+        # resp = AMLResponse(json.dumps(result), 200)
+        resp = AMLResponse(json.dumps(result), 200)        
         resp.headers['Access-Control-Allow-Origin'] = "https://web-cartridgeocr-simra.azurewebsites.net"
+        resp.headers['Access-Control-Allow-Headers'] = "Origin, X-Requested-With, Content-Type, Accept"
         return resp
+    elif request.method == 'OPTIONS':
+        
+        resp = AMLResponse("", 200)
+        resp.headers["Allow"] = "OPTIONS, GET, POST"
+        resp.headers["Access-Control-Allow-Methods"] = "OPTIONS, GET, POST"
+        resp.headers['Access-Control-Allow-Origin'] = "https://web-cartridgeocr-simra.azurewebsites.net"
+        resp.headers['Access-Control-Allow-Headers'] = "Origin, X-Requested-With, Content-Type, Accept"
+        return resp
+
     else:
         return AMLResponse("bad request", 500)
