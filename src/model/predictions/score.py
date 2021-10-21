@@ -7,6 +7,7 @@ import os
 import torch
 import torch.utils.data
 import torchvision
+import logging
 from azureml.core.model import Model
 from azureml.contrib.services.aml_request import rawhttp, AMLRequest
 from azureml.contrib.services.aml_response import AMLResponse
@@ -17,7 +18,7 @@ sys.path += ['.', '..']
 
 class Inference():
     def __init__(self) -> None:
-        pass
+        self.max_width = 1080
 
     def predict(self, img, prediction):
         masksout = []
@@ -73,7 +74,7 @@ class Inference():
         self.model = load_snapshot(model_path + '/checkpoint.pth')
 
     def run(self, request):
-        print("Request:" + request)
+        # print("Request" + request)
         parsed = json.loads(request)
         encodedImage = parsed["image"]
 
@@ -86,21 +87,28 @@ class Inference():
             img_bytes = base64.b64decode(encodedImage)  # img_bytes is a binary image
             img_file = io.BytesIO(img_bytes)            # convert image to file-like object
             img = Image.open(img_file)                  # img is now PIL Image object
+            width, height = img.size
+            if width > self.max_width:
+                logging.info(f'Resizing from {width}')
+                newsize = (self.max_width, int(self.max_width / width * height))
+                img = img.resize(newsize)
+            logging.info(f'Image size {img.size}')
             transform = get_transform(train=False)
             img, _ = transform(img, {'image_id': 0, 'boxes': [], 'annotations': []})
 
             with torch.no_grad():
                 prediction = self.model([img.to(device)])
-                masks = [p['masks'] for p in prediction]
+                # masks = [p['masks'] for p in prediction]
                 prediction = [dict([(k, v.cpu().numpy().tolist()) for k, v in x.items() if k != 'masks']) for x in prediction]
-                print(masks, prediction)
+                # print(masks, prediction)
                 dst, boxes, primers = self.predict(img, prediction)
 
                 in_mem_file = io.BytesIO()
                 dst.save(in_mem_file, format="JPEG")  # temporary file to store image data
                 dst_bytes = in_mem_file.getvalue()      # image in binary format
                 dst_b64 = base64.b64encode(dst_bytes)   # encode in base64 for response
-                return {'image': dst_b64.decode(), 'boxes': boxes, 'primers': primers }
+                print(f'detected {len(boxes)} boxes and {len(primers)} primers')
+                return {'image': dst_b64.decode(), 'boxes': boxes, 'primers': primers}
         except Exception as ex:
             print('Exception:')
             print(ex)
