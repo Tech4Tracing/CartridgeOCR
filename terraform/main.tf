@@ -124,9 +124,9 @@ resource "azurerm_app_service_plan" "plan" {
   reserved            = true
   kind                = "linux"
   sku {
-    tier     = "PremiumV3"
+    tier     = "Standard"
     capacity = 1
-    size     = "P1v3"
+    size     = "B1"
   }
 }
 
