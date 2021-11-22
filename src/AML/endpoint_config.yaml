@@ -1,0 +1,32 @@
+$schema: https://azuremlschemas.azureedge.net/latest/managedOnlineEndpoint.schema.json
+name: simra-ocrtest
+type: online
+auth_mode: key
+traffic:
+  blue: 100
+
+deployments:
+  #blue deployment
+  - name: blue
+    model:
+      name: model-1
+      version: 1
+      local_path: ../../outputData/checkpoint.pth
+    code_configuration:
+      code: 
+        local_path: ../predictions
+      scoring_script: predict.py
+    environment: 
+      name: myenv
+      version: Autosave_2021-10-12T17:54:33Z_fd9ce4fe
+      #path: .
+      #conda_file: file:../../model-1/environment/conda.yml
+      docker:
+          #image: mcr.microsoft.com/azureml/openmpi3.1.2-ubuntu18.04:20210727.v1
+          image: 7be8e605d3ec42f08786a580b3f630dc.azurecr.io/azureml/azureml_1e5af5bc6bf0138361adcac7af3c817b
+    instance_type: Standard_NC6s_v2 #Standard_F2s_v2
+    scale_settings:
+      scale_type: manual
+      instance_count: 1
+      min_instances: 1
+      max_instances: 2

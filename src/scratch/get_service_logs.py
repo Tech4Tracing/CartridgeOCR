@@ -6,6 +6,7 @@ from azureml.core.webservice import Webservice
 import argparse
 import os
 import json
+import re
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--tail', default=1000, type=int)
@@ -22,5 +23,8 @@ compute = ComputeTarget(ws, 'cartridgeocraks')
 
 service = Webservice(name=endpoint_name, workspace=ws)
 logs = json.loads(service.get_logs())[version_name]
-logs = logs.split('\n')[max(-len(logs), -args.tail):]
+logs = logs.split('\n')
+filter_re = re.compile(r'^no request id,.*|^\r\d+\.\d%.*|^[\r\s]+$')
+logsout = [l for l in logs if not (filter_re.match(l))]
+logs = logsout[max(-len(logsout), -args.tail):]
 print('\n'.join(logs))
