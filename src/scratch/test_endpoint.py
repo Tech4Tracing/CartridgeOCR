@@ -12,7 +12,8 @@ import argparse
 endpoints = {
     'local': 'http://localhost:6789',
     'aks': 'https://cartridgeocr3nta3a.westeurope.cloudapp.azure.com:443/api/v1/service/cartridgeocraks/score',
-    'aci': 'http://3ca4da63-9969-4a9e-b85a-3d28ae14b212.westeurope.azurecontainer.io/score'
+    #'aci': 'http://3ca4da63-9969-4a9e-b85a-3d28ae14b212.westeurope.azurecontainer.io/score'
+    'aci': 'http://361c4fcc-d9d3-4691-a8b0-d93275148486.westeurope.azurecontainer.io/score'
 }
 
 parser = argparse.ArgumentParser()
@@ -61,21 +62,29 @@ url = endpoints[args.endpoint]
 api_key = ''  # Replace this with the API key for the web service
 headers = {'Content-Type': 'application/json'}  #, 'Authorization': ('Bearer ' + api_key)}
 
-req = urllib.request.Request(url, body, headers)
+# Temporary change to test local prediction.
+if 0:
+    req = urllib.request.Request(url, body, headers)
 
-try:
-    response = urllib.request.urlopen(req)
+    try:
+        response = urllib.request.urlopen(req)
 
-    result = json.loads(response.read())
-    print(response.headers)
-    print('Boxes', result['boxes'])
-    print('Primers', result['primers'])
-    with open(args.output, 'wb') as f:
-        f.write(base64.b64decode(result['image']))
-        
-except urllib.error.HTTPError as error:
-    print("The request failed with status code: " + str(error.code))
+        result = json.loads(response.read())
+        print(response.headers)
+        print('Boxes', result['boxes'])
+        print('Primers', result['primers'])
+        with open(args.output, 'wb') as f:
+            f.write(base64.b64decode(result['image']))
+            
+    except urllib.error.HTTPError as error:
+        print("The request failed with status code: " + str(error.code))
 
-    # Print the headers - they include the requert ID and the timestamp, which are useful for debugging the failure
-    print(error.info())
-    print(error.read().decode("utf8", 'ignore'))
+        # Print the headers - they include the requert ID and the timestamp, which are useful for debugging the failure
+        print(error.info())
+        print(error.read().decode("utf8", 'ignore'))
+
+else:
+    import requests
+    resp = requests.post(url, body, headers=headers)
+    print(resp.headers)
+    print(resp.text)
