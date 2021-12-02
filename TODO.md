@@ -1,3 +1,5 @@
+
+
 ## Deployment
 
 Add more to the onboarding docs, especially for personal subsciption deployments.
@@ -5,8 +7,9 @@ Add more to the onboarding docs, especially for personal subsciption deployments
 deploy.sh is destructive and sometimes we just want to update something.
 deploy.sh ensure it doesn't nuke training sets
 deply.sh last deployment failed to assign service principal to gpucompute
-[learn more about terraform plans, management]
-Set up T4T azure subscription
+learn more about terraform plans, management
+Set up T4T azure subscription and migrate the deployments there
+
 DONE: Create an NC6 GPU node instead of CPU cluster
 DONE - Add AML endpoint configuration/setup scripts
 
@@ -78,7 +81,14 @@ Model, image upload, prediction
 
 webapp uploads need to resize before sending to the prediction API (or we need to resize on reception- first need to understand request size limit)
 
+The only case that works E2E involves deploying the model and score file to kubernetes.  This is crazy expensive to host.
+We can deploy the model to an azure container instance which is about $3-4/day.  
+However to make this work from the webapp we have to deploy a TLS certificate and set up a DNS entry pointing at the host.  I haven't jumped through the steps to verify this is feasible. There were also some CORS issues but I think these are addressed in the current score.py script.
 
+## Other prediction things
+
+- make the predictions more robust by matching/pairing primer/casing detections.
+- lots to do on the OCR side.
 local deployments return 405, method not supported:
 <!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
 <title>405 Method Not Allowed</title>
