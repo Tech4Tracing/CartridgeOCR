@@ -15,6 +15,7 @@ from training.model_utils import rt, get_transform, get_instance_segmentation_mo
 import argparse
 from torch.optim import SGD, Adam
 from sklearn.model_selection import KFold
+import random
 
 logging.basicConfig(level=logging.INFO)
 
@@ -58,7 +59,9 @@ if __name__ == '__main__':
     dataset_base = CocoDetection(datapath, os.path.join(labelpath, label_fn), get_transform(train=True))
     dataset_test_base = CocoDetection(datapath, os.path.join(labelpath, label_fn), get_transform(train=False))
 
-    torch.manual_seed(1)
+    seed = 42
+    torch.manual_seed(seed)
+    random.seed(seed)
 
     all_stats = {}
 
@@ -66,7 +69,7 @@ if __name__ == '__main__':
         '''
         After each epoch in each fold, compiles statistics organized by epoch
         for future collation.
-        Logs current epoch result to the current fold for per-fold plotting. 
+        Logs current epoch result to the current fold for per-fold plotting.
         best_score_key indicates the key metric to check if we've reached the best overall score.
         '''
         run = Run.get_context()
@@ -135,11 +138,11 @@ if __name__ == '__main__':
             for epoch in range(num_epochs):
                 # train for one epoch, printing every 10 iterations
                 train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq=10, outLog=outLoss)
-                # update the learning rate  
+                # update the learning rate
                 lr_scheduler.step()
                 # evaluate on the test dataset
                 summary = evaluate(model, data_loader_test, device=device)
-                is_best = log_summary(summary, fold, epoch, best_score_key='segm f1' if save_best else None)
+                is_best = log_summary(summary, fold, epoch, best_score_key='segm F1' if save_best else None)
 
                 checkpoint = {
                     'model': model.state_dict(),

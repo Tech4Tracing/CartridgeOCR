@@ -3,7 +3,6 @@
 ## Deployment
 
 Add more to the onboarding docs, especially for personal subsciption deployments.
-Add AML endpoint configuration/setup scripts
 
 deploy.sh is destructive and sometimes we just want to update something.
 deploy.sh ensure it doesn't nuke training sets
@@ -12,6 +11,7 @@ learn more about terraform plans, management
 Set up T4T azure subscription and migrate the deployments there
 
 DONE: Create an NC6 GPU node instead of CPU cluster
+DONE - Add AML endpoint configuration/setup scripts
 
 ## Labeler
 
@@ -27,15 +27,19 @@ DONE - A new labeler was created but it has lots of images that were already lab
 ## Training
 
 
-Deploy model to FE prediction service.
-
 Revive training_predictions for in-experiment and offline prediction. -- Predict.py has some good code for filtering spurious detections, and merging the casing and primer predictions to yield a more confident detection.
 
-Cross-validation, hyperparameter optimization
+hyperparameter optimization
 
 render some outputs, look at the bad performers
 
-Model selection - track best validation model
+random seed isn't enabling reproducibility. Probably need to set torch seed too.
+
+DONE - Deploy model to FE prediction service.
+
+DONE - Model selection - track best validation model
+
+DONE - cross-validation
 
 DONE - Model output folder should use experiment display name
 
@@ -73,6 +77,10 @@ Eventually we need the app to work in offline mode as well.
 
 ## Prediction endpoint
 
+Model, image upload, prediction
+
+webapp uploads need to resize before sending to the prediction API (or we need to resize on reception- first need to understand request size limit)
+
 The only case that works E2E involves deploying the model and score file to kubernetes.  This is crazy expensive to host.
 We can deploy the model to an azure container instance which is about $3-4/day.  
 However to make this work from the webapp we have to deploy a TLS certificate and set up a DNS entry pointing at the host.  I haven't jumped through the steps to verify this is feasible. There were also some CORS issues but I think these are addressed in the current score.py script.
@@ -81,4 +89,16 @@ However to make this work from the webapp we have to deploy a TLS certificate an
 
 - make the predictions more robust by matching/pairing primer/casing detections.
 - lots to do on the OCR side.
+local deployments return 405, method not supported:
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<title>405 Method Not Allowed</title>
+<h1>Method Not Allowed</h1>
+<p>The method is not allowed for the requested URL.</p>
 
+## Post-hack feedback for AML team
+
+- Attempting to cast an akswebservice to a webservice returns an aksendpoint whose update() signature doesn't match what is documented. In fact there seems to be no pathway to update an aks endpoint- it has to be deleted and recreated. https://docs.microsoft.com/en-us/azure/machine-learning/how-to-deploy-update-web-service
+
+- launching a local deployment instance (first off, model download is extremely slow): returns 405 method not supported for POST requests. There doesn't seem to be a way to configure the local flask server to serve POST requests
+
+- The custom score script provided here: https://docs.microsoft.com/en-us/azure/machine-learning/how-to-deploy-advanced-entry-script  doesn't respond to OPTIONS requests, and so browser connections fail with a CORS failure before the POST can even be sent.

@@ -23,8 +23,9 @@ const Predict: React.FC = () => {
         </IonCard>
 
         <IonCard>
-          <IonImg src={ prediction.webviewPath } />
+            <IonImg className='image' src={ prediction.webviewPath } />
         </IonCard>
+        
 
         <IonFab vertical="bottom" horizontal="center" slot="fixed">
           <IonFabButton onClick={() => getPrediction()}>

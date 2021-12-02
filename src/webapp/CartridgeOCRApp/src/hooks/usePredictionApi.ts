@@ -15,12 +15,15 @@ export function usePredictionApi() {
         console.log("took a pic!");
         const base64photo = await convertToBase64(photo);
         console.log(base64photo);
-        const base64prediction = await predict(base64photo);
-        console.log(base64prediction);
-
-        const fileName = "prediction" + new Date().getTime() + '.jpeg';
-        const prediction = convertToImage(base64prediction, fileName);
-        setPrediction(prediction);
+        const predictResponse = await predict(base64photo);
+        console.log('response: ' + predictResponse);
+        if (predictResponse) {
+            const base64prediction = predictResponse['image'];
+            console.log(base64prediction);        
+            const fileName = "prediction" + new Date().getTime() + '.jpeg';
+            const prediction = convertToImage(base64prediction, fileName);
+            setPrediction(prediction);
+        }
     }
 
     const takePhoto = async () => {
