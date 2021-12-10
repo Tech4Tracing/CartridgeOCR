@@ -1,0 +1,22 @@
+.rectangle {
+    border: 3   px solid red;
+    padding: 0px;
+    margin: 0px;
+    position: absolute;
+}
+.imagearea {
+   display: flex;
+   flex-direction: column;
+   float: left;
+   width: 35%;
+   max-width: 700px;
+   position: relative;
+}
+
+#img01{
+    position: absolute;
+}
+
+#canvas {
+    display: flex;
+}
