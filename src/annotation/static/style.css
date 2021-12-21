@@ -1,0 +1,17 @@
+.imagearea {
+    display: flex;
+    flex-direction: column;
+    float: left;
+    width: 35%;
+    max-width: 700px;
+    position: relative;
+}
+ 
+#img01{
+    position: absolute;
+    width: 100%;
+}
+
+#canvas {
+    display: flex;
+}
