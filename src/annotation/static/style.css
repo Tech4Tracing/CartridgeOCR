@@ -15,3 +15,10 @@
 #canvas {
     display: flex;
 }
+
+#annotations {
+    float: right;
+    width: 30%;
+    height: 100%;
+    scroll-behavior: auto;
+}

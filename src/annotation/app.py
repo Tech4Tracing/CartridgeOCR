@@ -1,5 +1,5 @@
 import os
-from flask import Flask, g, send_file, abort
+from flask import Flask, g, send_file, abort, redirect, jsonify
 import sqlite3
 import logging
 from utils import get_db, get_global
@@ -26,7 +26,7 @@ def close_connection(exception):
 
 @app.route("/")
 def home():
-    return "Hello, Flask!"
+    return redirect('/annotate/')
 
 
 @app.route("/img/<id>")
@@ -42,6 +42,13 @@ def img(id):
         return send_file(filename, mimetype='image/jpeg')
     except Exception as e:
         abort(404)
+
+
+@app.route("/annotations/<int:img_id>")
+def annotations(img_id):
+    cur = get_db().cursor()
+    cur.execute("SELECT anno_id, geometry, annotation, metadata FROM annotations WHERE img_id={}".format(img_id))
+    return jsonify(cur.fetchall())
 
 
 @app.route("/annotate/")
