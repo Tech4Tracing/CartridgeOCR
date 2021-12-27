@@ -91,9 +91,11 @@ function radialDraw(img_id, canvas_id) {
         if (points.length>0) {
             points.pop();
         }
-        points.push({x: mouse.x, y: mouse.y});
-        points.push({x: mouse.x, y: mouse.y});
-        console.log(mouse.x+','+mouse.y);
+        var cx = mouse.x/canvas.width;
+        var cy = mouse.y/canvas.height;
+        points.push({x: cx, y: cy});
+        points.push({x: cx, y: cy});
+        console.log(cx+','+cy);
         //if (clicktype === 'double') {
         if (points.length>3) {
             points.pop();
@@ -112,10 +114,11 @@ function radialDraw(img_id, canvas_id) {
 
     imgarea.onmousemove = function (e) {        
         setMousePosition(e);
-        
+        var cx = mouse.x/canvas.width;
+        var cy = mouse.y/canvas.height;
         if (points.length>0) {
             points.pop();
-            points.push({x: mouse.x, y: mouse.y});
+            points.push({x: cx, y: cy});
             redraw();
             drawRadialPolygon(points);
         }
@@ -142,39 +145,33 @@ function radialDraw(img_id, canvas_id) {
 
             var srtPoints = [];           
             var r1, r2, dx1, dx2, dx3, dy1, dy2, theta1, theta2, dtheta, clockwise;
-            if (points.length<3) {
-                points.forEach(function (p) {
+            var cpoints = points.map((p) => { return {x: p.x*canvas.width, y: p.y*canvas.height}});
+            if (cpoints.length<3) {
+                cpoints.forEach(function (p) {
                     srtPoints.push(p);
                 });
             } else {
-                srtPoints.push(points[0]);
-                srtPoints.push(points[1]);
-                srtPoints.push(points[2]);
-                dx1 = points[1].x-points[0].x;
-                dy1 = points[1].y-points[0].y;
+                srtPoints.push(cpoints[0]);
+                srtPoints.push(cpoints[1]);
+                srtPoints.push(cpoints[2]);
+                dx1 = cpoints[1].x-cpoints[0].x;
+                dy1 = cpoints[1].y-cpoints[0].y;
                 r1 = Math.sqrt(dx1*dx1+dy1*dy1);
                 // theta comes from points[2]-points[0] vs points[1]-points[0]
-                dx2 = points[2].x - points[0].x;
-                dy2 = points[2].y - points[0].y;
+                dx2 = cpoints[2].x - cpoints[0].x;
+                dy2 = cpoints[2].y - cpoints[0].y;
                 r2 = Math.sqrt(dx2*dx2+dy2*dy2);
-                srtPoints.push({x: points[0].x + r2 * dx1/r1, y: points[0].y + r2 * dy1/r1});
+                srtPoints.push({x: cpoints[0].x + r2 * dx1/r1, y: cpoints[0].y + r2 * dy1/r1});
                 theta1 = Math.atan2(dy1, dx1);            
                 theta2 = Math.atan2(dy2, dx2);
                 //console.log("arc "+r1+' '+dx1+' '+dy1+' '+dx2+' '+dy2+' '+dy1/dx1+' '+dy2/dx2);
                 dtheta = theta2-theta1;
                 while (dtheta<-Math.PI) dtheta+=2*Math.PI;
                 while (dtheta>Math.PI) dtheta-=2*Math.PI;
-                clockwise = dtheta<0;
-                /*if (points.length>3) {
-                    dx3 = points[3].x - points[0].x;
-                    dy3 = points[3].y - points[0].y;
-                    r3 = Math.sqrt(dx3*dx3+dy3*dy3);
-                    srtPoints.push({x: points[0].x + r3 * dx2/r2, y: points[0].y + r3 * dy2/r2});
-                    p5 = {x: points[0].x + r3 * dx1/r1, y: points[0].y + r3 * dy1/r1};
-                }*/
+                clockwise = dtheta<0;                
             }
 
-            console.log('points length: '+points.length);
+            console.log('points length: '+cpoints.length);
             
             if (srtPoints.length==2) {
                 ctx.globalAlpha = 1.0;
@@ -212,42 +209,6 @@ function radialDraw(img_id, canvas_id) {
 
     }
 
-    function lineDistance(point1, point2) {
-        var xs = 0;
-        var ys = 0;
-
-        xs = point2.x - point1.x;
-        xs = xs * xs;
-
-        ys = point2.y - point1.y;
-        ys = ys * ys;
-
-        return Math.sqrt(xs + ys);
-    }
-
-    /*imgarea.onmouseup = function (e) {
-        if (element !== null) {
-            element = null;
-            imgarea.style.cursor = "default";
-            console.log("finsihed.");
-        } 
-    }*/
-
-    /*imgarea.onmousedown = function (e) {
-          if(element===null){
-            console.log("begun.");
-            setMousePosition(e);
-            mouse.startX = mouse.x;
-            mouse.startY = mouse.y;
-            element = document.createElement('div');
-            element.className = 'rectangle'
-            element.style.left = mouse.startX + 'px';
-            element.style.top = mouse.startY + 'px';
-            imgarea.appendChild(element);
-            imgarea.style.cursor = "crosshair";
-            e.preventDefault();
-          }
-    }*/
     function add_polygon(polygon) {
         polygons.push(polygon);
         redraw();

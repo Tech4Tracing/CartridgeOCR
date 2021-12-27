@@ -6,7 +6,20 @@
     max-width: 700px;
     position: relative;
 }
- 
+
+#header {
+    margin: 10px;
+}
+
+button {
+    font-size: large;
+    background-color: blue;
+    color: white;
+    height: 50px;
+    width: 200px;
+    border: none;
+}
+
 #img01{
     position: absolute;
     width: 100%;

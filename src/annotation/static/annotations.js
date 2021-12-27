@@ -7,11 +7,8 @@ function annotations(img_id, panel_id, highlights) {
         var url = "/annotations/"+img_id;
         var xhr = new XMLHttpRequest();
         xhr.open("GET", url, true);
-
-        //Send the proper header information along with the request
-        //xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
         
-        xhr.onreadystatechange = function() {//Call a function when the state changes.
+        xhr.onreadystatechange = function() {
             if(xhr.readyState == 4 && xhr.status == 200) {
                 console.log(xhr.responseText);
                 result = JSON.parse(xhr.responseText);     
@@ -45,7 +42,7 @@ function annotations(img_id, panel_id, highlights) {
     
     function geom_to_str(g) {
         s = '';
-        g.forEach((p)=> s+='('+p.x+','+p.y+') ');
+        g.forEach((p)=> s+='('+Math.round(p.x*1000)/1000+','+Math.round(p.y*1000)/1000+') ');
         return s;
     }
 
@@ -61,6 +58,7 @@ function annotations(img_id, panel_id, highlights) {
         annotations.forEach((a) => {
             if (a.temp_id===annotation_id) {
                 a.annotation = value;
+                a.committed = false;
             }
         });
     }
@@ -76,11 +74,8 @@ function annotations(img_id, panel_id, highlights) {
                     var url = "/delete_annotation/"+db_id;
                     var xhr = new XMLHttpRequest();
                     xhr.open("DELETE", url, true);
-
-                    //Send the proper header information along with the request
-                    //xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-                    
-                    xhr.onreadystatechange = function() {//Call a function when the state changes.
+                   
+                    xhr.onreadystatechange = function() {
                         if(xhr.readyState == 4 && xhr.status == 200) {
                             console.log('deleted '+annotation_id);
                             console.log(xhr.responseText);                
@@ -118,12 +113,33 @@ function annotations(img_id, panel_id, highlights) {
             makeElement("<a class='delete_handle' id='d_"+a.temp_id+"'>X</a>"),
             input_div,
             makeElement('<p>Type: radial</p>'),
+            makeElement('<div><div>Text Up Direction:</div> \
+            <div> <input type="radio" id="rd_dir_outward_'+a.temp_id+'" name="rd_direction_'+a.temp_id+'" value="outward" > \
+            <label for="rd_dir_outward">outward</label> \
+            <input type="radio" id="rd_dir_inward_'+a.temp_id+'" name="rd_direction_'+a.temp_id+'", value="inward" > \
+            <label for="rd_dir_inward">inward</label> \
+            <input type="radio" id="rd_dir_clockwise_'+a.temp_id+'" name="rd_direction_'+a.temp_id+'", value="clockwise" > \
+            <label for="rd_dir_clockwise">clockwise</label> \
+            <input type="radio" id="rd_dir_anticlockwise_'+a.temp_id+'" name="rd_direction_'+a.temp_id+'", value="anticlockwise" > \
+            <label for="rd_dir_anticlockwise">anticlockwise</label> </div></div>'),     
             makeElement('<p>Points: ' + geom_to_str(a.geometry)+'</p>')
         ]);
         var d = e.querySelector('#d_'+a.temp_id);
         console.log(e.firstChild);
         console.log(e.id);
         d.onclick = () => {delete_annotation(a.temp_id)};
+        if (a.metadata && a.metadata.direction) {
+            var dir = a.metadata.direction;
+            var d_elt = e.querySelector('#rd_dir_'+dir+'_'+a.temp_id);
+            d_elt.checked = true;
+        } else {
+            var d_elt = e.querySelector('#rd_dir_outward_'+a.temp_id);
+            d_elt.checked = true;
+        }
+
+        var radios = e.querySelectorAll('input[type=radio][name="rd_direction_'+a.temp_id+'"]');
+        console.log('radios: '+radios.length);
+        radios.forEach(radio => radio.addEventListener('change', () => {console.log('reset'); a.committed=false;}));
         //e.innerHTML = '<p>Text: <input id="i_'+a.temp_id+'"></p><p>Type: radial</p><p>Points: '+geom_to_str(a.geometry)+'</p>';        
         return e;
     }
@@ -140,17 +156,29 @@ function annotations(img_id, panel_id, highlights) {
     }
 
     function save() {
-        // TODO: push
         annotations.forEach((a)=>{
             if (a.committed) return;
+
+            // replace the annotation. TODO: maybe there is a race condition? we want to update
+            var url = "/post_annotation";
+            if (a.anno_id) {
+                var db_id = a.anno_id;
+                console.log('db_id: '+db_id);
+                url = "/replace_annotation/"+db_id;
+            }
+
             // update the annotation text
             var text_id = 'i_'+a.temp_id;
             var annotation = document.getElementById(text_id).value;
             console.log('setting '+a.temp_id+' value to '+annotation);
             a.annotation = annotation;
 
-            var url = "/post_annotation";
-
+            var dir_id = 'rd_direction_'+a.temp_id;
+            var direction = document.querySelector('input[name="'+dir_id+'"]:checked').value;
+            console.log('Direction: '+direction);
+            // TODO: where is the best place to put this assignment.
+            a.metadata.direction = direction;
+            
             var payload = JSON.stringify({
                 geometry: a.geometry,
                 img_id: img_id,
@@ -159,11 +187,9 @@ function annotations(img_id, panel_id, highlights) {
             });
             var xhr = new XMLHttpRequest();
             xhr.open("POST", url, true);
-
-            //Send the proper header information along with the request
             xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
            
-            xhr.onreadystatechange = function() {//Call a function when the state changes.
+            xhr.onreadystatechange = function() {
                 if(xhr.readyState == 4 && xhr.status == 200) {
                     console.log(xhr.responseText);
                     result = JSON.parse(xhr.responseText);

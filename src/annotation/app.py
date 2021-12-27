@@ -16,10 +16,12 @@ app = Flask(__name__)
 # TODO: annotation modes
 # TODO: control points
 # TODO: add model and detections
-# TODO: committed, uncommitted, tie polygons to 
-# TODO: convert polygon geometry to image coords
+# TODO: mouseover polygon color change
 # TODO: better storage of metadata, geometry
-
+# TODO: migrate to jquery
+# TODO: deal with unusual image shapes, enable zoom, panning, etc.
+# TODO: double-check replace events are updating the annotation id correctly.
+# TODO: adding more images
 
 @app.teardown_appcontext
 def close_connection(exception):
@@ -85,6 +87,30 @@ def post_annotation():
     return jsonify({"message": "Annotation posted", "id": cur.lastrowid})
 
 
+@app.route("/replace_annotation/<int:anno_id>", methods=['POST'])
+def replace_annotation(anno_id):
+    req = request.get_json()
+    logging.info("POST replace request: {}".format(req))
+
+    # TODO: validate the payload.
+    # TODO: escape quotes and other dangerous chars
+    con = get_db()
+    cur = con.cursor()
+    # anno_id , img_id , geometry , annotation , metadata 
+    cmd1 = "DELETE FROM annotations WHERE anno_id={}".format(anno_id)
+    cmd = "INSERT INTO annotations (anno_id,img_id,geometry,annotation,metadata) VALUES (null, {}, '{}', '{}', '{}')".format(
+        req['img_id'], json.dumps(req['geometry']), req['annotation'], json.dumps(req['metadata'])
+    )
+    logging.info(cmd1)
+    logging.info(cmd)
+    cur.execute(cmd1)
+    cur.execute(cmd)
+    con.commit()
+    cur.execute('SELECT COUNT(*) AS c FROM annotations')
+    result = next(cur, [None])['c']
+    logging.info('found {} rows'.format(result))
+    return jsonify({"message": "Annotation posted", "id": cur.lastrowid})
+
 @app.route("/delete_annotation/<int:anno_id>", methods=['DELETE'])
 def delete_annotation(anno_id):
     req = request.get_json()
@@ -110,5 +136,5 @@ def annotate(id=None):
             cur.execute("SELECT MIN(images.img_id) AS id from images")
         else:
             cur.execute("SELECT MIN(images.img_id) AS id from images LEFT OUTER JOIN annotations ON annotations.img_id IS null")
-        id = next(cur, [{'id':None}])['id']
+        id = next(cur, [{'id': None}])['id']
     return render_template('annotate.html', id=id)
