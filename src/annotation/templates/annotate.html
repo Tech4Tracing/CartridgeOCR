@@ -4,11 +4,13 @@
         <meta charset="utf-8" />
         <title>Annotate | {{id}}</title>
         <script src='/static/highlight.js' type='text/javascript' ></script>
+        <script src='/static/annotations.js' type='text/javascript' ></script>
+        <script src='/static/init.js' type='text/javascript' ></script>
         <link rel="stylesheet" href="/static/style.css">        
     </head>
-    <body onload="radialDraw({{id}}, 'canvas');">
+    <body onload="init_app({{id}})">
         <div id='footer'>                        
-            <a href='/annotate/{{id-1}}'>&lt;&lt;</a>|<a href='/annotate/{{id+1}}'>&gt;&gt;</a>|
+            <a href='/annotate/{{id-1}}'>&lt;&lt;</a>|<a href='/annotate/{{id+1}}'>&gt;&gt;</a>|<button id='btn_save'>Save</button>
         </div>
 
         <div id='annotations'>

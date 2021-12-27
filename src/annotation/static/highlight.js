@@ -12,7 +12,7 @@ function radialDraw(img_id, canvas_id) {
     var points = [];
     var polygons = [];
     
-    imgarea = document.getElementById(canvas_id);
+    var imgarea = document.getElementById(canvas_id);
     
     // TODO: only if points is non-empty.
     document.onkeydown = function(evt) {
@@ -20,7 +20,7 @@ function radialDraw(img_id, canvas_id) {
         if (evt.key === 'Escape') {
             console.log('Esc key pressed.');
             points = []; 
-            drawBackground();           
+            redraw();           
         }
     };
 
@@ -38,7 +38,7 @@ function radialDraw(img_id, canvas_id) {
     }
 
     var background = null;
-    function drawBackground() {
+    function redraw() {
         var canvas = document.getElementById(canvas_id);
         // use getContext to use the canvas for drawing
         var ctx = canvas.getContext('2d');
@@ -65,8 +65,6 @@ function radialDraw(img_id, canvas_id) {
     }
     
 
-    drawBackground();
-
 
 
     function setMousePosition(e) {
@@ -76,6 +74,16 @@ function radialDraw(img_id, canvas_id) {
     
         mouse.x = e.x-boundaries.left;
         mouse.y = e.y-boundaries.top;
+    }
+
+    // registers a new callback when a polygon is added
+    var add_callbacks = [];
+    function on_newpolygon(f) {
+        add_callbacks.push(f);
+    }
+    function process_add_callbacks(p) {
+        console.log('processing callbacks');
+        add_callbacks.forEach((f) => {f(p)});
     }
 
     var clickhandler = function(e, clicktype) {
@@ -91,9 +99,10 @@ function radialDraw(img_id, canvas_id) {
             points.pop();
             polygons.push(points);
             points = [];
-            drawBackground();
+            redraw();
+            process_add_callbacks(polygons[polygons.length-1]);
         } else {
-            drawBackground();
+            redraw();
             drawRadialPolygon(points);
         }
         console.log(points);
@@ -107,7 +116,7 @@ function radialDraw(img_id, canvas_id) {
         if (points.length>0) {
             points.pop();
             points.push({x: mouse.x, y: mouse.y});
-            drawBackground();
+            redraw();
             drawRadialPolygon(points);
         }
         //console.log(points);
@@ -203,67 +212,6 @@ function radialDraw(img_id, canvas_id) {
 
     }
 
-    function drawPolygon(points) {
-        // get the canvas element using the DOM
-        var canvas = document.getElementById('canvas');
-        
-        
-        // Make sure we don't execute when canvas isn't supported
-        if (canvas.getContext) {
-
-            // use getContext to use the canvas for drawing
-            var ctx = canvas.getContext('2d');
-            
-            // calculate max and min x and y
-            var minX = points[0].x;
-            var maxX = points[0].x;
-            var minY = points[0].y;
-            var maxY = points[0].y;
-
-            for (var i = 1; i < points.length; i++) {
-                if (points[i].x < minX) minX = points[i].x;
-                if (points[i].x > maxX) maxX = points[i].x;
-                if (points[i].y < minY) minY = points[i].y;
-                if (points[i].y > maxY) maxY = points[i].y;
-            }
-
-
-            // choose a "central" point
-            var center = {
-                x: minX + (maxX - minX) / 2,
-                y: minY + (maxY - minY) / 2
-            };
-
-            // precalculate the angles of each point to avoid multiple calculations on sort
-            for (var i = 0; i < points.length; i++) {
-                points[i].angle = Math.acos((points[i].x - center.x) / lineDistance(center, points[i]));
-
-                if (points[i].y > center.y) {
-                    points[i].angle = Math.PI + Math.PI - points[i].angle;
-                }
-            }
-
-            // sort by angle
-            srtPoints = [...points];
-            srtPoints = srtPoints.sort(function(a, b) {
-                return a.angle - b.angle;
-            });
-
-            // Draw shape
-            ctx.beginPath();
-            ctx.moveTo(srtPoints[0].x, srtPoints[0].y);
-
-            for (var i = 1; i < srtPoints.length; i++) {
-                ctx.lineTo(srtPoints[i].x, srtPoints[i].y);
-            }
-
-            ctx.lineTo(srtPoints[0].x, srtPoints[0].y);
-
-            ctx.stroke();
-            ctx.fill();
-        }
-    }
-
     function lineDistance(point1, point2) {
         var xs = 0;
         var ys = 0;
@@ -300,6 +248,25 @@ function radialDraw(img_id, canvas_id) {
             e.preventDefault();
           }
     }*/
+    function add_polygon(polygon) {
+        polygons.push(polygon);
+        redraw();
+        // called by external services.
+        //process_add_callbacks(polygons[polygons.length-1]);
+    }
+
+    function set_polygons(_polygons) {
+        polygons = _polygons;
+        redraw();
+    }
+    
+    redraw();
+
+    return {
+        on_newpolygon: on_newpolygon,
+        add_polygon: add_polygon,
+        set_polygons: set_polygons
+    }
 }
 
 

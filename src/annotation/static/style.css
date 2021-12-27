@@ -19,6 +19,20 @@
 #annotations {
     float: right;
     width: 30%;
-    height: 100%;
-    scroll-behavior: auto;
+    height: 90vh;
+    overflow-y: auto;
+}
+
+.annotation {
+    border: solid 2px;
+    border-radius: 10px;
+    padding: 10px;
+    margin: 5px;
+}
+
+.delete_handle {
+    float: right;
+    border: solid 2px;
+    background-color: red;
+    font-size: small;
 }

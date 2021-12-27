@@ -1,9 +1,10 @@
 import os
-from flask import Flask, g, send_file, abort, redirect, jsonify
+from flask import Flask, g, send_file, abort, redirect, jsonify, make_response, render_template, request
 import sqlite3
 import logging
 from utils import get_db, get_global
-from flask import render_template, request
+import json
+
 
 logging.basicConfig(level=logging.INFO)
 
@@ -13,16 +14,19 @@ app = Flask(__name__)
 # TODO: users, authentication
 # TODO: fix navigation
 # TODO: annotation modes
-# TODO: List polygons
 # TODO: control points
-# TODO: capture, list annotations
 # TODO: add model and detections
+# TODO: committed, uncommitted, tie polygons to 
+# TODO: convert polygon geometry to image coords
+# TODO: better storage of metadata, geometry
+
 
 @app.teardown_appcontext
 def close_connection(exception):
     db = getattr(g, '_database', None)
     if db is not None:
         db.close()
+
 
 @app.route("/")
 def home():
@@ -48,7 +52,52 @@ def img(id):
 def annotations(img_id):
     cur = get_db().cursor()
     cur.execute("SELECT anno_id, geometry, annotation, metadata FROM annotations WHERE img_id={}".format(img_id))
-    return jsonify(cur.fetchall())
+    columns = [column[0] for column in cur.description]
+    results = []
+    for row in cur.fetchall():
+        row = dict(zip(columns, row))
+        row['geometry'] = json.loads(row['geometry'])
+        row['metadata'] = json.loads(row['metadata'])
+        results.append(row)
+
+    return jsonify(results)
+
+
+@app.route("/post_annotation", methods=['POST'])
+def post_annotation():
+    req = request.get_json()
+    logging.info("POST request: {}".format(req))
+
+    # TODO: validate the payload.
+    # TODO: escape quotes and other dangerous chars
+    con = get_db()
+    cur = con.cursor()
+    # anno_id , img_id , geometry , annotation , metadata 
+    cmd = "INSERT INTO annotations (anno_id,img_id,geometry,annotation,metadata) VALUES (null, {}, '{}', '{}', '{}')".format(
+        req['img_id'], json.dumps(req['geometry']), req['annotation'], json.dumps(req['metadata'])
+    )
+    logging.info(cmd)
+    cur.execute(cmd)
+    con.commit()
+    cur.execute('SELECT COUNT(*) AS c FROM annotations')
+    result = next(cur, [None])['c']
+    logging.info('found {} rows'.format(result))
+    return jsonify({"message": "Annotation posted", "id": cur.lastrowid})
+
+
+@app.route("/delete_annotation/<int:anno_id>", methods=['DELETE'])
+def delete_annotation(anno_id):
+    req = request.get_json()
+    logging.info("DELETE request: {}".format(req))
+
+    # TODO: validate the payload.    
+    con = get_db()
+    cur = con.cursor()
+    cmd = "DELETE FROM annotations WHERE anno_id={}".format(anno_id)
+    logging.info(cmd)
+    cur.execute(cmd)
+    con.commit()
+    return jsonify(success=True)
 
 
 @app.route("/annotate/")
