@@ -12,16 +12,20 @@ app = Flask(__name__)
 
 # TODO: arguments or env vars for globals
 # TODO: users, authentication
-# TODO: fix navigation
-# TODO: annotation modes
+# TODO: fix navigation - annotated vs unannotated, collections, user-owned vs global
+# TODO: annotation modes - radial vs simple bounding box vs free polygon
+# TODO: text/metadata options - symbols, etc
 # TODO: control points
-# TODO: add model and detections
+# TODO: add casing detection model and pre-compute detections
 # TODO: mouseover polygon color change
-# TODO: better storage of metadata, geometry
-# TODO: migrate to jquery
-# TODO: deal with unusual image shapes, enable zoom, panning, etc.
+# TODO: better db representation of metadata, geometry
+# TODO: migrate to jquery/modern widget framework
+# TODO: deal with unusual image shapes, enable zoom, panning, etc. tiling very large images
 # TODO: double-check replace events are updating the annotation id correctly.
 # TODO: adding more images
+# TODO: host db online/ migrate to modern/robust db.
+# TODO: e2e image processing pipeline/user experience
+
 
 @app.teardown_appcontext
 def close_connection(exception):
@@ -94,6 +98,7 @@ def replace_annotation(anno_id):
 
     # TODO: validate the payload.
     # TODO: escape quotes and other dangerous chars
+    # TODO: change this to an update rather than delete/insert?
     con = get_db()
     cur = con.cursor()
     # anno_id , img_id , geometry , annotation , metadata 
