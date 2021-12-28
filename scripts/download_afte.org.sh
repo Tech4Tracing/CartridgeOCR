@@ -1,4 +1,5 @@
 #!/bin/bash
+cd ../data/
 wget \
      --level=inf \
      --limit-rate=20K \
