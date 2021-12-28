@@ -23,6 +23,7 @@ app = Flask(__name__)
 # TODO: double-check replace events are updating the annotation id correctly.
 # TODO: adding more images
 
+
 @app.teardown_appcontext
 def close_connection(exception):
     db = getattr(g, '_database', None)
@@ -110,6 +111,7 @@ def replace_annotation(anno_id):
     result = next(cur, [None])['c']
     logging.info('found {} rows'.format(result))
     return jsonify({"message": "Annotation posted", "id": cur.lastrowid})
+
 
 @app.route("/delete_annotation/<int:anno_id>", methods=['DELETE'])
 def delete_annotation(anno_id):
