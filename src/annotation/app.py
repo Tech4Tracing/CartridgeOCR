@@ -25,7 +25,7 @@ app = Flask(__name__)
 # TODO: adding more images
 # TODO: host db online/ migrate to modern/robust db.
 # TODO: e2e image processing pipeline/user experience
-
+# TODO: proper RESTful API
 
 @app.teardown_appcontext
 def close_connection(exception):

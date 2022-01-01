@@ -44,7 +44,7 @@ function radialDraw(img_id, canvas_id) {
         var ctx = canvas.getContext('2d');
         ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-        canvas.width = 480;
+        canvas.width = 640;
         
         if (background===null) {
             background = new Image();

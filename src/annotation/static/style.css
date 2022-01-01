@@ -27,6 +27,7 @@ button {
 
 #canvas {
     display: flex;
+    /* width: 50%; */
 }
 
 #annotations {
