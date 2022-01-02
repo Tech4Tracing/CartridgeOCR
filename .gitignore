@@ -177,6 +177,7 @@ node_modules
 #exclude test data
 src/data/
 outputData
+data/models
 
 local.settings.json
 package-lock.json
