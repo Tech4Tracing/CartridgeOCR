@@ -48,7 +48,7 @@ class Inference():
                             primersOut.append(box)
                             canvas.rectangle(box, outline='yellow', width=3)
                 return dst, boxesOut, primersOut
-    
+
     def init(self, modelfolder=None, checkpoint='checkpoint.pth'):
         global model, rt, isRectangleOverlap, isContained, get_transform, load_snapshot
         if modelfolder is None:
@@ -80,12 +80,27 @@ class Inference():
         return prediction
 
     def run(self, request):
+        """Processes an inference request.
+        Inputs:
+        request (string): a json-formatted payload:
+        {
+            'image': <base 64 encoded input image>
+        }
+        Returns:
+        Dictionary with results:
+        {
+            'image': <base 64 encoded output image>,
+            'boxes': <list of casing bounding boxes>,
+            'primers': <list of primer bounding boxes>
+        }
+        bounding boxes are encoded as [x0, y0, x1, y1]
+        each box coordinate is in the range [0,1)
+        """
         # print("Request" + request)
         parsed = json.loads(request)
         encodedImage = parsed["image"]
 
         try:
-
             # Convert request from base64 to a PIL Image
             img_bytes = base64.b64decode(encodedImage)  # img_bytes is a binary image
             img_file = io.BytesIO(img_bytes)            # convert image to file-like object
@@ -95,6 +110,7 @@ class Inference():
                 logging.info(f'Resizing from {width}')
                 newsize = (self.max_width, int(self.max_width / width * height))
                 img = img.resize(newsize)
+                width, height = img.size
             logging.info(f'Image size {img.size}')
             transform = get_transform(train=False)
             img, _ = transform(img, {'image_id': 0, 'boxes': [], 'annotations': []})
@@ -107,10 +123,19 @@ class Inference():
             dst.save(in_mem_file, format="JPEG")  # temporary file to store image data
             dst_bytes = in_mem_file.getvalue()      # image in binary format
             dst_b64 = base64.b64encode(dst_bytes)   # encode in base64 for response
-            print(f'detected {len(boxes)} boxes and {len(primers)} primers')
-            return {'image': dst_b64.decode(), 'boxes': boxes, 'primers': primers}
+            logging.info(f'detected {len(boxes)} boxes and {len(primers)} primers')
+
+            # TODO: this should probably move to predict() but at that point we have a tensor in hand.
+            # It's easier to reliably get the image width and height here.
+            def normalize(b):
+                return list(map(lambda x: x[0] / x[1], zip(b, [width, height, width, height])))
+
+            return {
+                'image': dst_b64.decode(),
+                'boxes': list(map(normalize, boxes)),
+                'primers': list(map(normalize, primers))
+            }
         except Exception as ex:
             print('Exception:')
             print(ex)
             return "Failed with error: " + ex
-

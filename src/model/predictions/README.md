@@ -1,3 +1,19 @@
+# Layout
+
+- `score.py`: entry point for deployed models hosted in the cloud.
+- `inference.py`: main business logic for inference
+- `predict.py`: code for running local predictions.  
+
+# Run the model locally
+
+Use `predict.py` as follows:
+```
+predict.py [-h] [--modelfolder MODELFOLDER] \ 
+   [--checkpoint CHECKPOINT] \
+   [--render_images boolean] \
+   input_file_or_folder output_json
+```
+
 # Register the Model in Azure ML
 There's 2 methods to register a model in Azure ML:
 - programmatically using the Azure ML SDK
