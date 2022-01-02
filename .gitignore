@@ -190,3 +190,7 @@ data/predictions
 rsim_data
 src/webapp/api/api.zip
 src/webapp/CartridgeOCRApp/build.zip
+
+# emacs detrietous
+*~
+\#*\#
