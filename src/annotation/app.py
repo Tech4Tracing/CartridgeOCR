@@ -57,7 +57,7 @@ def annotate(id=None):
 
 # maybe this could be a static route to storage?
 @app.route("/images/<int:img_id>")
-def img(id):
+def img(img_id):
     try:
         cur = get_db().cursor()
         cur.execute("SELECT * FROM images WHERE img_id=={}".format(img_id))
