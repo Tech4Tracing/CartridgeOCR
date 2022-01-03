@@ -161,11 +161,11 @@ function annotations(img_id, panel_id, highlights) {
 
             // replace the annotation. TODO: maybe there is a race condition? we want to update
             var url = "/annotations";
-	    var method = 'POST'
+            var method = 'POST'
             if (a.anno_id) {
                 var db_id = a.anno_id;
                 console.log('db_id: '+db_id);
-		method = 'PUT'
+                method = 'PUT'
                 url = "/annotations/"+db_id;
             }
 
