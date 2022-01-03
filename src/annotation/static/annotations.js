@@ -189,9 +189,10 @@ function annotations(img_id, panel_id, highlights) {
             });
             var xhr = new XMLHttpRequest();
 
-            xhr.open(method, url, true);
+	    // making this async causes bug #20
+            xhr.open(method, url, false); 
+
             xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-           
             xhr.onreadystatechange = function() {
                 if(xhr.readyState == 4 && xhr.status == 200) {
                     console.log(xhr.responseText);
@@ -205,10 +206,6 @@ function annotations(img_id, panel_id, highlights) {
             xhr.send(payload);
         });
     }
-
-    /*function updated(callback) {
-
-    }*/
 
     init();
     return {
