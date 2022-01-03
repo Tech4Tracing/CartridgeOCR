@@ -55,11 +55,12 @@ def annotate(id=None):
     return render_template('annotate.html', id=id)
 
 
-@app.route("/img/<id>")
+# maybe this could be a static route to storage?
+@app.route("/images/<int:img_id>")
 def img(id):
     try:
         cur = get_db().cursor()
-        cur.execute("SELECT * FROM images WHERE img_id=={}".format(id))
+        cur.execute("SELECT * FROM images WHERE img_id=={}".format(img_id))
         result = next(cur, [None])
         logging.info('Found image {}'.format(result))
         img_home = get_global('img_home')
@@ -71,7 +72,7 @@ def img(id):
 
 
 # REST methods
-@app.route("/annotations/<int:img_id>", methods=['GET'])
+@app.route("/images/<int:img_id>/annotations", methods=['GET'])
 def get_annotation(img_id):
     cur = get_db().cursor()
     cur.execute("SELECT anno_id, geometry, annotation, metadata FROM annotations WHERE img_id={}".format(img_id))

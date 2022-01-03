@@ -55,7 +55,7 @@ function radialDraw(img_id, canvas_id) {
                 ctx.drawImage(background,0,0, canvas.width, canvas.height);   
                 refresh_polygons(ctx);
             }
-            background.src = "/img/"+img_id;
+            background.src = "/images/"+img_id;
             
         } else {
             ctx.drawImage(background,0,0, canvas.width, canvas.height);  

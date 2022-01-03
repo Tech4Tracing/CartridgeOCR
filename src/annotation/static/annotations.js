@@ -4,7 +4,7 @@ function annotations(img_id, panel_id, highlights) {
         // TODO: fetch annotations
         highlights.on_newpolygon(add);
 
-        var url = "/annotations/"+img_id;
+        var url = "/images/"+img_id+"/annotations";
         var xhr = new XMLHttpRequest();
         xhr.open("GET", url, true);
         
