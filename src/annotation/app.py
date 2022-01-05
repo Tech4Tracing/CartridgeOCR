@@ -35,16 +35,32 @@ def close_connection(exception):
         db.close()
 
 
+# UI routes 
 @app.route("/")
 def home():
     return redirect('/annotate/')
 
 
-@app.route("/img/<id>")
-def img(id):
+@app.route("/annotate/")
+@app.route("/annotate/<int:id>")
+def annotate(id=None):
+    show_annot = request.args.get('show_annot')
+    if id is None:
+        cur = get_db().cursor()
+        if show_annot:
+            cur.execute("SELECT MIN(images.img_id) AS id from images")
+        else:
+            cur.execute("SELECT MIN(images.img_id) AS id from images LEFT OUTER JOIN annotations ON annotations.img_id IS null")
+        id = next(cur, [{'id': None}])['id']
+    return render_template('annotate.html', id=id)
+
+
+# maybe this could be a static route to storage?
+@app.route("/images/<int:img_id>")
+def img(img_id):
     try:
         cur = get_db().cursor()
-        cur.execute("SELECT * FROM images WHERE img_id=={}".format(id))
+        cur.execute("SELECT * FROM images WHERE img_id=={}".format(img_id))
         result = next(cur, [None])
         logging.info('Found image {}'.format(result))
         img_home = get_global('img_home')
@@ -55,8 +71,9 @@ def img(id):
         abort(404)
 
 
-@app.route("/annotations/<int:img_id>")
-def annotations(img_id):
+# REST methods
+@app.route("/images/<int:img_id>/annotations", methods=['GET'])
+def get_annotation(img_id):
     cur = get_db().cursor()
     cur.execute("SELECT anno_id, geometry, annotation, metadata FROM annotations WHERE img_id={}".format(img_id))
     columns = [column[0] for column in cur.description]
@@ -70,7 +87,7 @@ def annotations(img_id):
     return jsonify(results)
 
 
-@app.route("/post_annotation", methods=['POST'])
+@app.route("/annotations/", methods=['POST'])
 def post_annotation():
     req = request.get_json()
     logging.info("POST request: {}".format(req))
@@ -92,7 +109,7 @@ def post_annotation():
     return jsonify({"message": "Annotation posted", "id": cur.lastrowid})
 
 
-@app.route("/replace_annotation/<int:anno_id>", methods=['POST'])
+@app.route("/annotations/<int:anno_id>", methods=['PUT'])
 def replace_annotation(anno_id):
     req = request.get_json()
     logging.info("POST replace request: {}".format(req))
@@ -118,7 +135,7 @@ def replace_annotation(anno_id):
     return jsonify({"message": "Annotation posted", "id": cur.lastrowid})
 
 
-@app.route("/delete_annotation/<int:anno_id>", methods=['DELETE'])
+@app.route("/annotations/<int:anno_id>", methods=['DELETE'])
 def delete_annotation(anno_id):
     req = request.get_json()
     logging.info("DELETE request: {}".format(req))
@@ -131,17 +148,3 @@ def delete_annotation(anno_id):
     cur.execute(cmd)
     con.commit()
     return jsonify(success=True)
-
-
-@app.route("/annotate/")
-@app.route("/annotate/<int:id>")
-def annotate(id=None):
-    show_annot = request.args.get('show_annot')
-    if id is None:
-        cur = get_db().cursor()
-        if show_annot:
-            cur.execute("SELECT MIN(images.img_id) AS id from images")
-        else:
-            cur.execute("SELECT MIN(images.img_id) AS id from images LEFT OUTER JOIN annotations ON annotations.img_id IS null")
-        id = next(cur, [{'id': None}])['id']
-    return render_template('annotate.html', id=id)

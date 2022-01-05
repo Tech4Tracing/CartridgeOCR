@@ -4,7 +4,7 @@ function annotations(img_id, panel_id, highlights) {
         // TODO: fetch annotations
         highlights.on_newpolygon(add);
 
-        var url = "/annotations/"+img_id;
+        var url = "/images/"+img_id+"/annotations";
         var xhr = new XMLHttpRequest();
         xhr.open("GET", url, true);
         
@@ -71,7 +71,7 @@ function annotations(img_id, panel_id, highlights) {
                 if (a.committed) {                    
                     var db_id = a.anno_id;
                     console.log('db_id: '+db_id);
-                    var url = "/delete_annotation/"+db_id;
+                    var url = "/annotations/"+db_id;
                     var xhr = new XMLHttpRequest();
                     xhr.open("DELETE", url, true);
                    
@@ -160,11 +160,13 @@ function annotations(img_id, panel_id, highlights) {
             if (a.committed) return;
 
             // replace the annotation. TODO: maybe there is a race condition? we want to update
-            var url = "/post_annotation";
+            var url = "/annotations";
+            var method = 'POST'
             if (a.anno_id) {
                 var db_id = a.anno_id;
                 console.log('db_id: '+db_id);
-                url = "/replace_annotation/"+db_id;
+                method = 'PUT'
+                url = "/annotations/"+db_id;
             }
 
             // update the annotation text
@@ -186,9 +188,11 @@ function annotations(img_id, panel_id, highlights) {
                 metadata: a.metadata
             });
             var xhr = new XMLHttpRequest();
-            xhr.open("POST", url, true);
+
+	    // making this async causes bug #20
+            xhr.open(method, url, false); 
+
             xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-           
             xhr.onreadystatechange = function() {
                 if(xhr.readyState == 4 && xhr.status == 200) {
                     console.log(xhr.responseText);
@@ -202,10 +206,6 @@ function annotations(img_id, panel_id, highlights) {
             xhr.send(payload);
         });
     }
-
-    /*function updated(callback) {
-
-    }*/
 
     init();
     return {
