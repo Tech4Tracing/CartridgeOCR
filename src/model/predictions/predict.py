@@ -1,3 +1,8 @@
+"""predict.py: Runs model predictions over an input folder.
+
+For best results, run in the src/model folder.
+Run predictions/predict.py -h for info on command line arguments.
+"""
 import sys
 sys.path += ['.', '..']
 import os

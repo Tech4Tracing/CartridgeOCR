@@ -104,7 +104,8 @@ class Inference():
             # Convert request from base64 to a PIL Image
             img_bytes = base64.b64decode(encodedImage)  # img_bytes is a binary image
             img_file = io.BytesIO(img_bytes)            # convert image to file-like object
-            img = Image.open(img_file)                  # img is now PIL Image object
+            # explicitly convert to RGB to ensure it's not a single channel
+            img = Image.open(img_file).convert("RGB")   # img is now PIL Image object
             width, height = img.size
             if width > self.max_width:
                 logging.info(f'Resizing from {width}')
