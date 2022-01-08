@@ -1,0 +1,42 @@
+version: '3'
+volumes:
+  annotations_storage: {}
+  annotations_db: {}
+services:
+  annotations:
+    build:
+      context: ./src/annotation/
+      dockerfile: Dockerfile
+    image: annotations
+    environment:
+      AZURE_STORAGE_CONNECTION_STRING: ""
+      IS_READONLY: "false"
+      DATABASE_URL: "sa:Your_password123@annotations_mssql/master?charset=utf8"
+      SQLALCHEMY_URL: "mssql+pymssql://sa:Your_password123@annotations_mssql/master?charset=utf8"
+    volumes:
+      - ./src/annotation:/app
+      - ./data/:/data
+    ports:
+      - "8080:8080"
+    env_file:
+        - ./src/annotation/.env
+    command: flask run -p 8080 -h 0.0.0.0  # TODO: replace this with uvicorn or similar
+    depends_on:
+      - annotations_mssql
+      - annotations_objstore
+    stop_signal: sigkill
+
+  annotations_mssql:  # NOT YET USED: TODO: replace sqlite with this
+    image: "mcr.microsoft.com/mssql/server"
+    environment:
+        SA_PASSWORD: "Your_password123"
+        ACCEPT_EULA: "Y"
+    volumes:
+      - annotations_db:/var/opt/mssql
+
+  annotations_objstore:  # NOT YET USED: TODO: replace local file system object store with this
+    # https://docs.microsoft.com/en-us/azure/storage/common/storage-use-azurite?tabs=docker-hub
+    image: mcr.microsoft.com/azure-storage/azurite
+    command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 -l /workspace -d /workspace/debug.log
+    volumes:
+      - "annotations_storage:/workspace"
