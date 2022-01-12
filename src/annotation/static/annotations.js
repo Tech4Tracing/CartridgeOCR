@@ -160,7 +160,7 @@ function annotations(img_id, panel_id, highlights) {
             if (a.committed) return;
 
             // replace the annotation. TODO: maybe there is a race condition? we want to update
-            var url = "/annotations";
+            var url = "/annotations/";
             var method = 'POST'
             if (a.anno_id) {
                 var db_id = a.anno_id;
