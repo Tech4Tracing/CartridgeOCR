@@ -50,3 +50,20 @@ button {
     background-color: red;
     font-size: small;
 }
+
+#toolbar {
+    float: right;
+    border: solid 1px;
+}
+
+#btn_radial, #btn_box {
+    display:block;
+}
+
+.btn_selected {
+    background-color: lightgray;
+}
+
+.btn_unselected {
+    background-color: lightblue;
+}

@@ -18,7 +18,8 @@ function annotations(img_id, panel_id, highlights) {
                     a.temp_id = annotations.length;
                     a.committed = true;
                     annotations.push(a);
-                    highlights.add_polygon(a.geometry);
+                    var mode = a.metadata.mode || 'radial';
+                    highlights.add_polygon(a.geometry, mode);
                 });
                 refresh();   
             }
@@ -27,12 +28,13 @@ function annotations(img_id, panel_id, highlights) {
 
     }
     
+    // highlights.js sends polygons in format {'mode': mode, 'points': [points]}
     function add(polygon) {
         console.log('adding a new polygon');
         annotations.push({
             temp_id: annotations.length,
-            geometry: polygon,
-            metadata:{},
+            geometry: polygon.points,
+            metadata:{mode: polygon.mode},
             annotation: '',
             committed: false,
             db_id: null
@@ -91,7 +93,7 @@ function annotations(img_id, panel_id, highlights) {
         annotations = annotations.filter(without, annotation_id);
         console.log('annotations: '+annotations.length);
         // TODO: callback to refresh the canvas.
-        highlights.set_polygons(annotations.map((a)=>a.geometry));
+        highlights.set_polygons(annotations.map((a)=> {return {'points': a.geometry, 'mode': a.metadata.mode || 'radial'}}));
         refresh();
     }
 
@@ -108,11 +110,11 @@ function annotations(img_id, panel_id, highlights) {
         var input_div = document.createElement('div');
         input_div.appendChild(makeElement('Text: '));
         input_div.appendChild(input);
-    
+        var mode = a.metadata.mode || 'radial';
         e.replaceChildren(...[
             makeElement("<a class='delete_handle' id='d_"+a.temp_id+"'>X</a>"),
             input_div,
-            makeElement('<p>Type: radial</p>'),
+            makeElement('<p>Type: '+ mode +'</p>'),
             makeElement('<div><div>Text Up Direction:</div> \
             <div> <input type="radio" id="rd_dir_outward_'+a.temp_id+'" name="rd_direction_'+a.temp_id+'" value="outward" > \
             <label for="rd_dir_outward">outward</label> \

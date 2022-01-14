@@ -1,7 +1,7 @@
 //initDraw(document.getElementById('imagearea'));
 console.log('loading highlight');
 
-function radialDraw(img_id, canvas_id) {
+function radialDraw(img_id, canvas_id, mode) {
     console.log('init radial draw');
     var mouse = {
         x: 0,
@@ -11,7 +11,8 @@ function radialDraw(img_id, canvas_id) {
     };
     var points = [];
     var polygons = [];
-    
+    var mode = 'radial';
+
     var imgarea = document.getElementById(canvas_id);
     
     // TODO: only if points is non-empty.
@@ -24,14 +25,21 @@ function radialDraw(img_id, canvas_id) {
         }
     };
 
+    function drawPolygon(points, polymode) {
+        if (polymode==='radial') {
+            drawRadialPolygon(points);
+        } else {
+            drawBox(points);
+        }
+    }
 
     function refresh_polygons(ctx) {
         //console.log(polygons);
         if (polygons.length>0) {
             polygons.forEach(function (p) {
                 ctx.fillStyle = 'blue';
-                console.log('drawing'+p);
-                drawRadialPolygon(p);
+                console.log('drawing '+p);
+                drawPolygon(p.points, p.mode);                
             });
         }
         ctx.fillStyle = "red";
@@ -96,18 +104,19 @@ function radialDraw(img_id, canvas_id) {
         points.push({x: cx, y: cy});
         points.push({x: cx, y: cy});
         console.log(cx+','+cy);
+        var threshold = mode === 'radial' ? 3 : 2;
         //if (clicktype === 'double') {
-        if (points.length>3) {
+        if (points.length>threshold) {
             points.pop();
-            polygons.push(points);
+            polygons.push({'mode': mode, 'points': points});
             points = [];
             redraw();
             process_add_callbacks(polygons[polygons.length-1]);
         } else {
             redraw();
-            drawRadialPolygon(points);
-        }
-        console.log(points);
+            console.log('clickhandler: ' + points);       
+            drawPolygon(points, mode);
+        } 
     }
     imgarea.onmouseup = function(e) { return clickhandler(e,'single');}
     imgarea.ondblclick = function(e) { return clickhandler(e,'double');}
@@ -120,7 +129,7 @@ function radialDraw(img_id, canvas_id) {
             points.pop();
             points.push({x: cx, y: cy});
             redraw();
-            drawRadialPolygon(points);
+            drawPolygon(points, mode);
         }
         //console.log(points);
         //console.log(e.x+' '+e.y);
@@ -132,6 +141,32 @@ function radialDraw(img_id, canvas_id) {
         }*/
     }
 
+    function drawBox(points) {
+        // get the canvas element using the DOM
+        var canvas = document.getElementById(canvas_id);
+        
+        // Make sure we don't execute when canvas isn't supported
+        if (canvas.getContext) {
+
+            // use getContext to use the canvas for drawing
+            var ctx = canvas.getContext('2d');
+
+            var cpoints = points.map((p) => { return {x: p.x*canvas.width, y: p.y*canvas.height}});
+            
+            ctx.globalAlpha = 0.25;
+
+            if (cpoints.length!==2) {
+                console.log('weird cpoints. exiting');
+                return;
+            }
+            ctx.beginPath();
+            ctx.rect(cpoints[0].x, cpoints[0].y, cpoints[1].x-cpoints[0].x, cpoints[1].y-cpoints[0].y);
+            ctx.fill();
+            ctx.globalAlpha = 1.0;
+            ctx.lineWidth = 1;
+            ctx.stroke();            
+        }
+    }
     
     function drawRadialPolygon(points) {
         // get the canvas element using the DOM
@@ -187,7 +222,8 @@ function radialDraw(img_id, canvas_id) {
                 //console.log('arc '+r1+' '+theta1+' '+theta2);
                 ctx.arc(srtPoints[0].x, srtPoints[0].y, r1, theta1, theta2, clockwise);
             }                
-            ctx.lineTo(srtPoints[0].x, srtPoints[0].y);
+            //ctx.lineTo(srtPoints[0].x, srtPoints[0].y);
+            ctx.closePath();
             ctx.stroke();
             ctx.fill();
 
@@ -209,8 +245,8 @@ function radialDraw(img_id, canvas_id) {
 
     }
 
-    function add_polygon(polygon) {
-        polygons.push(polygon);
+    function add_polygon(polygon, mode) {
+        polygons.push({'mode': mode, 'points': polygon});
         redraw();
         // called by external services.
         //process_add_callbacks(polygons[polygons.length-1]);
@@ -221,12 +257,20 @@ function radialDraw(img_id, canvas_id) {
         redraw();
     }
     
+    function set_mode(_mode) {
+        if (_mode!=='radial' && _mode!=='box') {
+            console.log('invalid mode')
+        }
+        mode = _mode;
+    }
+
     redraw();
 
     return {
         on_newpolygon: on_newpolygon,
         add_polygon: add_polygon,
-        set_polygons: set_polygons
+        set_polygons: set_polygons,
+        set_mode: set_mode
     }
 }
 
