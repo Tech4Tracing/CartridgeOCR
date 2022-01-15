@@ -27,7 +27,7 @@ button {
     float: left;
     width: 30%;
     height: 90vh;
-    overflow-y: auto;
+    /*overflow-y: auto;*/
     margin-left: 100px;
 }
 

@@ -97,6 +97,7 @@ function annotations(img_id, panel_id, highlights) {
         refresh();
     }
 
+    // TODO: this is complex enough it needs its own class.
     function makeAnnotationDiv(a) {
         console.log('creating annotation '+a);
         var e = document.createElement('div');
@@ -123,12 +124,16 @@ function annotations(img_id, panel_id, highlights) {
             <input type="radio" id="rd_dir_clockwise_'+a.temp_id+'" name="rd_direction_'+a.temp_id+'", value="clockwise" > \
             <label for="rd_dir_clockwise">clockwise</label> \
             <input type="radio" id="rd_dir_anticlockwise_'+a.temp_id+'" name="rd_direction_'+a.temp_id+'", value="anticlockwise" > \
-            <label for="rd_dir_anticlockwise">anticlockwise</label> </div></div>'),     
+            <label for="rd_dir_anticlockwise">anticlockwise</label> </div></div>'),                 
+            makeElement('<div style="padding-top:10px;"><input type="checkbox" id="ck_illegible_'+a.temp_id+'" name="meta_'+a.temp_id+'"> \
+            <label for="ck_illegible_'+a.temp_id+'">illegible</label> \
+            <input type="checkbox" id="ck_symbol_'+a.temp_id+'" name="meta_'+a.temp_id+'"> \
+            <label for="ck_symbol_'+a.temp_id+'">symbol</label> \
+            '),
             makeElement('<p>Points: ' + geom_to_str(a.geometry)+'</p>')
         ]);
         var d = e.querySelector('#d_'+a.temp_id);
-        console.log(e.firstChild);
-        console.log(e.id);
+        
         d.onclick = () => {delete_annotation(a.temp_id)};
         if (a.metadata && a.metadata.direction) {
             var dir = a.metadata.direction;
@@ -142,6 +147,19 @@ function annotations(img_id, panel_id, highlights) {
         var radios = e.querySelectorAll('input[type=radio][name="rd_direction_'+a.temp_id+'"]');
         console.log('radios: '+radios.length);
         radios.forEach(radio => radio.addEventListener('change', () => {console.log('reset'); a.committed=false;}));
+        
+        var checkboxes = e.querySelectorAll('input[type=checkbox][name="meta_'+a.temp_id+'"]');
+        checkboxes.forEach(check => check.addEventListener('change', () => {console.log('reset'); a.committed=false;}));
+        
+        if (a.metadata && a.metadata.illegible) {
+            var d_elt = e.querySelector('#ck_illegible_'+a.temp_id);
+            d_elt.checked = true;
+        }
+        if (a.metadata && a.metadata.symbol) {
+            var d_elt = e.querySelector('#ck_symbol_'+a.temp_id);
+            d_elt.checked = true;
+        }
+
         //e.innerHTML = '<p>Text: <input id="i_'+a.temp_id+'"></p><p>Type: radial</p><p>Points: '+geom_to_str(a.geometry)+'</p>';        
         return e;
     }
@@ -176,6 +194,8 @@ function annotations(img_id, panel_id, highlights) {
             var annotation = document.getElementById(text_id).value;
             console.log('setting '+a.temp_id+' value to '+annotation);
             a.annotation = annotation;
+            // need to preserve the mode but we should reconstruct the rest of the metadata.
+            a.metadata = {'mode':a.metadata.mode};
 
             var dir_id = 'rd_direction_'+a.temp_id;
             var direction = document.querySelector('input[name="'+dir_id+'"]:checked').value;
@@ -183,6 +203,15 @@ function annotations(img_id, panel_id, highlights) {
             // TODO: where is the best place to put this assignment.
             a.metadata.direction = direction;
             
+            var meta_id = 'meta_'+a.temp_id;
+            var checked = document.querySelectorAll('input[name="'+meta_id+'"]:checked');
+            checked.forEach((c) => {
+                console.log('found metadata '+c.id);
+                var value = c.id.split('_')[1]; // the id contains the metadata.
+                a.metadata[value]=true;
+            }
+            );
+
             var payload = JSON.stringify({
                 geometry: a.geometry,
                 img_id: img_id,
