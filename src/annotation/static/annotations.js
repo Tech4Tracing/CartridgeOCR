@@ -99,14 +99,22 @@ function annotations(img_id, panel_id, highlights) {
 
     // TODO: this is complex enough it needs its own class.
     function makeAnnotationDiv(a) {
+        var uncommitted_color = '#FFDAB9';
         console.log('creating annotation '+a);
         var e = document.createElement('div');
         e.className = 'annotation';
+        if (!a.committed) {
+            e.style['background-color'] = uncommitted_color;
+        }
         e.id = 'a_' + a.temp_id;        
                 
         var input = document.createElement('input');
         input.id = 'i_' + a.temp_id;
-        input.onkeyup = (x) => {input_keypress(a.temp_id)}; 
+        input.onkeyup = (x) => {
+            input_keypress(a.temp_id); 
+            // Forcing a refresh would lose focus so we make the style change here.           
+            e.style['background-color'] = uncommitted_color;
+        }; 
         input.value = (a.annotation===null)?'':a.annotation;       
         var input_div = document.createElement('div');
         input_div.appendChild(makeElement('Text: '));
@@ -146,10 +154,18 @@ function annotations(img_id, panel_id, highlights) {
 
         var radios = e.querySelectorAll('input[type=radio][name="rd_direction_'+a.temp_id+'"]');
         console.log('radios: '+radios.length);
-        radios.forEach(radio => radio.addEventListener('change', () => {console.log('reset'); a.committed=false;}));
+        radios.forEach(radio => radio.addEventListener('change', () => {
+            console.log('reset'); 
+            a.committed=false;
+            e.style['background-color'] = uncommitted_color;
+        }));
         
         var checkboxes = e.querySelectorAll('input[type=checkbox][name="meta_'+a.temp_id+'"]');
-        checkboxes.forEach(check => check.addEventListener('change', () => {console.log('reset'); a.committed=false;}));
+        checkboxes.forEach(check => check.addEventListener('change', () => {
+            console.log('reset'); 
+            a.committed=false;
+            e.style['background-color'] = uncommitted_color;            
+        }));
         
         if (a.metadata && a.metadata.illegible) {
             var d_elt = e.querySelector('#ck_illegible_'+a.temp_id);
@@ -232,6 +248,9 @@ function annotations(img_id, panel_id, highlights) {
                         a.anno_id = result.id;
                     }
                     a.committed = true;
+                    // reset the parent element styling.
+                    var e = document.getElementById('a_'+a.temp_id);
+                    e.style['background-color'] = '#FFFFFF';
                 }
             }
             xhr.send(payload);
