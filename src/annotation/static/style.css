@@ -1,11 +1,3 @@
-.imagearea {
-    display: flex;
-    flex-direction: column;
-    float: left;
-    width: 35%;
-    max-width: 700px;
-    position: relative;
-}
 
 #header {
     margin: 10px;
@@ -27,15 +19,19 @@ button {
 
 #canvas {
     display: flex;
+    float: left;
     /* width: 50%; */
 }
 
 #annotations {
-    float: right;
+    float: left;
     width: 30%;
     height: 90vh;
-    overflow-y: auto;
+    /*overflow-y: auto;*/
+    margin-left: 100px;
 }
+
+#spacer { float: left; }
 
 .annotation {
     border: solid 2px;
@@ -49,4 +45,40 @@ button {
     border: solid 2px;
     background-color: red;
     font-size: small;
+}
+
+#toolbar {
+    float: left;
+    border: solid 1px;
+}
+
+#btn_radial {
+    background-image : url(/static/img/icon_radial.png);
+    
+}
+
+#btn_box {
+    background-image : url(/static/img/icon_box.png);
+}
+
+
+#btn_radial, #btn_box {
+    display:block;
+    background-size: contain;
+    background-color: rgba(0, 0, 0, 0);
+    /*background-position: center center; */
+    /*background-repeat: no-repeat; */
+    width: 50px;
+    height: 50px;
+}
+
+
+.btn_selected {
+    /*background-color: lightgray; */
+    border: solid red 3px;
+}
+
+.btn_unselected {
+    /*background-color: lightblue;*/
+    border: solid black 1px;
 }

@@ -64,7 +64,7 @@ def img(img_id):
         result = next(cur, [None])
         logging.info('Found image {}'.format(result))
         img_home = get_global('img_home')
-        logging.info('image root {}'.format(img_home))
+        logging.info(f'image root {img_home}')
         filename = os.path.join(img_home, result['filename'])
         return send_file(filename, mimetype='image/jpeg')
     except Exception as e:

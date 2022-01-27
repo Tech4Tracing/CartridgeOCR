@@ -13,14 +13,16 @@
             <a href='/annotate/{{id-1}}'>&lt;&lt;</a> | <a href='/annotate/{{id+1}}'>&gt;&gt;</a> | <button id='btn_save'>Save</button> | <button id='btn_save_advance'>Save and Advance</button>
         </div>
 
-        <div id='annotations'>
-            
-        </div>
-        <canvas id="canvas" ></canvas>
-        <!--<div class='imagearea'>
-            <img id='img01' src='/img/{{id}}'>
-        </div> -->
         
+
+        <div id="ui_body">
+            <canvas id="canvas" ></canvas>
+            <div id='toolbar'>
+                <button id='btn_radial' class='btn_selected'></button>
+                <button id='btn_box' class='btn_unselected'></button>
+            </div>           
+            <div id='annotations'></div>
+        </div>
         
     </body>
 </html>
