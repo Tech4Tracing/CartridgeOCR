@@ -1,8 +1,11 @@
 from flask import g
-import sqlite3
+import sqlalchemy as sqldb
+from sqlalchemy.pool import SingletonThreadPool
 
 
-DATABASE = 'annotations.db'
+# DATABASE = 'annotations.db'
+DATABASE = 'sqlite:///annotations.db'
+
 
 def parse_boolean(value):
     value = value.lower()
@@ -15,15 +18,26 @@ def parse_boolean(value):
     return False
 
 
-def get_db():
-    db = getattr(g, '_database', None)
-    if db is None:
-        db = g._database = sqlite3.connect(DATABASE)
-        db.row_factory = sqlite3.Row
-    return db
+class DBConnection:
+    def __init__(self, _engine, _connection, _metadata):
+        self.engine = _engine
+        self.connection = _connection
+        self.metadata = _metadata
+
+
+def get_db() -> DBConnection:
+    if getattr(g, '_db', None) is None:
+        _engine = sqldb.create_engine(DATABASE, poolclass=SingletonThreadPool)
+        _connection = _engine.connect()
+        _metadata = sqldb.MetaData(_engine)
+        _metadata.reflect()
+        g._db = DBConnection(_engine, _connection, _metadata)
+    return g._db
+
 
 def get_global(key):
-    cur = get_db().cursor()
-    result = cur.execute("SELECT value FROM globals WHERE key=='{}'".format(key))
-    result = next(cur, [None])
-    return result['value'] if result else None
+    db = get_db()
+    globals = db.metadata.tables['globals']
+    query = sqldb.select([globals]).where(globals.columns.key == key)
+    result = db.connection.execute(query).one()
+    return result['value']
