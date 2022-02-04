@@ -1,9 +1,9 @@
 import os
 from flask import Flask, g, send_file, abort, redirect, jsonify, make_response, render_template, request
-import sqlite3
 import logging
 from utils import get_db, get_global
 import json
+import sqlalchemy as sqldb
 
 
 logging.basicConfig(level=logging.INFO)
@@ -26,16 +26,19 @@ app = Flask(__name__)
 # TODO: host db online/ migrate to modern/robust db.
 # TODO: e2e image processing pipeline/user experience
 # TODO: proper RESTful API
+# TODO: env variable for database URI
 
 
+# TODO: maybe this should move to utils?
 @app.teardown_appcontext
 def close_connection(exception):
-    db = getattr(g, '_database', None)
+    db = getattr(g, '_db', None)
     if db is not None:
-        db.close()
+        db.engine.dispose()
+        g._db = None
 
 
-# UI routes 
+# UI routes
 @app.route("/")
 def home():
     return redirect('/annotate/')
@@ -45,13 +48,22 @@ def home():
 @app.route("/annotate/<int:id>")
 def annotate(id=None):
     show_annot = request.args.get('show_annot')
+    logging.info(f'show_annot: {show_annot} , ({not show_annot}')
     if id is None:
-        cur = get_db().cursor()
-        if show_annot:
-            cur.execute("SELECT MIN(images.img_id) AS id from images")
-        else:
-            cur.execute("SELECT MIN(images.img_id) AS id from images LEFT OUTER JOIN annotations ON annotations.img_id IS null")
-        id = next(cur, [{'id': None}])['id']
+        db = get_db()
+        images = db.metadata.tables['images']
+        query = sqldb.select([sqldb.func.min(images.c.img_id).label('id')])
+        if not show_annot:
+            # TODO: this seems broken
+            annotations = db.metadata.tables['annotations']
+            query = \
+                query.select_from(
+                    images.outerjoin(
+                        annotations,
+                        images.c.img_id == annotations.c.img_id)
+                ).filter(annotations.c.img_id == None)
+        result = db.connection.execute(query).one()
+        id = result['id']
     return render_template('annotate.html', id=id)
 
 
@@ -59,9 +71,10 @@ def annotate(id=None):
 @app.route("/images/<int:img_id>")
 def img(img_id):
     try:
-        cur = get_db().cursor()
-        cur.execute("SELECT * FROM images WHERE img_id=={}".format(img_id))
-        result = next(cur, [None])
+        db = get_db()
+        images = db.metadata.tables['images']
+        query = sqldb.select(images).where(images.c.img_id == img_id)
+        result = db.connection.execute(query).one()
         logging.info('Found image {}'.format(result))
         img_home = get_global('img_home')
         logging.info(f'image root {img_home}')
@@ -74,12 +87,17 @@ def img(img_id):
 # REST methods
 @app.route("/images/<int:img_id>/annotations", methods=['GET'])
 def get_annotation(img_id):
-    cur = get_db().cursor()
-    cur.execute("SELECT anno_id, geometry, annotation, metadata FROM annotations WHERE img_id={}".format(img_id))
-    columns = [column[0] for column in cur.description]
+    db = get_db()
+    annos = db.metadata.tables['annotations']
+    query = sqldb.select(
+        annos.c.anno_id,
+        annos.c.geometry,
+        annos.c.annotation,
+        annos.c.metadata).where(annos.c.img_id == img_id)
+    result = db.connection.execute(query).fetchall()
     results = []
-    for row in cur.fetchall():
-        row = dict(zip(columns, row))
+    for row in result:
+        row = dict(row)
         row['geometry'] = json.loads(row['geometry'])
         row['metadata'] = json.loads(row['metadata'])
         results.append(row)
@@ -94,45 +112,50 @@ def post_annotation():
 
     # TODO: validate the payload.
     # TODO: escape quotes and other dangerous chars
-    con = get_db()
-    cur = con.cursor()
-    # anno_id , img_id , geometry , annotation , metadata 
-    cmd = "INSERT INTO annotations (anno_id,img_id,geometry,annotation,metadata) VALUES (null, {}, '{}', '{}', '{}')".format(
-        req['img_id'], json.dumps(req['geometry']), req['annotation'], json.dumps(req['metadata'])
-    )
-    logging.info(cmd)
-    cur.execute(cmd)
-    con.commit()
-    cur.execute('SELECT COUNT(*) AS c FROM annotations')
-    result = next(cur, [None])['c']
-    logging.info('found {} rows'.format(result))
-    return jsonify({"message": "Annotation posted", "id": cur.lastrowid})
+    db = get_db()
+
+    # anno_id , img_id , geometry , annotation , metadata
+    annos = db.metadata.tables['annotations']
+    result = db.connection.execute(annos.insert(), {
+        'img_id': req['img_id'],
+        'geometry': json.dumps(req['geometry']),
+        'annotation': req['annotation'],
+        'metadata': json.dumps(req['metadata'])
+    })
+    # cur.execute('SELECT COUNT(*) AS c FROM annotations')
+    # result = next(cur, [None])['c']
+    # logging.info('found {} rows'.format(result))
+    return jsonify({
+        "message": "Annotation posted",
+        "id": result.inserted_primary_key['anno_id']
+    })
 
 
 @app.route("/annotations/<int:anno_id>", methods=['PUT'])
 def replace_annotation(anno_id):
     req = request.get_json()
-    logging.info("POST replace request: {}".format(req))
+    logging.info("PUT replace request: {}".format(req))
 
     # TODO: validate the payload.
     # TODO: escape quotes and other dangerous chars
     # TODO: change this to an update rather than delete/insert?
-    con = get_db()
-    cur = con.cursor()
-    # anno_id , img_id , geometry , annotation , metadata 
-    cmd1 = "DELETE FROM annotations WHERE anno_id={}".format(anno_id)
-    cmd = "INSERT INTO annotations (anno_id,img_id,geometry,annotation,metadata) VALUES (null, {}, '{}', '{}', '{}')".format(
-        req['img_id'], json.dumps(req['geometry']), req['annotation'], json.dumps(req['metadata'])
+    db = get_db()
+    annos = db.metadata.tables['annotations']
+    upd = annos.update().where(annos.c.anno_id == anno_id).values(
+        {
+            'img_id': req['img_id'],
+            'geometry': json.dumps(req['geometry']),
+            'annotation': req['annotation'],
+            'metadata': json.dumps(req['metadata'])
+        }
     )
-    logging.info(cmd1)
-    logging.info(cmd)
-    cur.execute(cmd1)
-    cur.execute(cmd)
-    con.commit()
-    cur.execute('SELECT COUNT(*) AS c FROM annotations')
-    result = next(cur, [None])['c']
-    logging.info('found {} rows'.format(result))
-    return jsonify({"message": "Annotation posted", "id": cur.lastrowid})
+    # TODO: do we need to get/validate the return result?
+    db.connection.execute(upd)
+
+    # cur.execute('SELECT COUNT(*) AS c FROM annotations')
+    # result = next(cur, [None])['c']
+    # logging.info('found {} rows'.format(result))
+    return jsonify({"message": "Annotation updated", "id": anno_id})
 
 
 @app.route("/annotations/<int:anno_id>", methods=['DELETE'])
@@ -140,11 +163,8 @@ def delete_annotation(anno_id):
     req = request.get_json()
     logging.info("DELETE request: {}".format(req))
 
-    # TODO: validate the payload.    
-    con = get_db()
-    cur = con.cursor()
-    cmd = "DELETE FROM annotations WHERE anno_id={}".format(anno_id)
-    logging.info(cmd)
-    cur.execute(cmd)
-    con.commit()
+    # TODO: validate the payload.
+    db = get_db()
+    annos = db.metadata.tables['annotations']
+    db.connection.execute(annos.delete().where(annos.c.anno_id == anno_id))
     return jsonify(success=True)
