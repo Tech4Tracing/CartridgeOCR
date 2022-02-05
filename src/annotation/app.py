@@ -25,8 +25,6 @@ import sqlalchemy as sqldb
 logging.basicConfig(level=logging.INFO)
 load_dotenv()
 
-# TODO: arguments or env vars for globals
-# TODO: users, authentication
 # TODO: fix navigation - annotated vs unannotated, collections, user-owned vs global
 # TODO: annotation modes - radial vs simple bounding box vs free polygon
 # TODO: text/metadata options - symbols, etc
@@ -59,6 +57,7 @@ logging.info('Launching login manager')
 # https://flask-login.readthedocs.io/en/latest
 login_manager = LoginManager()
 login_manager.init_app(app)
+login_manager.login_view = '/'
 
 # OAuth 2 client setup
 logging.info('Creating google client')
@@ -93,7 +92,7 @@ def index():
         #)
         return redirect('/annotate/')
     else:
-        return '<a class="button" href="/login">Google Login</a>'
+        return render_template('unauth.html') 
 
 
 # Reference for GOOG oauth: https://realpython.com/flask-google-login/
@@ -209,7 +208,7 @@ def annotate(id=None):
                 ).filter(annotations.c.img_id == None)
         result = db.connection.execute(query).one()
         id = result['id']
-    return render_template('annotate.html', id=id)
+    return render_template('annotate.html', id=id, name=current_user.name.split(' ')[0])
 
 
 # maybe this could be a static route to storage?

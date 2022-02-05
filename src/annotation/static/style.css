@@ -1,6 +1,6 @@
 
 #header {
-    margin: 10px;
+    margin: 10px;    
 }
 
 button {
@@ -81,4 +81,38 @@ button {
 .btn_unselected {
     /*background-color: lightblue;*/
     border: solid black 1px;
+}
+
+.login_button {
+  font: bold 16px Arial;
+  text-decoration: none;
+  background-color: #072cfc;
+  color: #ffffff;
+  padding: 8px 24px 8px 24px;
+  border-top: 1px solid #CCCCCC;
+  border-right: 1px solid #333333;
+  border-bottom: 1px solid #333333;
+  border-left: 1px solid #CCCCCC;
+}
+
+#unauth_body {
+    text-align: center;
+    margin-left: auto;
+    margin-right: auto;
+    vertical-align: middle;
+}
+
+#logout {
+    float:right;
+}
+
+#logo_small {
+    width: 50px;
+    height: 50px;
+    vertical-align: middle;
+}
+
+#logo_unauth {
+    width: 200px;
+    height: 200px;
 }
