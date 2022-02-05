@@ -40,8 +40,9 @@ load_dotenv()
 # TODO: adding more images
 # TODO: host db online/ migrate to modern/robust db.
 # TODO: e2e image processing pipeline/user experience
-# TODO: proper RESTful API
 # TODO: env variable for database URI
+# TODO: logout button
+# TODO: beautify login page
 # TODO: move to env.py?
 GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", None)
 GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", None)
