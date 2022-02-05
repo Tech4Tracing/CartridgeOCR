@@ -69,7 +69,6 @@ client = WebApplicationClient(GOOGLE_CLIENT_ID)
 def load_user(user_id):
     return User.get(user_id)
 
-
 # TODO: maybe this should move to utils?
 @app.teardown_appcontext
 def close_connection(exception):
