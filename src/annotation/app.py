@@ -18,7 +18,7 @@ import requests
 
 from user import User
 import logging
-from utils import get_db, get_global
+from utils import get_db, get_global, parse_boolean
 import json
 import sqlalchemy as sqldb
 
@@ -191,8 +191,8 @@ def logout():
 @app.route("/annotate/<int:id>")
 @login_required
 def annotate(id=None):
-    show_annot = request.args.get('show_annot')
-    logging.info(f'show_annot: {show_annot} , ({not show_annot}')
+    show_annot = parse_boolean(request.args.get('show_annot', False))
+    logging.info(f'show_annot: {id} , ({show_annot})')
     if id is None:
         db = get_db()
         images = db.metadata.tables['images']
@@ -209,6 +209,54 @@ def annotate(id=None):
         result = db.connection.execute(query).one()
         id = result['id']
     return render_template('annotate.html', id=id, name=current_user.name.split(' ')[0])
+
+
+@app.route('/annotate/prev/<int:id>')
+@login_required
+def prev_image(id):
+    """Move to the previous image to `id`. If show_annot is false, 
+    it will be the first image < `id` which is not annotated."""
+    nav_annot = parse_boolean(request.cookies.get('show_annot', False))
+    logging.info(f'prev: {id} , ({nav_annot})')
+    db = get_db()
+    images = db.metadata.tables['images']
+    query = sqldb.select([sqldb.func.max(images.c.img_id).label('id')]).where(images.c.img_id < id)
+    if not nav_annot:
+        annotations = db.metadata.tables['annotations']
+        query = \
+            query.select_from(
+                images.outerjoin(
+                    annotations,
+                    images.c.img_id == annotations.c.img_id)
+            ).filter(annotations.c.img_id == None)
+    result = db.connection.execute(query).one_or_none()
+    if result is not None:
+        id = result['id']
+    return annotate(id)
+
+
+@app.route('/annotate/next/<int:id>')
+@login_required
+def next_image(id):
+    """Move to the next image after `id`. If show_annot is false, 
+    it will be the first image > `id` which is not annotated."""
+    nav_annot = parse_boolean(request.cookies.get('show_annot', False))
+    logging.info(f'prev: {id} , ({nav_annot})')
+    db = get_db()
+    images = db.metadata.tables['images']
+    query = sqldb.select([sqldb.func.min(images.c.img_id).label('id')]).where(images.c.img_id > id)
+    if not nav_annot:
+        annotations = db.metadata.tables['annotations']
+        query = \
+            query.select_from(
+                images.outerjoin(
+                    annotations,
+                    images.c.img_id == annotations.c.img_id)
+            ).filter(annotations.c.img_id == None)
+    result = db.connection.execute(query).one_or_none()
+    if result is not None:
+        id = result['id']
+    return annotate(id)
 
 
 # maybe this could be a static route to storage?

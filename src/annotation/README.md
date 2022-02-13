@@ -9,7 +9,9 @@ Setup:
 
 Then run:
 
-`python -m flask run`
+`python app.py`
+
+NOTE: Don't use `python -m flask run` as this will fail to launch the app with https enabled, preventing Google OAUTH from working.
 
 To highlight text, click on the headstamp center, pull the line to the top-left corner of the text and click, then click on the lower-right corner of the text.  Enter the text string into the annotation widget, and indicate what direction is 'up' for the text- outward, inward, clockwise, or counter-clocwise.
 

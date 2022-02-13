@@ -3,12 +3,20 @@
     margin: 10px;    
 }
 
-button {
+.btn_save {
     font-size: large;
     background-color: blue;
     color: white;
     height: 50px;
     width: 200px;
+    border: none;
+}
+
+
+.btn_nav {    
+    background-color: blue;
+    color: white;
+    padding: 10px 10px;
     border: none;
 }
 
@@ -109,6 +117,19 @@ button {
 #logo_small {
     width: 50px;
     height: 50px;
+    vertical-align: middle;
+    float: left;
+}
+
+#div_nav {
+    float:left;
+    padding: 10px;
+    vertical-align: middle;
+}
+
+#div_save{
+    float:left;
+    padding: 10px;
     vertical-align: middle;
 }
 
