@@ -1,11 +1,13 @@
-from ctypes.wintypes import tagRECT
+import os
+
+# from ctypes.wintypes import tagRECT
 from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
 
 from alembic import context
-import sys
+# import sys
 
 # TODO: migrate to a model-based approach
 # sys.path.insert(0, "./alembic/models")
@@ -19,15 +21,23 @@ config = context.config
 # This line sets up loggers basically.
 fileConfig(config.config_file_name)
 
+
+if not os.environ.get("SQLALCHEMY_URL"):
+    # Example: "mssql+pymssql://sa:Your_password123@compliance_mssql/master?charset=utf8"
+    # or "postgresql://complianceuser:compliancepassword@compliance_postgres/compliancedb"
+    raise Exception("Please configure SQLALCHEMY_URL")
+
+config.set_main_option("sqlalchemy.url", os.environ.get("SQLALCHEMY_URL"))
+
 # add your model's MetaData object here
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-#from utils import get_db
-#from flask import Flask
+# from utils import get_db
+# from flask import Flask
 
-#app = Flask(__name__)
-#with app.app_context():
+# app = Flask(__name__)
+# with app.app_context():
 #    target_metadata = get_db().metadata
 target_metadata = None
 

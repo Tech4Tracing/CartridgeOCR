@@ -7,5 +7,7 @@ oauthlib==3.2.0
 
 # Database access
 sqlalchemy==1.4.32
+alembic==1.7.5  # migrations
+pymssql==2.2.2  # for MsSQL support
 
 requests==2.27.1

@@ -17,28 +17,29 @@ depends_on = None
 
 
 def upgrade():
-    op.create_table('alembic_version',
-        sa.Column('version_num', sa.VARCHAR(length=32), nullable=False),
-        sa.PrimaryKeyConstraint('version_num', name='alembic_version_pkc')
-    )
+    # op.create_table('alembic_version',
+    #     sa.Column('version_num', sa.VARCHAR(length=32), nullable=False),
+    #     sa.PrimaryKeyConstraint('version_num', name='alembic_version_pkc')
+    # )
     op.create_table('annotations',
-        sa.Column('anno_id', sa.INTEGER(), nullable=True),
-        sa.Column('img_id', sa.INTEGER(), nullable=True),
-        sa.Column('geometry', sa.TEXT(), nullable=True),
-        sa.Column('annotation', sa.TEXT(), nullable=True),
-        sa.Column('metadata', sa.TEXT(), nullable=True),
-        sa.PrimaryKeyConstraint('anno_id')
-    )
+                    sa.Column('anno_id', sa.Integer(), nullable=True),
+                    sa.Column('img_id', sa.Integer(), nullable=True),
+                    sa.Column('geometry', sa.TEXT(), nullable=True),
+                    sa.Column('annotation', sa.TEXT(), nullable=True),
+                    sa.Column('metadata', sa.TEXT(), nullable=True),
+                    sa.PrimaryKeyConstraint('anno_id')
+                    )
     op.create_table('globals',
-        sa.Column('key', sa.TEXT(), nullable=True),
-        sa.Column('value', sa.TEXT(), nullable=True),
-        sa.PrimaryKeyConstraint('key')
-    )
+                    sa.Column('key', sa.String(length=8000), nullable=True),
+                    sa.Column('value', sa.Text(), nullable=True),
+                    sa.PrimaryKeyConstraint('key')
+                    )
     op.create_table('images',
-        sa.Column('img_id', sa.INTEGER(), nullable=True),
-        sa.Column('filename', sa.TEXT(), nullable=True),
-        sa.PrimaryKeyConstraint('img_id')
-    )
+                    sa.Column('img_id', sa.Integer(), nullable=True),
+                    sa.Column('filename', sa.Text(), nullable=True),
+                    sa.PrimaryKeyConstraint('img_id')
+                    )
+
 
 def downgrade():
     pass

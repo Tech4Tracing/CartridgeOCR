@@ -1,5 +1,5 @@
 # coding: utf-8
-from sqlalchemy import Column, Integer, Text
+from sqlalchemy import Column, Integer, Text, String
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
@@ -19,7 +19,7 @@ class Annotation(Base):
 class Global(Base):
     __tablename__ = 'globals'
 
-    key = Column(Text, primary_key=True)
+    key = Column(String(8000), primary_key=True)
     value = Column(Text)
 
 

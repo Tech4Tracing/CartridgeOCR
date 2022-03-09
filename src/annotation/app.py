@@ -275,6 +275,7 @@ def img(img_id):
         filename = os.path.join(img_home, result['filename'])
         return send_file(filename, mimetype='image/jpeg')
     except Exception as e:
+        print(e)
         abort(404)
 
 

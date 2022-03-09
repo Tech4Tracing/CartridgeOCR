@@ -1,7 +1,9 @@
 version: '3'
+
 volumes:
   annotations_storage: {}
   annotations_db: {}
+
 services:
   annotations:
     build:
@@ -20,7 +22,8 @@ services:
       - "8080:8080"
     env_file:
         - ./src/annotation/.env
-    command: flask run -p 8080 -h 0.0.0.0  # TODO: replace this with uvicorn or similar
+    # command: flask run -p 8080 -h 0.0.0.0  # TODO: replace this with uvicorn or similar
+    command: /app/devops/run-annotation-api-local.sh
     depends_on:
       - annotations_mssql
       - annotations_objstore

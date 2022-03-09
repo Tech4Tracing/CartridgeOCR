@@ -1,6 +1,8 @@
+import sqlalchemy as sqldb
 from flask_login import UserMixin
-import sqlalchemy as sqldb 
+
 from utils import get_db
+
 
 class User(UserMixin):
     def __init__(self, id_, name, email, profile_pic):

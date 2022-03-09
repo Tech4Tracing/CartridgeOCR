@@ -30,7 +30,7 @@ Do this by `cp .env.example .env` then inspect `.env`
 (more configuration may be added here later).
 
 When you have a .env file then you will be able to run `docker-compose up`
-from the repository root (`../../`) to run the app in docker composition.
+from the repository root (`../../`) to run the app in docker container.
 
 Then acess it on http://localhost:8080
 

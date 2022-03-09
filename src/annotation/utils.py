@@ -1,10 +1,12 @@
-from flask import g
+import os
+
 import sqlalchemy as sqldb
+from flask import g
 from sqlalchemy.pool import SingletonThreadPool
 
 
 # DATABASE = 'annotations.db'
-DATABASE = 'sqlite:///annotations.db'
+# DATABASE = 'sqlite:///annotations.db'
 
 
 def parse_boolean(value):
@@ -30,7 +32,11 @@ class DBConnection:
 
 def get_db() -> DBConnection:
     if getattr(g, '_db', None) is None:
-        _engine = sqldb.create_engine(DATABASE, poolclass=SingletonThreadPool)
+        if not os.environ.get("SQLALCHEMY_URL"):
+            # Example: "mssql+pymssql://sa:Your_password123@compliance_mssql/master?charset=utf8"
+            # or "postgresql://complianceuser:compliancepassword@compliance_postgres/compliancedb"
+            raise Exception("Please configure SQLALCHEMY_URL")
+        _engine = sqldb.create_engine(os.environ.get("SQLALCHEMY_URL"), poolclass=SingletonThreadPool)
         _connection = _engine.connect()
         _metadata = sqldb.MetaData(_engine)
         _metadata.reflect()
