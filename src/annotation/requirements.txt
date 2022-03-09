@@ -1,3 +1,11 @@
-flask
-python-dotenv
-sqlalchemy
+flask==2.0.3
+python-dotenv==0.19.2
+
+# Auth using Google
+flask_login==0.5.0
+oauthlib==3.2.0
+
+# Database access
+sqlalchemy==1.4.32
+
+requests==2.27.1

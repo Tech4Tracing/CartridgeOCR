@@ -2,5 +2,5 @@ Generic single-database configuration.
 
 Files:
    - generate_db_creation.py:  used to create the initial alembic ops from an existing db.
-   - models: not used yet but location of the base db models if we want to use a declarative model approach
+   - models: location of the base db models if we want to use a declarative model approach
    
