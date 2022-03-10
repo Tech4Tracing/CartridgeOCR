@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 
 from flask import (
     Flask, g, send_file, abort,
-    redirect, jsonify, make_response, render_template,
+    redirect, jsonify, render_template,
     request, url_for
 )
 from flask_login import (
@@ -71,6 +71,7 @@ def load_user(user_id):
 
 
 # TODO: maybe this should move to utils?
+# or use database connection as context manager instead of `g`
 @app.teardown_appcontext
 def close_connection(exception):
     db = getattr(g, '_db', None)
