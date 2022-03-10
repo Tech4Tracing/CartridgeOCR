@@ -3,4 +3,8 @@ Generic single-database configuration.
 Files:
    - generate_db_creation.py:  used to create the initial alembic ops from an existing db.
    - models: location of the base db models if we want to use a declarative model approach
-   
+
+
+To create new version after you've changed the models:
+
+   alembic -c=alembic/alembic.ini revision --autogenerate -m "..."

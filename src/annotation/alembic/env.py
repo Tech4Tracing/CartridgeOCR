@@ -11,7 +11,8 @@ from alembic import context
 
 # TODO: migrate to a model-based approach
 # sys.path.insert(0, "./alembic/models")
-# import base
+import annotations_app.models.base as base_models
+target_metadata = base_models.metadata
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -39,7 +40,7 @@ config.set_main_option("sqlalchemy.url", os.environ.get("SQLALCHEMY_URL"))
 # app = Flask(__name__)
 # with app.app_context():
 #    target_metadata = get_db().metadata
-target_metadata = None
+# target_metadata = None
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

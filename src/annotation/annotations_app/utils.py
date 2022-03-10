@@ -1,4 +1,6 @@
+import logging
 import os
+from contextlib import contextmanager
 
 import sqlalchemy as sqldb
 from flask import g
@@ -46,3 +48,24 @@ def get_global(key):
     query = sqldb.select([globals]).where(globals.columns.key == key)
     result = db.connection.execute(query).one()
     return result['value']
+
+
+@contextmanager
+def db_session():
+    if not os.environ.get("SQLALCHEMY_URL"):
+        raise Exception("Please configure SQLALCHEMY_URL")
+    # TODO: these 2 lines are per app, not per request
+    engine = sqldb.create_engine(os.environ.get("SQLALCHEMY_URL"))
+    Session = sqldb.orm.sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+    # these per request
+    session = Session()
+    try:
+        yield session
+        session.commit()
+    except Exception as e:
+        logging.exception(e)
+        session.rollback()
+        raise
+    finally:
+        session.close()

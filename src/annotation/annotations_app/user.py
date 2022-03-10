@@ -14,7 +14,7 @@ class User(UserMixin):
     @staticmethod
     def get(user_id):
         db = get_db()
-        users = db.metadata.tables['user']
+        users = db.metadata.tables['users']
         query = sqldb.select([users]).where(users.columns.id == user_id)
         user = db.connection.execute(query).one_or_none()
         if user is None:
@@ -28,7 +28,7 @@ class User(UserMixin):
     @staticmethod
     def create(id_, name, email, profile_pic):
         db = get_db()
-        users = db.metadata.tables['user']
+        users = db.metadata.tables['users']
         query = sqldb.insert(users, {'id': id_, 'name': name, 'email': email, 'profile_pic': profile_pic})
         db.connection.execute(query)
 
