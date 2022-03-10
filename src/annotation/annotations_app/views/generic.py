@@ -20,12 +20,12 @@ def index():
 
 
 @app.route("/annotate/")
-@app.route("/annotate/<int:id>")
+@app.route("/annotate/<int:annotation_id>")
 @login_required
-def annotate(id=None):
+def annotate(annotation_id=None):
     show_annot = parse_boolean(request.args.get('show_annot', False))
-    logging.info(f'show_annot: {id} , ({show_annot})')
-    if id is None:
+    logging.info('show_annot: %s (%s) for %s', annotation_id, show_annot, current_user)
+    if annotation_id is None:
         db = get_db()
         images = db.metadata.tables['images']
         query = sqldb.select([sqldb.func.min(images.c.img_id).label('id')])
@@ -39,8 +39,8 @@ def annotate(id=None):
                         images.c.img_id == annotations.c.img_id)
                 ).filter(annotations.c.img_id == None)
         result = db.connection.execute(query).one()
-        id = result['id']
-    return render_template('annotate.html', id=id, name=current_user.name.split(' ')[0])
+        annotation_id = result['id']
+    return render_template('annotate.html', id=annotation_id, name=current_user.name.split(' ')[0])
 
 
 @app.route('/annotate/prev/<int:id>')

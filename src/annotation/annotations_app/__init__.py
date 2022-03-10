@@ -3,6 +3,9 @@ import logging
 import os
 
 import requests
+from apispec import APISpec
+from apispec_webframeworks.flask import FlaskPlugin
+from apispec.ext.marshmallow import MarshmallowPlugin
 from dotenv import load_dotenv
 from flask import Flask, g, redirect, request, url_for
 from flask_login import (
@@ -42,6 +45,14 @@ GOOGLE_DISCOVERY_URL = (
     "https://accounts.google.com/.well-known/openid-configuration"
 )
 logging.info(f'Client_ID: {GOOGLE_CLIENT_ID}')
+
+
+spec = APISpec(
+    title="Annotations API",
+    version="1.0.0",
+    openapi_version="3.0.2",
+    plugins=[FlaskPlugin(), MarshmallowPlugin()],
+)
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY") or os.urandom(24)
@@ -170,3 +181,4 @@ if __name__ == "__main__":
     app.run(ssl_context="adhoc")
 
 import annotations_app.views.generic  # NOQA
+import annotations_app.views.api # NOQA

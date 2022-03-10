@@ -11,3 +11,7 @@ alembic==1.7.5  # migrations
 pymssql==2.2.2  # for MsSQL support
 
 requests==2.27.1
+
+# OpenAPI generator
+apispec[marshmallow]==5.1.1
+apispec-webframeworks==0.5.2

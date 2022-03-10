@@ -31,3 +31,6 @@ class User(UserMixin):
         users = db.metadata.tables['user']
         query = sqldb.insert(users, {'id': id_, 'name': name, 'email': email, 'profile_pic': profile_pic})
         db.connection.execute(query)
+
+    def __str__(self):
+        return self.name
