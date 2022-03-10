@@ -5,10 +5,6 @@ from flask import g
 from sqlalchemy.pool import SingletonThreadPool
 
 
-# DATABASE = 'annotations.db'
-# DATABASE = 'sqlite:///annotations.db'
-
-
 def parse_boolean(value):
     if type(value) is bool:
         return value
