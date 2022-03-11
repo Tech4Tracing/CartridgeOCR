@@ -1,3 +1,17 @@
-flask
-python-dotenv
-sqlalchemy
+flask==2.0.3
+python-dotenv==0.19.2
+
+# Auth using Google
+flask_login==0.5.0
+oauthlib==3.2.0
+
+# Database access
+sqlalchemy==1.4.32
+alembic==1.7.5  # migrations
+pymssql==2.2.2  # for MsSQL support
+
+requests==2.27.1
+
+# OpenAPI generator
+apispec[marshmallow]==5.1.1
+apispec-webframeworks==0.5.2
