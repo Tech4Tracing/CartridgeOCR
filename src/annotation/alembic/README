@@ -8,3 +8,7 @@ Files:
 To create new version after you've changed the models:
 
    alembic -c=alembic/alembic.ini revision --autogenerate -m "..."
+
+Then restart the thing to migrate, or:
+
+   alembic -c=/app/alembic/alembic.ini upgrade head

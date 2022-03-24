@@ -1,8 +1,8 @@
 FROM python:3.8.12-alpine3.15
 
 # Ensure terminal output is sent directly to logs
-ENV PYTHONBUFFERED 1
-ENV PYTHONDONTWRITEBYTECODE 1
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONPATH=/app
 
 # uvicorn/uvloop/pymssql and other requirements

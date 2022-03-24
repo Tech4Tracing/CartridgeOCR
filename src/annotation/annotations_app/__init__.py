@@ -1,5 +1,4 @@
 import json
-import logging
 import os
 
 import requests
@@ -17,9 +16,10 @@ from flask_login import (
 from oauthlib.oauth2 import WebApplicationClient
 
 from annotations_app.user import User
+from annotations_app.config import logging
 
+# logging.basicConfig(level=logging.INFO)
 
-logging.basicConfig(level=logging.INFO)
 load_dotenv()
 
 # TODO: fix navigation - annotated vs unannotated, collections, user-owned vs global
