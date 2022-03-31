@@ -1,8 +1,8 @@
 """Initial
 
-Revision ID: 5f1259d1237b
+Revision ID: 24bb4b591ec6
 Revises: 
-Create Date: 2022-03-10 17:58:32.964365
+Create Date: 2022-03-10 20:04:30.350785
 
 """
 from alembic import op
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 from sqlalchemy.dialects import mssql
 
 # revision identifiers, used by Alembic.
-revision = '5f1259d1237b'
+revision = '24bb4b591ec6'
 down_revision = None
 branch_labels = None
 depends_on = None
@@ -33,16 +33,24 @@ def upgrade():
                     )
     op.create_table('imagecollections',
                     sa.Column('id', sa.String(length=36), nullable=False),
-                    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text(
-                        'CURRENT_TIMESTAMP'), nullable=True),
+                    sa.Column('created_at', sa.DateTime(
+                        timezone=True), nullable=True),
                     sa.Column('user_id', sa.String(length=255), nullable=True),
                     sa.Column('name', sa.String(length=255), nullable=True),
                     sa.PrimaryKeyConstraint('id')
                     )
     op.create_table('images',
-                    sa.Column('img_id', sa.Integer(), nullable=False),
-                    sa.Column('filename', sa.Text(), nullable=True),
-                    sa.PrimaryKeyConstraint('img_id')
+                    sa.Column('id', sa.String(length=36), nullable=False),
+                    sa.Column('collection_id', sa.String(
+                        length=36), nullable=True),
+                    sa.Column('created_at', sa.DateTime(), nullable=False),
+                    sa.Column('mimetype', sa.String(
+                        length=255), nullable=True),
+                    sa.Column('size', sa.Integer(), nullable=True),
+                    sa.Column('storageKey', sa.String(
+                        length=1024), nullable=True),
+                    sa.Column('extra_data', sa.Text(), nullable=True),
+                    sa.PrimaryKeyConstraint('id')
                     )
     op.create_table('users',
                     sa.Column('id', sa.String(length=255), nullable=False),

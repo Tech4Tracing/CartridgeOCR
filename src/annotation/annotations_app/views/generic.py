@@ -28,7 +28,7 @@ def annotate(annotation_id=None):
     if annotation_id is None:
         db = get_db()
         images = db.metadata.tables['images']
-        query = sqldb.select([sqldb.func.min(images.c.img_id).label('id')])
+        query = sqldb.select([sqldb.func.min(images.c.id).label('id')])
         if not show_annot:
             # TODO: this seems broken
             annotations = db.metadata.tables['annotations']
@@ -36,7 +36,7 @@ def annotate(annotation_id=None):
                 query.select_from(
                     images.outerjoin(
                         annotations,
-                        images.c.img_id == annotations.c.img_id)
+                        images.c.id == annotations.c.img_id)
                 ).filter(annotations.c.img_id == None)
         result = db.connection.execute(query).one()
         annotation_id = result['id']
@@ -52,14 +52,14 @@ def prev_image(id):
     logging.info(f'prev: {id} , ({nav_annot})')
     db = get_db()
     images = db.metadata.tables['images']
-    query = sqldb.select([sqldb.func.max(images.c.img_id).label('id')]).where(images.c.img_id < id)
+    query = sqldb.select([sqldb.func.max(images.c.id).label('id')]).where(images.c.id < id)
     if not nav_annot:
         annotations = db.metadata.tables['annotations']
         query = \
             query.select_from(
                 images.outerjoin(
                     annotations,
-                    images.c.img_id == annotations.c.img_id)
+                    images.c.id == annotations.c.img_id)
             ).filter(annotations.c.img_id == None)
     result = db.connection.execute(query).one_or_none()
     if result is not None:
@@ -76,14 +76,14 @@ def next_image(id):
     logging.info(f'prev: {id} , ({nav_annot})')
     db = get_db()
     images = db.metadata.tables['images']
-    query = sqldb.select([sqldb.func.min(images.c.img_id).label('id')]).where(images.c.img_id > id)
+    query = sqldb.select([sqldb.func.min(images.c.id).label('id')]).where(images.c.id > id)
     if not nav_annot:
         annotations = db.metadata.tables['annotations']
         query = \
             query.select_from(
                 images.outerjoin(
                     annotations,
-                    images.c.img_id == annotations.c.img_id)
+                    images.c.id == annotations.c.img_id)
             ).filter(annotations.c.img_id == None)
     result = db.connection.execute(query).one_or_none()
     if result is not None:
@@ -98,7 +98,7 @@ def img(img_id):
     try:
         db = get_db()
         images = db.metadata.tables['images']
-        query = sqldb.select(images).where(images.c.img_id == img_id)
+        query = sqldb.select(images).where(images.c.id == img_id)
         result = db.connection.execute(query).one()
         logging.info('Found image {}'.format(result))
         img_home = get_global('img_home')
