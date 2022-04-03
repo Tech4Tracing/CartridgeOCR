@@ -12,8 +12,9 @@ metadata = Base.metadata
 class Annotation(Base):
     __tablename__ = 'annotations'
 
-    anno_id = Column(Integer, primary_key=True)
-    img_id = Column(Integer)
+    anno_id = Column(String(36), primary_key=True)
+    img_id = Column(String(36))
+    user_id = Column(String(255))
     geometry = Column(Text)
     annotation = Column(Text)
     metadata_ = Column('metadata', Text)

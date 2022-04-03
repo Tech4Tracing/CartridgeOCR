@@ -28,6 +28,7 @@ def upgrade():
                     sa.ForeignKeyConstraint(['image_id'], ['images.id'], ),
                     sa.PrimaryKeyConstraint('image_id', 'collection_id')
                     )
+    op.drop_column('images', 'collection_id')
     # ### end Alembic commands ###
 
 

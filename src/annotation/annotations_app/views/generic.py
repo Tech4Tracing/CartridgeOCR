@@ -92,7 +92,7 @@ def next_image(id):
 
 
 # maybe this could be a static route to storage?
-@app.route("/images/<int:img_id>")
+@app.route("/images/<string:img_id>")
 @login_required
 def img(img_id):
     try:
@@ -111,7 +111,7 @@ def img(img_id):
 
 
 # REST methods
-@app.route("/images/<int:img_id>/annotations", methods=['GET'])
+@app.route("/images/<string:img_id>/annotations", methods=['GET'])
 @login_required
 def get_annotation(img_id):
     db = get_db()
