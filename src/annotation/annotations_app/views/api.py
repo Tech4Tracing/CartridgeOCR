@@ -424,6 +424,10 @@ def annotation_post():
     with db_session() as db:
         req = request.get_json()
         img_id = req["img_id"] if "img_id" in req else None
+        
+        if not img_id:
+            abort(404)
+        
         image_in_db = db.query(Image).filter(
             Image.id == img_id,
             Image.collections.any(ImageCollection.user_id == current_user.id),
@@ -445,7 +449,7 @@ def annotation_post():
         db.refresh(annotation_in_db)        
         return AnnotationDisplaySchema().dump(annotation_in_db)
 
-# TODO: document this call
+
 @app.route("/api/v0/annotations/<string:anno_id>", methods=['PUT'])
 @login_required
 def annotation_replace(anno_id):
@@ -517,7 +521,7 @@ def annotation_replace(anno_id):
         db.refresh(annotation_in_db)        
         return AnnotationDisplaySchema().dump(annotation_in_db)
 
-# TODO: document this call
+
 @app.route("/api/v0/annotations/<string:anno_id>", methods=['DELETE'])
 @login_required
 def annotation_delete(anno_id):
@@ -547,8 +551,8 @@ def annotation_delete(anno_id):
           # Annotation.img_id == img_id, counting on the previous check.
           # TODO: test which is faster.
         ).first()
-        if not annotation_in_db:
 
+        if not annotation_in_db:
             abort(404)
 
         db.delete(annotation_in_db)
