@@ -9,6 +9,7 @@ function init_app(img_id) {
 
     hl = radialDraw(img_id, canvas_id, 'radial');
     ann = annotations(img_id, panel_id, hl);
+    // TODO: fix this notion of prev/next
     var next_url = '/annotate/'+(img_id+1);
     
     document.getElementById(save_id).onclick = (e) =>{ ann.save() };

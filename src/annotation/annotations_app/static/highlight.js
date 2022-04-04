@@ -63,7 +63,7 @@ function radialDraw(img_id, canvas_id, mode) {
                 ctx.drawImage(background,0,0, canvas.width, canvas.height);   
                 refresh_polygons(ctx);
             }
-            background.src = "/images/"+img_id;
+            background.src = "/api/v0/images/"+img_id+"/binary";
             
         } else {
             ctx.drawImage(background,0,0, canvas.width, canvas.height);  

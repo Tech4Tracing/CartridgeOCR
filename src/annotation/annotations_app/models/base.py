@@ -8,18 +8,21 @@ from sqlalchemy.ext.declarative import declarative_base
 Base = declarative_base()
 metadata = Base.metadata
 
-
+# TODO: define a relationship?
 class Annotation(Base):
     __tablename__ = 'annotations'
 
-    anno_id = Column(String(36), primary_key=True)
+    anno_id = Column(String(36), primary_key=True, default=uuid.uuid4)
     img_id = Column(String(36))
-    user_id = Column(String(255))
+    # user_id = Column(String(255))
     geometry = Column(Text)
     annotation = Column(Text)
     metadata_ = Column('metadata', Text)
 
+    def __str__(self):
+        return self.anno_id
 
+# TODO: deprecate
 class Global(Base):
     __tablename__ = 'globals'
 

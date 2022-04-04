@@ -4,23 +4,25 @@ function annotations(img_id, panel_id, highlights) {
         // TODO: fetch annotations
         highlights.on_newpolygon(add);
 
-        var url = "/images/"+img_id+"/annotations";
+        var url = "/api/v0/images/"+img_id+"/annotations";
         var xhr = new XMLHttpRequest();
         xhr.open("GET", url, true);
         
         xhr.onreadystatechange = function() {
             if(xhr.readyState == 4 && xhr.status == 200) {
                 console.log(xhr.responseText);
-                result = JSON.parse(xhr.responseText);     
-                result.forEach((a) => {
-                    //a.geometry = JSON.parse(a.geometry);
-                    //a.metadata = JSON.parse(a.metadata);
-                    a.temp_id = annotations.length;
-                    a.committed = true;
-                    annotations.push(a);
-                    var mode = a.metadata.mode || 'radial';
-                    highlights.add_polygon(a.geometry, mode);
-                });
+                result = JSON.parse(xhr.responseText);
+                if (result.total!==0) {     
+                    result.annotations.forEach((a) => {
+                        //a.geometry = JSON.parse(a.geometry);
+                        //a.metadata = JSON.parse(a.metadata);
+                        a.temp_id = annotations.length;
+                        a.committed = true;
+                        annotations.push(a);
+                        var mode = a.metadata.mode || 'radial';
+                        highlights.add_polygon(a.geometry, mode);
+                    });
+                }
                 refresh();   
             }
         }
@@ -72,8 +74,9 @@ function annotations(img_id, panel_id, highlights) {
                 console.log('found annotation '+annotation_id);
                 if (a.committed) {                    
                     var db_id = a.anno_id;
+                    // TODO: assert db_id is present and well-formed
                     console.log('db_id: '+db_id);
-                    var url = "/annotations/"+db_id;
+                    var url = "/api/v0/annotations/"+db_id;
                     var xhr = new XMLHttpRequest();
                     xhr.open("DELETE", url, true);
                    
@@ -196,13 +199,13 @@ function annotations(img_id, panel_id, highlights) {
             if (a.committed) return;
 
             // replace the annotation. TODO: maybe there is a race condition? we want to update
-            var url = "/annotations/";
+            var url = "/api/v0/annotations/";
             var method = 'POST'
             if (a.anno_id) {
                 var db_id = a.anno_id;
                 console.log('db_id: '+db_id);
                 method = 'PUT'
-                url = "/annotations/"+db_id;
+                url = "/api/v0/annotations/"+db_id;
             }
 
             // update the annotation text
@@ -244,8 +247,8 @@ function annotations(img_id, panel_id, highlights) {
                 if(xhr.readyState == 4 && xhr.status == 200) {
                     console.log(xhr.responseText);
                     result = JSON.parse(xhr.responseText);
-                    if (result.id) {
-                        a.anno_id = result.id;
+                    if (result.anno_id) {
+                        a.anno_id = result.anno_id;
                     }
                     a.committed = true;
                     // reset the parent element styling.
