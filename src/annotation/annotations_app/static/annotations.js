@@ -14,12 +14,19 @@ function annotations(img_id, panel_id, highlights) {
                 result = JSON.parse(xhr.responseText);
                 if (result.total!==0) {     
                     result.annotations.forEach((a) => {
-                        //a.geometry = JSON.parse(a.geometry);
-                        //a.metadata = JSON.parse(a.metadata);
+                        // TODO: fix this in the API.
+                        if (a.metadata_=== null) {
+                            a.metadata_ = "{}";
+                        }
+                        if (a.geometry === null) {
+                            a.geometry = "[]";
+                        }
+                        a.geometry = JSON.parse(a.geometry);
+                        a.metadata_ = JSON.parse(a.metadata_);
                         a.temp_id = annotations.length;
                         a.committed = true;
                         annotations.push(a);
-                        var mode = a.metadata.mode || 'radial';
+                        var mode = a.metadata_.mode || 'radial';
                         highlights.add_polygon(a.geometry, mode);
                     });
                 }
@@ -36,7 +43,7 @@ function annotations(img_id, panel_id, highlights) {
         annotations.push({
             temp_id: annotations.length,
             geometry: polygon.points,
-            metadata:{mode: polygon.mode},
+            metadata_:{mode: polygon.mode},
             annotation: '',
             committed: false,
             db_id: null
@@ -96,7 +103,7 @@ function annotations(img_id, panel_id, highlights) {
         annotations = annotations.filter(without, annotation_id);
         console.log('annotations: '+annotations.length);
         // TODO: callback to refresh the canvas.
-        highlights.set_polygons(annotations.map((a)=> {return {'points': a.geometry, 'mode': a.metadata.mode || 'radial'}}));
+        highlights.set_polygons(annotations.map((a)=> {return {'points': a.geometry, 'mode': a.metadata_.mode || 'radial'}}));
         refresh();
     }
 
@@ -122,7 +129,7 @@ function annotations(img_id, panel_id, highlights) {
         var input_div = document.createElement('div');
         input_div.appendChild(makeElement('Text: '));
         input_div.appendChild(input);
-        var mode = a.metadata.mode || 'radial';
+        var mode = a.metadata_.mode || 'radial';
         e.replaceChildren(...[
             makeElement("<a class='delete_handle' id='d_"+a.temp_id+"'>X</a>"),
             input_div,
@@ -146,8 +153,8 @@ function annotations(img_id, panel_id, highlights) {
         var d = e.querySelector('#d_'+a.temp_id);
         
         d.onclick = () => {delete_annotation(a.temp_id)};
-        if (a.metadata && a.metadata.direction) {
-            var dir = a.metadata.direction;
+        if (a.metadata_ && a.metadata_.direction) {
+            var dir = a.metadata_.direction;
             var d_elt = e.querySelector('#rd_dir_'+dir+'_'+a.temp_id);
             d_elt.checked = true;
         } else {
@@ -170,11 +177,11 @@ function annotations(img_id, panel_id, highlights) {
             e.style['background-color'] = uncommitted_color;            
         }));
         
-        if (a.metadata && a.metadata.illegible) {
+        if (a.metadata_ && a.metadata_.illegible) {
             var d_elt = e.querySelector('#ck_illegible_'+a.temp_id);
             d_elt.checked = true;
         }
-        if (a.metadata && a.metadata.symbol) {
+        if (a.metadata_ && a.metadata_.symbol) {
             var d_elt = e.querySelector('#ck_symbol_'+a.temp_id);
             d_elt.checked = true;
         }
@@ -214,20 +221,20 @@ function annotations(img_id, panel_id, highlights) {
             console.log('setting '+a.temp_id+' value to '+annotation);
             a.annotation = annotation;
             // need to preserve the mode but we should reconstruct the rest of the metadata.
-            a.metadata = {'mode':a.metadata.mode};
+            a.metadata_ = {'mode':a.metadata_.mode};
 
             var dir_id = 'rd_direction_'+a.temp_id;
             var direction = document.querySelector('input[name="'+dir_id+'"]:checked').value;
             console.log('Direction: '+direction);
             // TODO: where is the best place to put this assignment.
-            a.metadata.direction = direction;
+            a.metadata_.direction = direction;
             
             var meta_id = 'meta_'+a.temp_id;
             var checked = document.querySelectorAll('input[name="'+meta_id+'"]:checked');
             checked.forEach((c) => {
                 console.log('found metadata '+c.id);
                 var value = c.id.split('_')[1]; // the id contains the metadata.
-                a.metadata[value]=true;
+                a.metadata_[value]=true;
             }
             );
 
@@ -235,7 +242,7 @@ function annotations(img_id, panel_id, highlights) {
                 geometry: a.geometry,
                 img_id: img_id,
                 annotation: a.annotation,
-                metadata: a.metadata
+                metadata_: a.metadata_
             });
             var xhr = new XMLHttpRequest();
 

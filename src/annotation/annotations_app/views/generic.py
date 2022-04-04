@@ -19,13 +19,14 @@ def index():
         return render_template('unauth.html')
 
 
+# TODO: update to use the ORM model.
 @app.route("/annotate/")
-@app.route("/annotate/<string:annotation_id>")
+@app.route("/annotate/<string:image_id>")
 @login_required
-def annotate(annotation_id=None):
+def annotate(image_id=None):
     show_annot = parse_boolean(request.args.get('show_annot', False))
-    logging.info('show_annot: %s (%s) for %s', annotation_id, show_annot, current_user)
-    if annotation_id is None:
+    logging.info('show_annot: %s (%s) for %s', image_id, show_annot, current_user)
+    if image_id is None:
         db = get_db()
         images = db.metadata.tables['images']
         query = sqldb.select([sqldb.func.min(images.c.id).label('id')])
@@ -38,11 +39,11 @@ def annotate(annotation_id=None):
                         images.c.id == annotations.c.img_id)
                 ).filter(annotations.c.img_id == None)
         result = db.connection.execute(query).one()
-        annotation_id = result['id']
-    return render_template('annotate.html', id=annotation_id, name=current_user.name.split(' ')[0])
+        image_id = result['id']
+    return render_template('annotate.html', id=image_id, name=current_user.name.split(' ')[0])
 
 
-@app.route('/annotate/prev/<int:id>')
+@app.route('/annotate/<string:id>/prev')
 @login_required
 def prev_image(id):
     """Move to the previous image to `id`. If show_annot is false,
@@ -66,7 +67,7 @@ def prev_image(id):
     return annotate(id)
 
 
-@app.route('/annotate/next/<int:id>')
+@app.route('/annotate/<string:id>/next')
 @login_required
 def next_image(id):
     """Move to the next image after `id`. If show_annot is false,

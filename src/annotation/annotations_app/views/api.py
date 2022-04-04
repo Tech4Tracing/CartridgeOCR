@@ -1,4 +1,3 @@
-from curses import meta
 from io import BytesIO
 import json
 
@@ -51,7 +50,7 @@ class AnnotationDisplaySchema(Schema):
     img_id = fields.Str()
     geometry = fields.Str()
     annotation = fields.Str()
-    metadata = fields.Str()
+    metadata_ = fields.Str() 
     
 class AnnotationListSchema(Schema):
     total = fields.Int()
@@ -382,12 +381,12 @@ def image_annotations(img_id):
             Annotation.img_id == img_id
         )
         total = queryset.count()
-        results = queryset.order_by("id")
+        results = queryset.order_by("anno_id") # TODO: this will re-order the display order of the annotations.
 
         return AnnotationListSchema().dump(
             {
                 "total": total,
-                "images": results,
+                "annotations": results,
             }
         )
 
@@ -411,7 +410,7 @@ def annotation_post():
                     type: object
                   annotation: 
                     type: string
-                  metadata: 
+                  metadata_: 
                     type: object                  
         responses:
             201:
@@ -439,7 +438,7 @@ def annotation_post():
             img_id = img_id,
             geometry = json.dumps(req["geometry"]),
             annotation = req["annotation"],
-            metadata = json.dumps(req["metadata"])            
+            metadata_ = json.dumps(req["metadata_"])            
         )
         db.add(annotation_in_db)
         db.commit()
@@ -472,7 +471,7 @@ def annotation_replace(anno_id):
                     type: object
                   annotation: 
                     type: string
-                  metadata: 
+                  metadata_: 
                     type: object                  
         responses:
             201:
@@ -511,7 +510,7 @@ def annotation_replace(anno_id):
 
         annotation_in_db.geometry = json.dumps(req["geometry"])
         annotation_in_db.annotation = req["annotation"]
-        annotation_in_db.metadata = json.dumps(req["metadata"]) 
+        annotation_in_db.metadata_ = json.dumps(req["metadata_"]) 
         
         # db.update(annotation_in_db)
         db.commit()
