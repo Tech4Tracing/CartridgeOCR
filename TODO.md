@@ -15,6 +15,8 @@ DONE - Add AML endpoint configuration/setup scripts
 
 ## Labeler
 
+For annotating headstamps, see more in src/annotations.  
+
 new dataset.
 
 Last hackathon Simon noted some additional EXIF tags we may want to capture. I'm not sure what the status is of those tags or where they were documented. 

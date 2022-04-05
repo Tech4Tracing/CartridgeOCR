@@ -1,5 +1,11 @@
-# Circle extraction: some sites with sample code
+# Navigation
 
-- [https://www.codingame.com/playgrounds/38470/how-to-detect-circles-in-images](https://www.codingame.com/playgrounds/38470/how-to-detect-circles-in-images)
-- [https://docs.opencv.org/3.4/da/d53/tutorial_py_houghcircles.html](https://docs.opencv.org/3.4/da/d53/tutorial_py_houghcircles.html)
-- [http://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_imgproc/py_houghcircles/py_houghcircles.html](http://opencv-python-tutroals.readthedocs.io/en/latest/py_tutorials/py_imgproc/py_houghcircles/py_houghcircles.html)
+- AML: helper scripts for training/model deployment
+- annotation: annotation app which is largely independent of the rest of the folders
+- model: code for the extraction model, including prediction and training
+- training: empty - TODO: delete?
+- scratch: some potentially useful code for various tasks
+- webapp: app for image capture and (later) headstamp extraction/prediction
+
+
+

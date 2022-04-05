@@ -1,3 +1,4 @@
+# This docker compose file is specific to running the annotations app.
 version: '3'
 
 volumes:
@@ -30,7 +31,7 @@ services:
       - annotations_objstore
     stop_signal: sigkill
 
-  annotations_mssql:  # NOT YET USED: TODO: replace sqlite with this
+  annotations_mssql:
     image: "mcr.microsoft.com/mssql/server"
     environment:
         SA_PASSWORD: "Your_password123"
