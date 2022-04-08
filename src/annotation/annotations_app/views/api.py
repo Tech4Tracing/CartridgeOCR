@@ -1,5 +1,6 @@
-from io import BytesIO
 import json
+import mimetypes
+from io import BytesIO
 
 from flask import jsonify, render_template, request, send_file, abort
 from flask_login import login_required, current_user
@@ -45,16 +46,19 @@ class ImageListSchema(Schema):
     total = fields.Int()
     images = fields.List(fields.Nested(ImageDisplaySchema))
 
+
 class AnnotationDisplaySchema(Schema):
     anno_id = fields.Str()
     img_id = fields.Str()
     geometry = fields.Str()
     annotation = fields.Str()
     metadata_ = fields.Str() 
+
     
 class AnnotationListSchema(Schema):
     total = fields.Int()
     annotations = fields.List(fields.Nested(AnnotationDisplaySchema)) 
+
 
 class ErrorSchema(Schema):
     status = fields.Int()
@@ -217,8 +221,10 @@ def image_post():
 
         # create database object if succesfull
 
+        default_mimetype = mimetypes.guess_type(request.files["file"].filename, strict=False)[0]
+
         image_in_db = Image(
-            mimetype=request.form["mimetype"] or "binary/octet-stream",
+            mimetype=request.form.get("mimetype") or default_mimetype or "binary/octet-stream",
             size=size,
             storageKey=storage_file_key,
         )
@@ -355,12 +361,19 @@ def image_retrieve(image_id: str):
         )
 
 
-@app.route("/api/v0/images/<string:img_id>/annotations", methods=['GET'])
+@app.route("/api/v0/images/<string:image_id>/annotations", methods=['GET'])
 @login_required
-def image_annotations(img_id):
+def image_annotations(image_id):
     """List of annotations for a given image
     ---
     get:
+      parameters:
+        - in: path
+          name: image_id
+          schema:
+            type: string
+          required: true
+          description: Unique image ID
       responses:
         200:
           description: List of all annotations for the given image
@@ -370,7 +383,7 @@ def image_annotations(img_id):
     """
     with db_session() as db:
         image_in_db = db.query(Image).filter(
-            Image.id == img_id,
+            Image.id == image_id,
             Image.collections.any(ImageCollection.user_id == current_user.id),
         ).first()
 
@@ -378,7 +391,7 @@ def image_annotations(img_id):
             abort(404)
     
         queryset = db.query(Annotation).filter(
-            Annotation.img_id == img_id
+            Annotation.img_id == image_id
         )
         total = queryset.count()
         results = queryset.order_by("anno_id") # TODO: this will re-order the display order of the annotations.
@@ -389,6 +402,7 @@ def image_annotations(img_id):
                 "annotations": results,
             }
         )
+
 
 # TODO: geometry and metadata types
 # TODO: multipart/form request?

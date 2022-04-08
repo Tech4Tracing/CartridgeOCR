@@ -17,6 +17,7 @@ from oauthlib.oauth2 import WebApplicationClient
 
 from annotations_app.user import User
 from annotations_app.config import logging
+from annotations_app.utils import db_session
 
 # logging.basicConfig(level=logging.INFO)
 
@@ -72,7 +73,12 @@ client = WebApplicationClient(GOOGLE_CLIENT_ID)
 # Flask-Login helper to retrieve a user from our db
 @login_manager.user_loader
 def load_user(user_id):
-    return User.get(user_id)
+    u = User.get(user_id)
+    if not u.is_active:
+        # TODO: we might redirect them to some page explaining what happening instead of just
+        # showing them login page again and again...
+        return None  # means that user won't be logged in
+    return u
 
 
 # TODO: maybe this should move to utils?
@@ -146,27 +152,25 @@ def callback():
     # The user authenticated with Google, authorized your
     # app, and now you've verified their email through Google!
     if userinfo_response.json().get("email_verified"):
-        unique_id = userinfo_response.json()["sub"]
+        google_id = userinfo_response.json()["sub"]
         users_email = userinfo_response.json()["email"]
         picture = userinfo_response.json()["picture"]
         users_name = userinfo_response.json()["given_name"]
     else:
         return "User email not available or not verified by Google.", 400
 
-    # Create a user in your db with the information provided
-    # by Google
-    user = User(
-        id_=unique_id, name=users_name, email=users_email, profile_pic=picture
-    )
-
     # Doesn't exist? Add it to the database.
-    if not User.get(unique_id):
-        User.create(unique_id, users_name, users_email, picture)
-
-    # Begin user session by logging the user in
-    login_user(user)
-
-    # Send user back to homepage
+    provider_id = "google" + google_id
+    user_from_db = User.get(provider_id=provider_id)
+    # TODO: update the user details on that step if changed?
+    if not user_from_db:
+        user_from_db = User.create(
+            provider_id=provider_id,
+            name=users_name,
+            email=users_email,
+            profile_pic=picture
+        )
+    login_user(user_from_db)  # begin the session
     return redirect(url_for("index"))
 
 

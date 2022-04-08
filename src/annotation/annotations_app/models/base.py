@@ -1,12 +1,13 @@
 import datetime
 import uuid
 
-from sqlalchemy import Column, Integer, Text, String, DateTime, Table, ForeignKey
+from sqlalchemy import Boolean, Column, Integer, Text, String, DateTime, Table, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 metadata = Base.metadata
+
 
 # TODO: define a relationship?
 class Annotation(Base):
@@ -22,6 +23,7 @@ class Annotation(Base):
     def __str__(self):
         return self.anno_id
 
+
 # TODO: deprecate
 class Global(Base):
     __tablename__ = 'globals'
@@ -33,10 +35,19 @@ class Global(Base):
 class User(Base):
     __tablename__ = 'users'
 
-    id = Column(String(255), primary_key=True)
+    # ID in our system
+    id = Column(String(36), primary_key=True, default=uuid.uuid4)
+
+    # for 3rd party identity providers credentials
+    # something like google56789098767890 or awsiam4377437437
+    provider_id = Column(String(255), default=None, nullable=True)
+
+    # normal user info
     name = Column(String(255), nullable=False)
     email = Column(String(255), nullable=False)
     profile_pic = Column(String(2048), nullable=False)
+    is_active = Column(Boolean, default=False, nullable=False)
+    is_superuser = Column(Boolean, default=False, nullable=False)
 
 
 images_to_collections_table = Table(
