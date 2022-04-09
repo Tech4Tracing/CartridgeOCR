@@ -4,81 +4,18 @@ from io import BytesIO
 
 from flask import jsonify, render_template, request, send_file, abort
 from flask_login import login_required, current_user
-from marshmallow import Schema, fields
 
 from annotations_app import app, spec
 from annotations_app.models.base import ImageCollection, Image, Annotation
 from annotations_app.repos.azure_storage_provider import AzureStorageProvider as StorageProvider
 from annotations_app.utils import db_session
 from annotations_app.config import logging
-
-
-class DemoParameter(Schema):
-    gist_id = fields.Int()
-
-
-class CollectionCreateSchema(Schema):
-    name = fields.Str()
-
-
-class CollectionDisplaySchema(Schema):
-    id = fields.Str()
-    # created_at = fields.DateTime()
-    name = fields.Str()
-
-
-class CollectionsListSchema(Schema):
-    total = fields.Int()
-    collections = fields.List(fields.Nested(CollectionDisplaySchema))
-
-
-class ImageDisplaySchema(Schema):
-    id = fields.Str()
-    # created_at = fields.DateTime()
-    mimetype = fields.Str()
-    size = fields.Int()
-    extra_data = fields.Dict()
-    collections = fields.List(fields.Str())
-    storageKey = fields.Str()
-
-
-class ImageListSchema(Schema):
-    total = fields.Int()
-    images = fields.List(fields.Nested(ImageDisplaySchema))
-
-
-class AnnotationDisplaySchema(Schema):
-    anno_id = fields.Str()
-    img_id = fields.Str()
-    geometry = fields.Str()
-    annotation = fields.Str()
-    metadata_ = fields.Str() 
-
-    
-class AnnotationListSchema(Schema):
-    total = fields.Int()
-    annotations = fields.List(fields.Nested(AnnotationDisplaySchema)) 
-
-
-class ErrorSchema(Schema):
-    status = fields.Int()
-    title = fields.Str()
-    detail = fields.Str()
-
-
-class Errors(Schema):
-    errors = fields.List(fields.Nested(ErrorSchema))
-
-
-spec.components.schema("Collection", schema=CollectionDisplaySchema)
-spec.components.schema("CollectionCreate", schema=CollectionCreateSchema)
-spec.components.schema("CollectionsList", schema=CollectionsListSchema)
+from annotations_app.views import schemas, api_users
 
 
 @app.route('/api/v0/openapi.json', methods=["GET"])
 @login_required
 def openapi_json():
-    # current_user
     return jsonify(spec.to_dict())
 
 
@@ -108,7 +45,7 @@ def collections_get():
         total = queryset.count()
         results = queryset.order_by("id")
 
-        return CollectionsListSchema().dump(
+        return schemas.CollectionsListSchema().dump(
             {
                 "total": total,
                 "collections": results,
@@ -145,7 +82,7 @@ def collections_post():
         db.add(collection_in_db)
         db.commit()
         db.refresh(collection_in_db)
-        return CollectionDisplaySchema().dump(collection_in_db)
+        return schemas.CollectionDisplaySchema().dump(collection_in_db)
 
 
 @app.route('/api/v0/images', methods=["POST"])
@@ -176,7 +113,7 @@ def image_post():
     """
     logging.info("Uploading image for user %s", current_user.id)
     if 'file' not in request.files or not request.files["file"].filename:
-        return Errors().dump({"errors": [{"title": "ValidationError", "detail": "No file provided"}]})
+        return schemas.Errors().dump({"errors": [{"title": "ValidationError", "detail": "No file provided"}]})
 
     with db_session() as db:
         # ensure collection exists and retrieve it
@@ -206,7 +143,7 @@ def image_post():
                 ImageCollection.id == request.form["collection_id"]
             ).first()
             if not collection_in_db:
-                return Errors().dump({"errors": [{"title": "ValidationError", "detail": "Can't find that collection"}]})
+                return schemas.Errors().dump({"errors": [{"title": "ValidationError", "detail": "Can't find that collection"}]})
 
         # TODO: file format validation? file size validation? duplicates? etc
 
@@ -232,7 +169,7 @@ def image_post():
         db.commit()
         db.refresh(image_in_db)
         collection_in_db.images.append(image_in_db)
-        return ImageDisplaySchema().dump(image_in_db)
+        return schemas.ImageDisplaySchema().dump(image_in_db)
 
 
 @app.route("/api/v0/images", methods=["GET"])
@@ -255,7 +192,7 @@ def images_list():
         total = queryset.count()
         results = queryset.order_by("id")
 
-        return ImageListSchema().dump(
+        return schemas.ImageListSchema().dump(
             {
                 "total": total,
                 "images": results,
@@ -288,7 +225,7 @@ def image_detail(image_id: str):
             Image.id == image_id,
             Image.collections.any(ImageCollection.user_id == current_user.id),
         ).first()
-        return ImageDisplaySchema().dump(image_in_db)
+        return schemas.ImageDisplaySchema().dump(image_in_db)
 
 
 @app.route("/api/v0/images/<string:image_id>", methods=["DELETE"])
@@ -396,7 +333,7 @@ def image_annotations(image_id):
         total = queryset.count()
         results = queryset.order_by("anno_id") # TODO: this will re-order the display order of the annotations.
 
-        return AnnotationListSchema().dump(
+        return schemas.AnnotationListSchema().dump(
             {
                 "total": total,
                 "annotations": results,
@@ -453,15 +390,15 @@ def annotation_post():
         # create database object if succesfull
 
         annotation_in_db = Annotation(
-            img_id = img_id,
-            geometry = json.dumps(req["geometry"]),
-            annotation = req["annotation"],
-            metadata_ = json.dumps(req["metadata_"])            
+            img_id=img_id,
+            geometry=json.dumps(req["geometry"]),
+            annotation=req["annotation"],
+            metadata_=json.dumps(req["metadata_"])
         )
         db.add(annotation_in_db)
         db.commit()
         db.refresh(annotation_in_db)        
-        return AnnotationDisplaySchema().dump(annotation_in_db)
+        return schemas.AnnotationDisplaySchema().dump(annotation_in_db)
 
 
 @app.route("/api/v0/annotations/<string:anno_id>", methods=['PUT'])
@@ -516,12 +453,12 @@ def annotation_replace(anno_id):
         # create database object if succesfull
         # TODO: test/sanity check
         annotation_in_db = db.query(Annotation).filter(
-          Annotation.anno_id == anno_id,
-          Image.id == img_id,
-          Image.collections.any(ImageCollection.user_id == current_user.id)
-          # OR:
-          # Annotation.img_id == img_id, counting on the previous check.
-          # TODO: test which is faster.
+            Annotation.anno_id == anno_id,
+            Image.id == img_id,
+            Image.collections.any(ImageCollection.user_id == current_user.id)
+            # OR:
+            # Annotation.img_id == img_id, counting on the previous check.
+            # TODO: test which is faster.
         ).first()
         if not annotation_in_db:
             abort(404)
@@ -533,7 +470,7 @@ def annotation_replace(anno_id):
         # db.update(annotation_in_db)
         db.commit()
         db.refresh(annotation_in_db)        
-        return AnnotationDisplaySchema().dump(annotation_in_db)
+        return schemas.AnnotationDisplaySchema().dump(annotation_in_db)
 
 
 @app.route("/api/v0/annotations/<string:anno_id>", methods=['DELETE'])
@@ -558,12 +495,12 @@ def annotation_delete(anno_id):
         
         # TODO: test/sanity check
         annotation_in_db = db.query(Annotation).filter(
-          Annotation.anno_id == anno_id,
-          Image.id == Annotation.img_id,
-          Image.collections.any(ImageCollection.user_id == current_user.id)
-          # OR:
-          # Annotation.img_id == img_id, counting on the previous check.
-          # TODO: test which is faster.
+            Annotation.anno_id == anno_id,
+            Image.id == Annotation.img_id,
+            Image.collections.any(ImageCollection.user_id == current_user.id)
+            # OR:
+            # Annotation.img_id == img_id, counting on the previous check.
+            # TODO: test which is faster.
         ).first()
 
         if not annotation_in_db:
@@ -586,3 +523,4 @@ with app.test_request_context():
     spec.path(view=annotation_post)
     spec.path(view=annotation_replace)
     spec.path(view=annotation_delete)
+    spec.path(view=api_users.users_list)
