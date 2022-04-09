@@ -1,10 +1,17 @@
+import os
 import logging.config
+
+from dotenv import load_dotenv
+
 # Ideally all env variables usage should be here
+
+load_dotenv()
 
 
 class Config:
     # does nothing so far but will contain more things later
-    pass
+    # comma-separated list of emails; these emails will be considered superusers on each login
+    AUTH_WHITELISTED_EMAILS = (os.environ.get("AUTH_WHITELISTED_EMAILS") or "").split(",")
 
 
 LOGGING_CONFIG = {

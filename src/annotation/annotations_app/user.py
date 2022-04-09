@@ -1,5 +1,6 @@
 from flask_login import UserMixin
 
+from annotations_app.config import logging, Config
 from annotations_app.models.base import User as UserModel
 from annotations_app.utils import db_session
 
@@ -21,21 +22,37 @@ class User(UserMixin):
         self.email = email
         self.profile_pic = profile_pic
 
-        # ugly but useful hardcode, which we might move to env variables
-        # or just assume that all users are inactive and non-superuser from beginning and update the DB manually
-        if email.endswith("@gosource.com.au") or email == "robert.sim@gmail.com":
+        if self.is_superuser_email(email):
             self._is_active = True
             self.is_superuser = True
         else:
             self._is_active = is_active
             self.is_superuser = is_superuser
 
+    @staticmethod
+    def is_superuser_email(email):
+        if email in Config.AUTH_WHITELISTED_EMAILS:
+            return True
+        return False
+
     @property
     def is_active(self):
+        # this must be property due to flask-login requirements, so have to be a bit ugly
         return self._is_active
 
     @staticmethod
-    def get(user_id=None, provider_id=None):
+    def get(user_id=None, provider_id=None, email=None, default_fields=None):
+        """
+        Provide either user_id, provider_id or email
+        Return None if user is not in the database or user if it's present
+
+        If email is provided - and it's superuser email (complex rules) - always return this user,
+        create in DB if needed, filling the user with default_fields values
+
+        If user is found and default_fields changed - update the database object (changed name, profile pic, etc)
+        """
+        if default_fields is None:
+            default_fields = dict()
         with db_session() as db:
             user_from_db = db.query(UserModel)
 
@@ -43,12 +60,37 @@ class User(UserMixin):
                 user_from_db = user_from_db.filter(UserModel.id == user_id)
             elif provider_id:
                 user_from_db = user_from_db.filter(
-                    UserModel.provider_id == provider_id)
+                    UserModel.provider_id == provider_id
+                )
+            elif email:
+                # logic warning: if we use multiple auth providers it might be unsafe
+                user_from_db = user_from_db.filter(
+                    UserModel.email == email
+                )
             else:
-                raise Exception("Please provide either user_id or provider_id")
+                raise Exception("Please provide a way to retrieve the user")
             user_from_db = user_from_db.first()
             if not user_from_db:
+                if email and User.is_superuser_email(email):
+                    # special case - first login by superuser on fresh setup/database
+                    superuser = User.create(
+                        provider_id=default_fields.get("provider_id"),
+                        name=default_fields.get("name"),
+                        email=default_fields.get("email"),
+                        profile_pic=default_fields.get("profile_pic"),
+                        is_active=True,
+                        is_superuser=True
+                    )
+                    logging.info("Superuser %s (%s) first login", superuser.email, superuser.provider_id)
+                    return superuser
                 return None
+
+            # update user's data on each login
+            for field, value in default_fields.items():
+                if getattr(user_from_db, field, None) != value:
+                    setattr(user_from_db, field, value)
+                    logging.info("User %s field updated to %s", user_from_db, value)
+
             return User(
                 id=user_from_db.id,
                 provider_id=user_from_db.provider_id,
@@ -60,13 +102,15 @@ class User(UserMixin):
             )
 
     @staticmethod
-    def create(*, provider_id, name, email, profile_pic):
+    def create(*, provider_id, name, email, profile_pic, is_active=False, is_superuser=False):
         with db_session() as db:
             user = UserModel(
                 provider_id=provider_id,
                 name=name,
                 email=email,
                 profile_pic=profile_pic,
+                is_active=is_active,
+                is_superuser=is_superuser,
             )
             db.add(user)
             db.commit()

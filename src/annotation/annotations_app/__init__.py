@@ -17,7 +17,6 @@ from oauthlib.oauth2 import WebApplicationClient
 
 from annotations_app.user import User
 from annotations_app.config import logging
-from annotations_app.utils import db_session
 
 # logging.basicConfig(level=logging.INFO)
 
@@ -74,9 +73,7 @@ client = WebApplicationClient(GOOGLE_CLIENT_ID)
 @login_manager.user_loader
 def load_user(user_id):
     u = User.get(user_id)
-    if not u.is_active:
-        # TODO: we might redirect them to some page explaining what happening instead of just
-        # showing them login page again and again...
+    if not u or not u.is_active:
         return None  # means that user won't be logged in
     return u
 
@@ -115,7 +112,7 @@ def login():
 
 
 @app.route("/login/callback")
-def callback():
+def google_callback():
     logging.info('login callback')
     # Get authorization code Google sent back to you
     code = request.args.get("code")
@@ -161,15 +158,23 @@ def callback():
 
     # Doesn't exist? Add it to the database.
     provider_id = "google" + google_id
-    user_from_db = User.get(provider_id=provider_id)
-    # TODO: update the user details on that step if changed?
+    default_fields = {
+        "provider_id": provider_id,
+        "name": users_name,
+        "email": users_email,
+        "profile_pic": picture,
+    }
+
+    user_from_db = User.get(provider_id=provider_id, default_fields=default_fields)
     if not user_from_db:
-        user_from_db = User.create(
-            provider_id=provider_id,
-            name=users_name,
+        user_from_db = User.get(
             email=users_email,
-            profile_pic=picture
+            default_fields=default_fields
         )
+        if not user_from_db:
+            return "This email is not in whitelist for private beta, please ask staff to add you", 403
+
+    logging.info("User %s login (%s)", user_from_db.email, user_from_db.provider_id)
     login_user(user_from_db)  # begin the session
     return redirect(url_for("index"))
 
