@@ -40,7 +40,12 @@ def annotate(image_id=None):
                 ).filter(annotations.c.img_id == None)
         result = db.connection.execute(query).one()
         image_id = result['id']
-    return render_template('annotate.html', id=image_id, name=current_user.name.split(' ')[0])
+
+    return render_template(
+        'annotate.html',
+        id=image_id,
+        current_user=current_user,
+    )
 
 
 @app.route('/annotate/<string:id>/prev')

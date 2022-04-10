@@ -72,7 +72,10 @@ client = WebApplicationClient(GOOGLE_CLIENT_ID)
 # Flask-Login helper to retrieve a user from our db
 @login_manager.user_loader
 def load_user(user_id):
-    return User.get(user_id)
+    u = User.get(user_id)
+    if not u or not u.is_active:
+        return None  # means that user won't be logged in
+    return u
 
 
 # TODO: maybe this should move to utils?
@@ -109,7 +112,7 @@ def login():
 
 
 @app.route("/login/callback")
-def callback():
+def google_callback():
     logging.info('login callback')
     # Get authorization code Google sent back to you
     code = request.args.get("code")
@@ -146,27 +149,33 @@ def callback():
     # The user authenticated with Google, authorized your
     # app, and now you've verified their email through Google!
     if userinfo_response.json().get("email_verified"):
-        unique_id = userinfo_response.json()["sub"]
+        google_id = userinfo_response.json()["sub"]
         users_email = userinfo_response.json()["email"]
         picture = userinfo_response.json()["picture"]
         users_name = userinfo_response.json()["given_name"]
     else:
         return "User email not available or not verified by Google.", 400
 
-    # Create a user in your db with the information provided
-    # by Google
-    user = User(
-        id_=unique_id, name=users_name, email=users_email, profile_pic=picture
-    )
-
     # Doesn't exist? Add it to the database.
-    if not User.get(unique_id):
-        User.create(unique_id, users_name, users_email, picture)
+    provider_id = "google" + google_id
+    default_fields = {
+        "provider_id": provider_id,
+        "name": users_name,
+        "email": users_email,
+        "profile_pic": picture,
+    }
 
-    # Begin user session by logging the user in
-    login_user(user)
+    user_from_db = User.get(provider_id=provider_id, default_fields=default_fields)
+    if not user_from_db:
+        user_from_db = User.get(
+            email=users_email,
+            default_fields=default_fields
+        )
+        if not user_from_db:
+            return "This email is not in whitelist for private beta, please ask staff to add you", 403
 
-    # Send user back to homepage
+    logging.info("User %s login (%s)", user_from_db.email, user_from_db.provider_id)
+    login_user(user_from_db)  # begin the session
     return redirect(url_for("index"))
 
 

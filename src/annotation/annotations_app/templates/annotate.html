@@ -12,7 +12,7 @@
         <div id='header'>
             
             <div id="logout">
-                Welcome, {{name}}!
+                Welcome, {% if current_user.is_superuser %}superuser {% endif %}{{ current_user.name or current_user.email }}
                 <a href="/logout" class="login_button">Logout</a>
             </div>
             <div>
