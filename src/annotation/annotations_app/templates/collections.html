@@ -1,0 +1,47 @@
+{% extends 'base.html' %}
+
+{% block title %}
+{% if collection_name is not none %}
+    Collections | {{collection_name}}
+{% else %}
+    Collections
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+
+{% endblock %}
+
+{% block onload %}
+
+{% endblock %}
+
+{% block navigate %}
+   
+{% endblock %}
+
+{% block content %}
+<div id="collection_list">
+    <!-- TODO: beautify -->
+    <ul>
+    {% for c in collection_list %}
+        <li><a href="{{ url_for( 'collections', id=c['id'] ) }}">{{ c['name'] }}</a></li>
+    {% endfor %}
+    </ul>
+</div>
+
+{% if page>0 %}
+<a href="{{ url_for('collections', id=collection_id, page=page-1) }}">&lt;&lt;</a>
+{% endif %}
+{% if page<pages-1 %}
+<a href="{{ url_for('collections', id=collection_id, page=page+1) }}">&gt;&gt;</a>
+{% endif %}
+
+<div id="image_list">
+    {% for i in image_list %}
+    <div class='img_box'><a href="{{ url_for('annotate', image_id=i['id'])}}"><img class="img_thumb" src="{{ url_for('image_retrieve', image_id=i['id']) }}" /></a></div>
+    {% endfor %}
+</div>
+
+{% endblock %}        
+    
