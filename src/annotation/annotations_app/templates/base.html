@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8" />
+        <title>{% block title %}{% endblock %}</title>       
+        {% block scripts %}{% endblock %}
+        <link rel="stylesheet" href="/static/style.css">        
+    </head>
+    <body {% block onload %}{% endblock %} >
+        <div id='header'>
+            
+            <div id="logout">
+                <a href="/collections">Collections</a>
+                <a href="/annotate">Annotate</a>
+                <!-- TODO -->
+                {% if is_admin %} 
+                    <a href="/admin">Admin Console</a>
+                {% endif %}
+
+                Welcome, {% if current_user.is_superuser %}superuser {% endif %}{{ current_user.name or current_user.email }}                
+                <a href="/logout" class="login_button">Logout</a>
+            </div>
+            <img id='logo_small' src="/static/img/T4T-Logo-pos.svg">
+                  
+            {% block navigate %}{% endblock %}
+                
+	
+            
+                                            
+        </div>
+
+        <div style="clear:both"></div>
+
+        {% block content %}
+        {% endblock %}
+                
+    </body>
+</html>

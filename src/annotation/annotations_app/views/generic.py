@@ -7,7 +7,7 @@ from flask import send_file, abort, redirect, jsonify, render_template, request
 from flask_login import current_user, login_required
 
 from annotations_app import app
-
+from annotations_app.models.base import ImageCollection, Image
 from annotations_app.utils import get_db, get_global, parse_boolean, db_session
 
 
@@ -115,3 +115,27 @@ def img(img_id):
         print(e)
         abort(404)
 
+@app.route("/collections/")
+@app.route("/collections/<string:id>/")
+@app.route("/collections/<string:id>/<int:page>")
+@login_required
+def collections(id=None, page=0):
+    from math import ceil
+    page_size = 25
+    with db_session() as db:
+        collections = db.query(ImageCollection).filter(
+            ImageCollection.user_id == current_user.id,
+        )
+        images = None
+        collection_name = None
+        # TODO: enforce a sort order for paging?
+        if id is not None:
+            images = db.query(Image).filter(
+                Image.collections.any(ImageCollection.id == id),
+                Image.collections.any(ImageCollection.user_id == current_user.id)
+            ).order_by(Image.created_at)
+            collection_name = db.query(ImageCollection).filter( ImageCollection.id==id ).first().name
+        total_pages=ceil(images.count()/page_size) if images else 0
+        images = images[page*page_size:(page+1)*page_size] if images else []
+        return render_template('collections.html', collection_name=collection_name, collection_id=id, collection_list=collections, image_list=images, pages=total_pages, page=page)
+    
