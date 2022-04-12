@@ -43,10 +43,10 @@ class User(Base):
     provider_id = Column(String(255), default=None, nullable=True)
 
     # normal user info
-    name = Column(String(255), nullable=False)
+    name = Column(String(255), nullable=False, default="")
     email = Column(String(255), nullable=False)
-    profile_pic = Column(String(2048), nullable=False)
-    is_active = Column(Boolean, default=False, nullable=False)
+    profile_pic = Column(String(2048), nullable=False, default="")
+    is_active = Column(Boolean, default=True, nullable=False)
     is_superuser = Column(Boolean, default=False, nullable=False)
 
 
