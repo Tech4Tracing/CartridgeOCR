@@ -85,6 +85,43 @@ def collections_post():
         return schemas.CollectionDisplaySchema().dump(collection_in_db)
 
 
+@app.route("/api/v0/collections/<string:collection_id>", methods=["DELETE"])
+@login_required
+def collection_delete(collection_id: str):
+    """Remove the collection (but what to do with the images?)
+    ---
+    delete:
+      parameters:
+        - in: path
+          name: collection_id
+          schema:
+            type: string
+          required: true
+          description: Unique collection ID
+      responses:
+        202:
+          description: Success
+    """
+    with db_session() as db:
+        collection_in_db = db.query(ImageCollection).filter(
+            ImageCollection.id == collection_id,
+            ImageCollection.user_id == current_user.id,
+        ).first()
+        if not collection_in_db:
+            abort(404)
+
+        first_existing_image = db.query(Image).filter(
+            Image.collections.any(ImageCollection.id.in_([collection_in_db.id])),
+        ).first()
+
+        if first_existing_image:
+            return schemas.Errors().dump({"errors": [{"title": "ValidationError", "detail": "The collection has images - delete them first"}]}), 400
+
+        db.delete(collection_in_db)
+        db.commit()
+        return ('', 204)
+
+
 @app.route('/api/v0/images', methods=["POST"])
 @login_required
 def image_post():
@@ -514,6 +551,7 @@ def annotation_delete(anno_id):
 with app.test_request_context():
     spec.path(view=collections_get)
     spec.path(view=collections_post)
+    spec.path(view=collection_delete)
     spec.path(view=images_list)
     spec.path(view=image_post)
     spec.path(view=image_detail)
