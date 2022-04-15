@@ -38,6 +38,8 @@ services:
         ACCEPT_EULA: "Y"
     volumes:
       - annotations_db:/var/opt/mssql
+    logging:
+      driver: none
 
   annotations_objstore:
     # https://docs.microsoft.com/en-us/azure/storage/common/storage-use-azurite?tabs=docker-hub
@@ -45,3 +47,5 @@ services:
     command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 -l /workspace -d /workspace/debug.log
     volumes:
       - "annotations_storage:/workspace"
+    logging:
+      driver: none

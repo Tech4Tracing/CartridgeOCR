@@ -59,6 +59,13 @@ class UserDisplaySchema(Schema):
     is_superuser = fields.Boolean()
 
 
+class UserCreateSchema(Schema):
+    name = fields.Str()
+    email = fields.Str()
+    is_active = fields.Boolean()
+    is_superuser = fields.Boolean()
+
+
 class UserListSchema(Schema):
     total = fields.Int()
     objects = fields.List(fields.Nested(UserDisplaySchema))

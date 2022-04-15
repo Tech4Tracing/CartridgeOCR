@@ -113,7 +113,7 @@ def image_post():
     """
     logging.info("Uploading image for user %s", current_user.id)
     if 'file' not in request.files or not request.files["file"].filename:
-        return schemas.Errors().dump({"errors": [{"title": "ValidationError", "detail": "No file provided"}]})
+        return schemas.Errors().dump({"errors": [{"title": "ValidationError", "detail": "No file provided"}]}), 400
 
     with db_session() as db:
         # ensure collection exists and retrieve it
@@ -524,3 +524,5 @@ with app.test_request_context():
     spec.path(view=annotation_replace)
     spec.path(view=annotation_delete)
     spec.path(view=api_users.users_list)
+    spec.path(view=api_users.user_create)
+    spec.path(view=api_users.user_update)
