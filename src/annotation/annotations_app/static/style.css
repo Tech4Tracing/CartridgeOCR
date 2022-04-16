@@ -137,3 +137,32 @@
     width: 200px;
     height: 200px;
 }
+
+.img_thumb {
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 5px;
+  max-width: 150px;
+  max-height: 150px;
+  margin: 0 auto; 
+}
+
+#collection_list {
+    float:left;
+    height: 100vh;
+    margin-right: 20px;
+}
+
+/* TODO: tried and failed to vertally align the images */
+#image_list {    
+    justify-content: center; /* align horizontal */
+     align-items: center; /* align vertical */
+}
+
+.img_box {
+    float: left;
+    width: 160px;
+    height: 160px;
+    margin: 5px;
+   
+}
