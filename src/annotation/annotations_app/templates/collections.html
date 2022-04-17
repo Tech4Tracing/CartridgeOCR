@@ -25,16 +25,16 @@
     <!-- TODO: beautify -->
     <ul>
     {% for c in collection_list %}
-        <li><a href="{{ url_for( 'collections', id=c['id'] ) }}">{{ c['name'] }}</a></li>
+        <li><a href="{{ url_for( 'collections', collection_id=c['id'] ) }}">{{ c['name'] }}</a></li>
     {% endfor %}
     </ul>
 </div>
 
 {% if page>0 %}
-<a href="{{ url_for('collections', id=collection_id, page=page-1) }}">&lt;&lt;</a>
+<a href="{{ url_for('collections', collection_id=collection_id, page=page-1) }}">&lt;&lt;</a>
 {% endif %}
 {% if page<pages-1 %}
-<a href="{{ url_for('collections', id=collection_id, page=page+1) }}">&gt;&gt;</a>
+<a href="{{ url_for('collections', collection_id=collection_id, page=page+1) }}">&gt;&gt;</a>
 {% endif %}
 
 <div id="image_list">
