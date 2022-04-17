@@ -1,10 +1,10 @@
-function annotations(img_id, panel_id, highlights) {
+function annotations(image_id, panel_id, highlights) {
     var annotations = [];
     function init() {
         // TODO: fetch annotations
         highlights.on_newpolygon(add);
 
-        var url = "/api/v0/images/"+img_id+"/annotations";
+        var url = "/api/v0/images/"+image_id+"/annotations";
         var xhr = new XMLHttpRequest();
         xhr.open("GET", url, true);
         
@@ -80,7 +80,7 @@ function annotations(img_id, panel_id, highlights) {
             if (a.temp_id === annotation_id) {
                 console.log('found annotation '+annotation_id);
                 if (a.committed) {                    
-                    var db_id = a.anno_id;
+                    var db_id = a.id;
                     // TODO: assert db_id is present and well-formed
                     console.log('db_id: '+db_id);
                     var url = "/api/v0/annotations/"+db_id;
@@ -208,8 +208,8 @@ function annotations(img_id, panel_id, highlights) {
             // replace the annotation. TODO: maybe there is a race condition? we want to update
             var url = "/api/v0/annotations/";
             var method = 'POST'
-            if (a.anno_id) {
-                var db_id = a.anno_id;
+            if (a.id) {
+                var db_id = a.id;
                 console.log('db_id: '+db_id);
                 method = 'PUT'
                 url = "/api/v0/annotations/"+db_id;
@@ -240,7 +240,7 @@ function annotations(img_id, panel_id, highlights) {
 
             var payload = JSON.stringify({
                 geometry: a.geometry,
-                img_id: img_id,
+                image_id: image_id,
                 annotation: a.annotation,
                 metadata_: a.metadata_
             });
@@ -254,8 +254,8 @@ function annotations(img_id, panel_id, highlights) {
                 if(xhr.readyState == 4 && xhr.status == 200) {
                     console.log(xhr.responseText);
                     result = JSON.parse(xhr.responseText);
-                    if (result.anno_id) {
-                        a.anno_id = result.anno_id;
+                    if (result.id) {
+                        a.id = result.id;
                     }
                     a.committed = true;
                     // reset the parent element styling.

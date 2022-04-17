@@ -36,8 +36,8 @@ def annotate(image_id=None):
                 query.select_from(
                     images.outerjoin(
                         annotations,
-                        images.c.id == annotations.c.img_id)
-                ).filter(annotations.c.img_id == None)
+                        images.c.id == annotations.c.image_id)
+                ).filter(annotations.c.image_id == None)
         result = db.connection.execute(query).one()
         image_id = result['id']
 
@@ -64,8 +64,8 @@ def prev_image(id):
             query.select_from(
                 images.outerjoin(
                     annotations,
-                    images.c.id == annotations.c.img_id)
-            ).filter(annotations.c.img_id == None)
+                    images.c.id == annotations.c.image_id)
+            ).filter(annotations.c.image_id == None)
     result = db.connection.execute(query).one_or_none()
     if result is not None:
         id = result['id']
@@ -88,8 +88,8 @@ def next_image(id):
             query.select_from(
                 images.outerjoin(
                     annotations,
-                    images.c.id == annotations.c.img_id)
-            ).filter(annotations.c.img_id == None)
+                    images.c.id == annotations.c.image_id)
+            ).filter(annotations.c.image_id == None)
     result = db.connection.execute(query).one_or_none()
     if result is not None:
         id = result['id']
@@ -98,13 +98,13 @@ def next_image(id):
 
 # TODO: deprecated 
 # maybe this could be a static route to storage?
-@app.route("/images/<string:img_id>")
+@app.route("/images/<string:image_id>")
 @login_required
-def img(img_id):
+def img(image_id):
     try:
         db = get_db()
         images = db.metadata.tables['images']
-        query = sqldb.select(images).where(images.c.id == img_id)
+        query = sqldb.select(images).where(images.c.id == image_id)
         result = db.connection.execute(query).one()
         logging.info('Found image {}'.format(result))
         img_home = get_global('img_home')

@@ -1,7 +1,7 @@
 //initDraw(document.getElementById('imagearea'));
 console.log('loading highlight');
 
-function radialDraw(img_id, canvas_id, mode) {
+function radialDraw(image_id, canvas_id, mode) {
     console.log('init radial draw');
     var mouse = {
         x: 0,
@@ -63,7 +63,7 @@ function radialDraw(img_id, canvas_id, mode) {
                 ctx.drawImage(background,0,0, canvas.width, canvas.height);   
                 refresh_polygons(ctx);
             }
-            background.src = "/api/v0/images/"+img_id+"/binary";
+            background.src = "/api/v0/images/"+image_id+"/binary";
             
         } else {
             ctx.drawImage(background,0,0, canvas.width, canvas.height);  

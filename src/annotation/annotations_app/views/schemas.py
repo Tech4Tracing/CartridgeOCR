@@ -36,8 +36,8 @@ class ImageListSchema(Schema):
 
 
 class AnnotationDisplaySchema(Schema):
-    anno_id = fields.Str()
-    img_id = fields.Str()
+    id = fields.Str()
+    image_id = fields.Str()
     geometry = fields.Str()
     annotation = fields.Str()
     metadata_ = fields.Str()

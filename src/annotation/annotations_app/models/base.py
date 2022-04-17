@@ -13,15 +13,14 @@ metadata = Base.metadata
 class Annotation(Base):
     __tablename__ = 'annotations'
 
-    anno_id = Column(String(36), primary_key=True, default=uuid.uuid4)
-    img_id = Column(String(36))
-    # user_id = Column(String(255))
+    id = Column(String(36), primary_key=True, default=uuid.uuid4)
+    image_id = Column(String(36))
     geometry = Column(Text)
     annotation = Column(Text)
     metadata_ = Column('metadata', Text)
 
     def __str__(self):
-        return self.anno_id
+        return self.id
 
 
 # TODO: deprecate
