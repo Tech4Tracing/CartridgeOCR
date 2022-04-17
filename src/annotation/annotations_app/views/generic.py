@@ -116,10 +116,10 @@ def img(img_id):
         abort(404)
 
 @app.route("/collections/")
-@app.route("/collections/<string:id>/")
-@app.route("/collections/<string:id>/<int:page>")
+@app.route("/collections/<string:collection_id>/")
+@app.route("/collections/<string:collection_id>/<int:page>")
 @login_required
-def collections(id=None, page=0):
+def collections(collection_id=None, page=0):
     from math import ceil
     page_size = 25
     with db_session() as db:
@@ -129,13 +129,13 @@ def collections(id=None, page=0):
         images = None
         collection_name = None
         # TODO: enforce a sort order for paging?
-        if id is not None:
+        if collection_id is not None:
             images = db.query(Image).filter(
-                Image.collections.any(ImageCollection.id == id),
-                Image.collections.any(ImageCollection.user_id == current_user.id)
+                Image.collections.any(sqldb.and_(ImageCollection.id == collection_id,
+                                                 ImageCollection.user_id == current_user.id))
             ).order_by(Image.created_at)
-            collection_name = db.query(ImageCollection).filter( ImageCollection.id==id ).first().name
+            collection_name = db.query(ImageCollection).filter( ImageCollection.id==collection_id ).first().name
         total_pages=ceil(images.count()/page_size) if images else 0
         images = images[page*page_size:(page+1)*page_size] if images else []
-        return render_template('collections.html', collection_name=collection_name, collection_id=id, collection_list=collections, image_list=images, pages=total_pages, page=page)
+        return render_template('collections.html', collection_name=collection_name, collection_id=collection_id, collection_list=collections, image_list=images, pages=total_pages, page=page)
     
