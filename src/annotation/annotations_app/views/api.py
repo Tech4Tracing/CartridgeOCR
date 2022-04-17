@@ -435,26 +435,24 @@ def annotations_list():
 
 
 @app.route("/api/v0/annotations/", methods=['GET'])
-@app.route("/api/v0/annotations/<string:collection_id>", methods=['GET'])
-@app.route("/api/v0/annotations/<string:collection_id>/<string:image_id>", methods=['GET'])
 @login_required
-def annotations_list(collection_id=None, image_id=None):
+def annotations_list():
     """List of annotations for a given user/collection/image
     ---
     get:
       parameters:
-        - in: path
+        - in: query
           name: collection_id
           schema:
             type: string
           required: false
           description: Unique collection ID
-        - in: path
+        - in: query
           name: image_id
           schema:
             type: string
           required: false
-          description: Unique image ID in the collection
+          description: Unique image ID in the specified collection
       responses:
         200:
           description: List of all annotations for the given user/collection/image, depending on specificity
@@ -464,10 +462,15 @@ def annotations_list(collection_id=None, image_id=None):
     """
     with db_session() as db:
         # TODO: add 404s for collection or image mismatch
+        args = request.args
+        image_id = args.get('image_id')
+        collection_id = args.get('collection_id')
+
+        logging.info(f'GET annotations collection_id: {collection_id} image_id: {image_id}')
         queryset = db.query(Annotation).filter(
             and_(
                 Image.id == image_id if image_id is not None else True,
-                Annotation.img_id == Image.id,
+                Annotation.image_id == Image.id,
                 Image.collections.any(
                     and_(
                       ImageCollection.id == collection_id if collection_id is not None else True,
@@ -477,7 +480,7 @@ def annotations_list(collection_id=None, image_id=None):
         )
 
         total = queryset.count()
-        results = queryset.order_by("anno_id") # TODO: this will re-order the display order of the annotations.
+        results = queryset.order_by("id") # TODO: this will re-order the display order of the annotations.
 
         return schemas.AnnotationListSchema().dump(
             {
