@@ -11,7 +11,7 @@ from annotations_app.repos.azure_storage_provider import AzureStorageProvider as
 from annotations_app.utils import db_session
 from annotations_app.config import logging
 from annotations_app.views import schemas, api_users
-
+from sqlalchemy import and_
 
 @app.route('/api/v0/openapi.json', methods=["GET"])
 @login_required
@@ -365,10 +365,66 @@ def image_annotations(image_id):
             abort(404)
     
         queryset = db.query(Annotation).filter(
-            Annotation.img_id == image_id
+            Annotation.image_id == image_id
         )
         total = queryset.count()
-        results = queryset.order_by("anno_id") # TODO: this will re-order the display order of the annotations.
+        results = queryset.order_by("id") # TODO: this will re-order the display order of the annotations.
+
+        return schemas.AnnotationListSchema().dump(
+            {
+                "total": total,
+                "annotations": results,
+            }
+        )
+
+
+@app.route("/api/v0/annotations/", methods=['GET'])
+@login_required
+def annotations_list():
+    """List of annotations for a given user/collection/image
+    ---
+    get:
+      parameters:
+        - in: query
+          name: collection_id
+          schema:
+            type: string
+          required: false
+          description: Unique collection ID
+        - in: query
+          name: image_id
+          schema:
+            type: string
+          required: false
+          description: Unique image ID in the specified collection
+      responses:
+        200:
+          description: List of all annotations for the given user/collection/image, depending on specificity
+          content:
+            application/json:
+              schema: AnnotationListSchema
+    """
+    with db_session() as db:
+        # TODO: add 404s for collection or image mismatch
+        args = request.args
+        image_id = args.get('image_id')
+        collection_id = args.get('collection_id')
+
+        logging.info(f'GET annotations collection_id: {collection_id} image_id: {image_id}')
+        queryset = db.query(Annotation).filter(
+            and_(
+                Image.id == image_id if image_id is not None else True,
+                Annotation.image_id == Image.id,
+                Image.collections.any(
+                    and_(
+                      ImageCollection.id == collection_id if collection_id is not None else True,
+                      ImageCollection.user_id == current_user.id)
+                )
+            )
+        )
+
+        total = queryset.count()
+        results = queryset.order_by("id") # TODO: this will re-order the display order of the annotations.
 
         return schemas.AnnotationListSchema().dump(
             {
@@ -392,7 +448,7 @@ def annotation_post():
               schema:
                 type: object
                 properties:
-                  img_id:
+                  image_id:
                     type: string
                   geometry: 
                     type: object
@@ -411,13 +467,13 @@ def annotation_post():
     
     with db_session() as db:
         req = request.get_json()
-        img_id = req["img_id"] if "img_id" in req else None
+        image_id = req["image_id"] if "image_id" in req else None
         
-        if not img_id:
+        if not image_id:
             abort(404)
         
         image_in_db = db.query(Image).filter(
-            Image.id == img_id,
+            Image.id == image_id,
             Image.collections.any(ImageCollection.user_id == current_user.id),
         ).first()
 
@@ -427,7 +483,7 @@ def annotation_post():
         # create database object if succesfull
 
         annotation_in_db = Annotation(
-            img_id=img_id,
+            image_id=image_id,
             geometry=json.dumps(req["geometry"]),
             annotation=req["annotation"],
             metadata_=json.dumps(req["metadata_"])
@@ -438,15 +494,15 @@ def annotation_post():
         return schemas.AnnotationDisplaySchema().dump(annotation_in_db)
 
 
-@app.route("/api/v0/annotations/<string:anno_id>", methods=['PUT'])
+@app.route("/api/v0/annotations/<string:annotation_id>", methods=['PUT'])
 @login_required
-def annotation_replace(anno_id):
+def annotation_replace(annotation_id):
     """Replace/update annotation 
     ---
     put:
         parameters:
         - in: path
-          name: anno_id
+          name: annotation_id
           schema:
             type: string
           required: true
@@ -457,7 +513,7 @@ def annotation_replace(anno_id):
               schema:
                 type: object
                 properties:
-                  img_id:
+                  image_id:
                     type: string
                   geometry: 
                     type: object
@@ -478,9 +534,9 @@ def annotation_replace(anno_id):
     # TODO: escape quotes and other dangerous chars
     with db_session() as db:
         req = request.get_json()
-        img_id = req["img_id"] if "img_id" in req else None
+        image_id = req["image_id"] if "image_id" in req else None
         image_in_db = db.query(Image).filter(
-            Image.id == img_id,
+            Image.id == image_id,
             Image.collections.any(ImageCollection.user_id == current_user.id),
         ).first()
 
@@ -490,12 +546,9 @@ def annotation_replace(anno_id):
         # create database object if succesfull
         # TODO: test/sanity check
         annotation_in_db = db.query(Annotation).filter(
-            Annotation.anno_id == anno_id,
-            Image.id == img_id,
-            Image.collections.any(ImageCollection.user_id == current_user.id)
-            # OR:
-            # Annotation.img_id == img_id, counting on the previous check.
-            # TODO: test which is faster.
+            Annotation.id == annotation_id,
+            Image.id == image_id,
+            Image.collections.any(ImageCollection.user_id == current_user.id)            
         ).first()
         if not annotation_in_db:
             abort(404)
@@ -510,15 +563,15 @@ def annotation_replace(anno_id):
         return schemas.AnnotationDisplaySchema().dump(annotation_in_db)
 
 
-@app.route("/api/v0/annotations/<string:anno_id>", methods=['DELETE'])
+@app.route("/api/v0/annotations/<string:annotation_id>", methods=['DELETE'])
 @login_required
-def annotation_delete(anno_id):
+def annotation_delete(annotation_id):
     """Remove the annotation
     ---
     delete:
       parameters:
         - in: path
-          name: anno_id
+          name: annotation_id
           schema:
             type: string
           required: true
@@ -532,12 +585,9 @@ def annotation_delete(anno_id):
         
         # TODO: test/sanity check
         annotation_in_db = db.query(Annotation).filter(
-            Annotation.anno_id == anno_id,
-            Image.id == Annotation.img_id,
-            Image.collections.any(ImageCollection.user_id == current_user.id)
-            # OR:
-            # Annotation.img_id == img_id, counting on the previous check.
-            # TODO: test which is faster.
+            Annotation.id == annotation_id,
+            Image.id == Annotation.image_id,
+            Image.collections.any(ImageCollection.user_id == current_user.id)            
         ).first()
 
         if not annotation_in_db:
@@ -558,6 +608,7 @@ with app.test_request_context():
     spec.path(view=image_retrieve)
     spec.path(view=image_delete)
     spec.path(view=image_annotations)
+    spec.path(view=annotations_list)
     spec.path(view=annotation_post)
     spec.path(view=annotation_replace)
     spec.path(view=annotation_delete)

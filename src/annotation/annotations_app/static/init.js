@@ -1,4 +1,4 @@
-function init_app(img_id) {
+function init_app(image_id) {
     var canvas_id = 'canvas';
     var panel_id = 'annotations';
     var save_id = 'btn_save';
@@ -7,10 +7,10 @@ function init_app(img_id) {
     var btn_box_id = 'btn_box';
     var chk_nav_annot = 'chk_nav_annot';
 
-    hl = radialDraw(img_id, canvas_id, 'radial');
-    ann = annotations(img_id, panel_id, hl);
+    hl = radialDraw(image_id, canvas_id, 'radial');
+    ann = annotations(image_id, panel_id, hl);
     // TODO: fix this notion of prev/next
-    var next_url = '/annotate/'+img_id+'/next';
+    var next_url = '/annotate/'+image_id+'/next';
     
     document.getElementById(save_id).onclick = (e) =>{ ann.save() };
     document.getElementById(save_advance_id).onclick = (e) => {
