@@ -132,7 +132,7 @@ def collections(collection_id=None, page=0):
         if collection_id is not None:
             images = db.query(Image).filter(
                 Image.collections.any(sqldb.and_(ImageCollection.id == collection_id,
-                                                 (ImageCollection.user_id == current_user.id)))
+                                                 ImageCollection.user_id == current_user.id))
             ).order_by(Image.created_at)
             collection_name = db.query(ImageCollection).filter( ImageCollection.id==collection_id ).first().name
         total_pages=ceil(images.count()/page_size) if images else 0
