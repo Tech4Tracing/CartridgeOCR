@@ -434,6 +434,59 @@ def annotations_list():
         )
 
 
+@app.route("/api/v0/annotations/", methods=['GET'])
+@app.route("/api/v0/annotations/<string:collection_id>", methods=['GET'])
+@app.route("/api/v0/annotations/<string:collection_id>/<string:image_id>", methods=['GET'])
+@login_required
+def annotations_list(collection_id=None, image_id=None):
+    """List of annotations for a given user/collection/image
+    ---
+    get:
+      parameters:
+        - in: path
+          name: collection_id
+          schema:
+            type: string
+          required: false
+          description: Unique collection ID
+        - in: path
+          name: image_id
+          schema:
+            type: string
+          required: false
+          description: Unique image ID in the collection
+      responses:
+        200:
+          description: List of all annotations for the given user/collection/image, depending on specificity
+          content:
+            application/json:
+              schema: AnnotationListSchema
+    """
+    with db_session() as db:
+        # TODO: add 404s for collection or image mismatch
+        queryset = db.query(Annotation).filter(
+            and_(
+                Image.id == image_id if image_id is not None else True,
+                Annotation.img_id == Image.id,
+                Image.collections.any(
+                    and_(
+                      ImageCollection.id == collection_id if collection_id is not None else True,
+                      ImageCollection.user_id == current_user.id)
+                )
+            )
+        )
+
+        total = queryset.count()
+        results = queryset.order_by("anno_id") # TODO: this will re-order the display order of the annotations.
+
+        return schemas.AnnotationListSchema().dump(
+            {
+                "total": total,
+                "annotations": results,
+            }
+        )
+
+
 # TODO: geometry and metadata types
 # TODO: multipart/form request?
 @app.route("/api/v0/annotations/", methods=['POST'])
