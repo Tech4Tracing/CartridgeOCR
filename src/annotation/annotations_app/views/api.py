@@ -377,63 +377,6 @@ def image_annotations(image_id):
             }
         )
 
-
-@app.route("/api/v0/annotations/", methods=['GET'])
-@login_required
-def annotations_list():
-    """List of annotations for a given user/collection/image
-    ---
-    get:
-      parameters:
-        - in: query
-          name: collection_id
-          schema:
-            type: string
-          required: false
-          description: Unique collection ID
-        - in: query
-          name: image_id
-          schema:
-            type: string
-          required: false
-          description: Unique image ID in the specified collection
-      responses:
-        200:
-          description: List of all annotations for the given user/collection/image, depending on specificity
-          content:
-            application/json:
-              schema: AnnotationListSchema
-    """
-    with db_session() as db:
-        # TODO: add 404s for collection or image mismatch
-        args = request.args
-        image_id = args.get('image_id')
-        collection_id = args.get('collection_id')
-
-        logging.info(f'GET annotations collection_id: {collection_id} image_id: {image_id}')
-        queryset = db.query(Annotation).filter(
-            and_(
-                Image.id == image_id if image_id is not None else True,
-                Annotation.image_id == Image.id,
-                Image.collections.any(
-                    and_(
-                      ImageCollection.id == collection_id if collection_id is not None else True,
-                      ImageCollection.user_id == current_user.id)
-                )
-            )
-        )
-
-        total = queryset.count()
-        results = queryset.order_by("id") # TODO: this will re-order the display order of the annotations.
-
-        return schemas.AnnotationListSchema().dump(
-            {
-                "total": total,
-                "annotations": results,
-            }
-        )
-
-
 @app.route("/api/v0/annotations/", methods=['GET'])
 @login_required
 def annotations_list():
