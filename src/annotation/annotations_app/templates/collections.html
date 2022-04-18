@@ -9,11 +9,52 @@
 {% endblock %}
 
 {% block scripts %}
+<script type="text/javascript">
+function init() {    
+    document.getElementById("image_upload").onchange = function () {
+        const input = document.querySelector('input[type="file"]');
+        const len = input.files.length;
+        console.log('uploading '+len+ ' files');
+        for (let file of input.files) {            
+            // TODO: limit file size - we should do this server-side.
+            var url = "/api/v0/images";
+            var method = 'POST'
+            const formData = new FormData();
+            {% if collection_id is not none %}
+                formData.append('collection_id', "{{collection_id}}");
+            {% endif %}
+            formData.append('file', file);
+            formData.append('mimetype', file.type);
+           
+            var xhr = new XMLHttpRequest();
+            xhr.open(method, url, false); 
+            xhr.withCredentials = true;            
+            xhr.onreadystatechange = function() {
+                // TODO: API docs say the status should be 201
+                if(xhr.readyState == 4 && xhr.status == 200) {                    
+                    console.log(xhr.responseText);
+                    result = JSON.parse(xhr.responseText);
+                    console.log('uploaded '+ file.name+ 'id: '+result.id);                           
+                    list = document.getElementById('image_list');
+                    elt = document.createElement('div');
+                    elt.className = 'img_box';
+                    var annot_url = "{{ url_for('annotate', image_id='_ID_')}}".replace('_ID_', result.id);
+                    var img_url = "{{ url_for('image_retrieve', image_id='_ID_')}}".replace('_ID_', result.id)
+                    var thumb_html = '<a href="'+annot_url+'"><img class="img_thumb" src="'+img_url+'" /></a>';                    
+                    elt.innerHTML = thumb_html;
+                    list.appendChild(elt);
+                }
+            }
+            xhr.send(formData);
+        }
+    };
+}
 
+</script>
 {% endblock %}
 
 {% block onload %}
-
+onload='init()'
 {% endblock %}
 
 {% block navigate %}
@@ -36,6 +77,9 @@
 {% if page<pages-1 %}
 <a href="{{ url_for('collections', collection_id=collection_id, page=page+1) }}">&gt;&gt;</a>
 {% endif %}
+
+<label class="button" for="image_upload">Upload Images</label>
+<input id="image_upload" type="file"  accept="image/*" multiple />
 
 <div id="image_list">
     {% for i in image_list %}
