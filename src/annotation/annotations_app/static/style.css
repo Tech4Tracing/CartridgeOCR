@@ -153,6 +153,10 @@
     margin-right: 20px;
 }
 
+.collection_entry {
+    margin: 5px;
+}
+
 /* TODO: tried and failed to vertally align the images */
 #image_list {    
     justify-content: center; /* align horizontal */
