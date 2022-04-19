@@ -9,11 +9,87 @@
 {% endblock %}
 
 {% block scripts %}
+{# TODO: it would be nice to move to a js file but the code below depends on some template directives. #}
+<script  type="text/javascript" >
+function init(collection_id) {    
+    const upload_id = 'image_upload';
+    const collection_create_id = 'collection_create';
+    const new_collection_input = 'new_collection_input';
+    
+    document.getElementById(upload_id).onchange = function () {
+        const input = document.querySelector('input[type="file"]');
+        const len = input.files.length;
+        console.log('uploading '+len+ ' files');
+        for (let file of input.files) {            
+            // TODO: limit file size - we should do this server-side.
+            var url = "/api/v0/images";
+            var method = 'POST'
+            const formData = new FormData();
+            {% if collection_id is not none %}
+                formData.append('collection_id', "{{collection_id}}");
+            {% endif %}
+            formData.append('file', file);
+            formData.append('mimetype', file.type);
+           
+            var xhr = new XMLHttpRequest();
+            xhr.open(method, url, false); 
+            xhr.withCredentials = true;            
+            xhr.onreadystatechange = function() {
+                // TODO: API docs say the status should be 201
+                if(xhr.readyState == 4 && xhr.status == 200) {                    
+                    console.log(xhr.responseText);
+                    result = JSON.parse(xhr.responseText);
+                    console.log('uploaded '+ file.name+ 'id: '+result.id);                           
+                    list = document.getElementById('image_list');
+                    elt = document.createElement('div');
+                    elt.className = 'img_box';
+                    var annot_url = "{{ url_for('annotate', image_id='_ID_')}}".replace('_ID_', result.id);
+                    var img_url = "{{ url_for('image_retrieve', image_id='_ID_')}}".replace('_ID_', result.id)
+                    var thumb_html = '<a href="'+annot_url+'"><img class="img_thumb" src="'+img_url+'" /></a>';                    
+                    elt.innerHTML = thumb_html;
+                    list.appendChild(elt);
+                }
+            }
+            xhr.send(formData);
+        }
+    };
+    document.getElementById(collection_create_id).onclick = function () {
+        var name = document.getElementById(new_collection_input).value;
+        // TODO: input validation server side
+        var url = "/api/v0/collections";
+        var method = 'POST';
+        
+        var payload = JSON.stringify({
+            name: name
+        });
+        var xhr = new XMLHttpRequest();
 
+        // making this async causes bug #20
+        xhr.open(method, url, false); 
+        xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+        xhr.onreadystatechange = function() {
+            // TODO: API docs say the status should be 201
+            if(xhr.readyState == 4 && xhr.status == 200) {                    
+                console.log(xhr.responseText);
+                result = JSON.parse(xhr.responseText);                                           
+                list = document.getElementById('collection_list');
+                elt = document.createElement('div');
+                elt.className = 'collection_entry';
+                var collection_url = "{{ url_for( 'collections', collection_id='_ID_' ) }}".replace('_ID_', result.id);
+                var collection_html = '<a href="'+collection_url+'">'+result.name+'</a>';                    
+                elt.innerHTML = collection_html;
+                list.appendChild(elt);
+            }
+        }
+        xhr.send(payload);
+    };
+}
+
+</script>
 {% endblock %}
 
 {% block onload %}
-
+onload="init('{{collection_id}}');"
 {% endblock %}
 
 {% block navigate %}
@@ -23,11 +99,14 @@
 {% block content %}
 <div id="collection_list">
     <!-- TODO: beautify -->
-    <ul>
+    <div class="collection_entry">
+        <input id="new_collection_input">
+        <button id="collection_create">New</button>
+    </div>
     {% for c in collection_list %}
-        <li><a href="{{ url_for( 'collections', collection_id=c['id'] ) }}">{{ c['name'] }}</a></li>
+        <div class='collection_entry'><a href="{{ url_for( 'collections', collection_id=c['id'] ) }}">{{ c['name'] }}</a></div>
     {% endfor %}
-    </ul>
+    
 </div>
 
 {% if page>0 %}
@@ -36,6 +115,9 @@
 {% if page<pages-1 %}
 <a href="{{ url_for('collections', collection_id=collection_id, page=page+1) }}">&gt;&gt;</a>
 {% endif %}
+
+<label class="button" for="image_upload">Upload Images</label>
+<input id="image_upload" type="file"  accept="image/*" multiple />
 
 <div id="image_list">
     {% for i in image_list %}

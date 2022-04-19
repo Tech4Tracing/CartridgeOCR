@@ -377,7 +377,6 @@ def image_annotations(image_id):
             }
         )
 
-
 @app.route("/api/v0/annotations/", methods=['GET'])
 @login_required
 def annotations_list():
