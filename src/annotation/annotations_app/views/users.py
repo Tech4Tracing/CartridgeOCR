@@ -1,10 +1,9 @@
 from flask import abort, jsonify, request
 from marshmallow import ValidationError
 
-from annotations_app import app
+from annotations_app import app, schemas
 from annotations_app.models.base import User
 from annotations_app.utils import db_session, superuser_required
-from annotations_app.views import schemas
 
 
 @app.route("/api/v0/users", methods=["GET"])
