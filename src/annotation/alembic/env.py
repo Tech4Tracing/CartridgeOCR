@@ -12,7 +12,7 @@ from alembic import context
 # TODO: migrate to a model-based approach
 # sys.path.insert(0, "./alembic/models")
 import annotations_app.models.base as base_models
-target_metadata = base_models.metadata
+target_metadata = base_models.db.metadata
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

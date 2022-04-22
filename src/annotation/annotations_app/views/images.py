@@ -4,7 +4,8 @@ from io import BytesIO
 from flask import request, send_file, abort
 from flask_login import login_required, current_user
 
-from annotations_app import app, schemas
+from annotations_app.flask_app import app
+from annotations_app import schemas
 from annotations_app.config import logging
 from annotations_app.models.base import ImageCollection, Image, Annotation
 from annotations_app.repos.azure_storage_provider import (

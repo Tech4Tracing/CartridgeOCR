@@ -7,7 +7,7 @@ flask_login==0.5.0
 oauthlib==3.2.0
 
 # Database access
-sqlalchemy==1.4.32
+Flask-SQLAlchemy==2.5.1
 alembic==1.7.5  # migrations
 pymssql==2.2.2  # for MsSQL support
 

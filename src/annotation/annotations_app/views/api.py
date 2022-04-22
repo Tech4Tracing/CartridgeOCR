@@ -1,7 +1,7 @@
 from flask import jsonify, render_template
 from flask_login import login_required
 
-from annotations_app import app, spec
+from annotations_app.flask_app import app, spec
 from annotations_app.views import users, collections, images, annotations
 
 
