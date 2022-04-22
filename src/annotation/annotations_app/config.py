@@ -46,6 +46,11 @@ LOGGING_CONFIG = {
             'level': 'INFO',
             'propagate': False
         },
+        'werkzeug': {
+            'handlers': ['default'],
+            'level': 'INFO',
+            'propagate': False
+        },
     }
 }
 

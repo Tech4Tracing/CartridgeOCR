@@ -131,6 +131,13 @@ def images_list():
     """List of images, optionally (TODO) filtered by collection
     ---
     get:
+      parameters:
+        - in: query
+          name: collection_id
+          schema:
+            type: integer
+          required: false
+          description: the collection ID to filter upon
       responses:
         200:
           description: List of all images for the given user
@@ -138,10 +145,17 @@ def images_list():
             application/json:
               schema: ImageListSchema
     """
+    collection_id = request.args.get("collection_id")
+    # TODO: ensure that the collection ID is visible to the given user
+    # it won't return anything if the ID is incorrect but it's better to raise 404
     with db_session() as db:
         queryset = db.query(Image).filter(
             Image.collections.any(ImageCollection.user_id == current_user.id),
         )
+        if collection_id:
+            queryset = queryset.filter(
+                Image.collections.any(ImageCollection.id == collection_id)
+            )
         total = queryset.count()
         results = queryset.order_by("id")
 
