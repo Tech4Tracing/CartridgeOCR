@@ -19,13 +19,11 @@ def collections_list():
             application/json:
               schema: CollectionsListSchema
     """
-    queryset = ImageCollection.query.filter(
+    queryset = db.session.query(ImageCollection).filter(
         ImageCollection.user_id == current_user.id,
     )
     total = queryset.count()
     results = queryset.order_by("id")
-
-    print(db.session)
 
     return schemas.CollectionsListSchema().dump(
         {
@@ -92,7 +90,7 @@ def collection_delete(collection_id: str):
         abort(404)
 
     first_existing_image = (
-        Image.query.filter(
+        db.session.query(Image).filter(
             Image.collections.any(ImageCollection.id.in_([collection_in_db.id])),
         ).first()
     )

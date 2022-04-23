@@ -68,7 +68,7 @@ class ImageCollection(db.Model):
     images = relationship(
         "Image",
         secondary=images_to_collections_table,
-        back_populates="collections"
+        back_populates="collections",
     )
 
     def __str__(self):
