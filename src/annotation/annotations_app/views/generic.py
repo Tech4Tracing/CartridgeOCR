@@ -5,7 +5,7 @@ import sqlalchemy as sqldb
 from flask import send_file, abort, redirect, render_template, request
 from flask_login import current_user, login_required
 
-from annotations_app import app
+from annotations_app.flask_app import app
 from annotations_app.models.base import ImageCollection, Image
 from annotations_app.utils import get_db, get_global, parse_boolean, db_session
 

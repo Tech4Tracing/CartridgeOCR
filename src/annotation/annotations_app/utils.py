@@ -53,6 +53,7 @@ def get_global(key):
     return result['value']
 
 
+# TODO: replace it by using app.db everywhere because it's much simpler
 @contextmanager
 def db_session():
     if not os.environ.get("SQLALCHEMY_URL"):

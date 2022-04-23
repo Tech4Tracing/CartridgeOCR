@@ -1,9 +1,9 @@
 from flask import request, abort
 from flask_login import login_required, current_user
 
-from annotations_app import app, schemas
+from annotations_app.flask_app import app, db
+from annotations_app import schemas
 from annotations_app.models.base import ImageCollection, Image
-from annotations_app.utils import db_session
 
 
 @app.route("/api/v0/collections", methods=["GET"])
@@ -19,19 +19,18 @@ def collections_list():
             application/json:
               schema: CollectionsListSchema
     """
-    with db_session() as db:
-        queryset = db.query(ImageCollection).filter(
-            ImageCollection.user_id == current_user.id,
-        )
-        total = queryset.count()
-        results = queryset.order_by("id")
+    queryset = db.session.query(ImageCollection).filter(
+        ImageCollection.user_id == current_user.id,
+    )
+    total = queryset.count()
+    results = queryset.order_by("id")
 
-        return schemas.CollectionsListSchema().dump(
-            {
-                "total": total,
-                "collections": results,
-            }
-        )
+    return schemas.CollectionsListSchema().dump(
+        {
+            "total": total,
+            "collections": results,
+        }
+    )
 
 
 @app.route("/api/v0/collections", methods=["POST"])
@@ -55,15 +54,15 @@ def collection_create():
     """
     req = request.json
     # TODO: if req is None ...
-    collection_in_db = ImageCollection(
+    new_collection = ImageCollection(
         user_id=current_user.id,
         name=req["name"],
     )
-    with db_session() as db:
-        db.add(collection_in_db)
-        db.commit()
-        db.refresh(collection_in_db)
-        return schemas.CollectionDisplaySchema().dump(collection_in_db)
+    db.session.add(new_collection)
+    db.session.commit()
+    db.session.refresh(new_collection)
+    db.session.expunge(new_collection)
+    return schemas.CollectionDisplaySchema().dump(new_collection)
 
 
 @app.route("/api/v0/collections/<string:collection_id>", methods=["DELETE"])
@@ -83,41 +82,33 @@ def collection_delete(collection_id: str):
         202:
           description: Success
     """
-    with db_session() as db:
-        collection_in_db = (
-            db.query(ImageCollection)
-            .filter(
-                ImageCollection.id == collection_id,
-                ImageCollection.user_id == current_user.id,
-            )
-            .first()
+    collection_in_db = db.session.query(ImageCollection).filter(
+        ImageCollection.id == collection_id,
+        ImageCollection.user_id == current_user.id,
+    ).first()
+    if not collection_in_db:
+        abort(404)
+
+    first_existing_image = (
+        db.session.query(Image).filter(
+            Image.collections.any(ImageCollection.id.in_([collection_in_db.id])),
+        ).first()
+    )
+
+    if first_existing_image:
+        return (
+            schemas.Errors().dump(
+                {
+                    "errors": [
+                        {
+                            "title": "ValidationError",
+                            "detail": "The collection has images - delete them first",
+                        }
+                    ]
+                }
+            ),
+            400,
         )
-        if not collection_in_db:
-            abort(404)
-
-        first_existing_image = (
-            db.query(Image)
-            .filter(
-                Image.collections.any(ImageCollection.id.in_([collection_in_db.id])),
-            )
-            .first()
-        )
-
-        if first_existing_image:
-            return (
-                schemas.Errors().dump(
-                    {
-                        "errors": [
-                            {
-                                "title": "ValidationError",
-                                "detail": "The collection has images - delete them first",
-                            }
-                        ]
-                    }
-                ),
-                400,
-            )
-
-        db.delete(collection_in_db)
-        db.commit()
-        return ("", 204)
+    db.session.delete(collection_in_db)
+    db.session.commit()
+    return ("", 204)

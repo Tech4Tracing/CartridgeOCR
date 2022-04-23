@@ -4,7 +4,8 @@ from io import BytesIO
 from flask import request, send_file, abort
 from flask_login import login_required, current_user
 
-from annotations_app import app, schemas
+from annotations_app.flask_app import app, db as globaldb
+from annotations_app import schemas
 from annotations_app.config import logging
 from annotations_app.models.base import ImageCollection, Image, Annotation
 from annotations_app.repos.azure_storage_provider import (
@@ -131,6 +132,13 @@ def images_list():
     """List of images, optionally (TODO) filtered by collection
     ---
     get:
+      parameters:
+        - in: query
+          name: collection_id
+          schema:
+            type: integer
+          required: false
+          description: the collection ID to filter upon
       responses:
         200:
           description: List of all images for the given user
@@ -138,19 +146,24 @@ def images_list():
             application/json:
               schema: ImageListSchema
     """
-    with db_session() as db:
-        queryset = db.query(Image).filter(
-            Image.collections.any(ImageCollection.user_id == current_user.id),
+    collection_id = request.args.get("collection_id")
+    # TODO: ensure that the collection ID is visible to the given user
+    # it won't return anything if the ID is incorrect but it's better to raise 404
+    queryset = globaldb.session.query(Image).filter(
+        Image.collections.any(ImageCollection.user_id == current_user.id),
+    )
+    if collection_id:
+        queryset = queryset.filter(
+            Image.collections.any(ImageCollection.id == collection_id)
         )
-        total = queryset.count()
-        results = queryset.order_by("id")
-
-        return schemas.ImageListSchema().dump(
-            {
-                "total": total,
-                "images": results,
-            }
-        )
+    total = queryset.count()
+    results = queryset.order_by("id")
+    return schemas.ImageListSchema().dump(
+        {
+            "total": total,
+            "images": results,
+        }
+    )
 
 
 @app.route("/api/v0/images/<string:image_id>", methods=["GET"])

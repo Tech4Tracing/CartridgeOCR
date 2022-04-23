@@ -13,6 +13,8 @@ class Config:
     # comma-separated list of emails; these emails will be considered superusers on each login
     AUTH_WHITELISTED_EMAILS = (os.environ.get("AUTH_WHITELISTED_EMAILS") or "").split(",")
 
+    SQLALCHEMY_DATABASE_URI = os.environ["SQLALCHEMY_URL"]
+
 
 LOGGING_CONFIG = {
     'version': 1,
@@ -42,6 +44,11 @@ LOGGING_CONFIG = {
             'propagate': False
         },
         '__main__': {
+            'handlers': ['default'],
+            'level': 'INFO',
+            'propagate': False
+        },
+        'werkzeug': {
             'handlers': ['default'],
             'level': 'INFO',
             'propagate': False

@@ -3,7 +3,8 @@ import json
 from flask import request, abort
 from flask_login import login_required, current_user
 
-from annotations_app import app, schemas
+from annotations_app.flask_app import app
+from annotations_app import schemas
 from annotations_app.config import logging
 from annotations_app.models.base import ImageCollection, Image, Annotation
 from annotations_app.utils import db_session
