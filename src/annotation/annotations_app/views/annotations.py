@@ -3,7 +3,7 @@ import json
 from flask import request, abort
 from flask_login import login_required, current_user
 
-from annotations_app.flask_app import app
+from annotations_app.flask_app import app, db as new_db
 from annotations_app import schemas
 from annotations_app.config import logging
 from annotations_app.models.base import ImageCollection, Image, Annotation
@@ -11,7 +11,7 @@ from annotations_app.utils import db_session
 from sqlalchemy import and_
 
 
-@app.route("/api/v0/annotations/", methods=["GET"])
+@app.route("/api/v0/annotations", methods=["GET"])
 @login_required
 def annotations_list():
     """List of annotations for a given user/collection/image
@@ -76,7 +76,7 @@ def annotations_list():
 
 # TODO: geometry and metadata types
 # TODO: multipart/form request?
-@app.route("/api/v0/annotations/", methods=["POST"])
+@app.route("/api/v0/annotations", methods=["POST"])
 @login_required
 def annotation_post():
     """Upload annotation to collection (or without one)
@@ -233,21 +233,20 @@ def annotation_delete(annotation_id):
           description: Success
     """
     logging.info("DELETE annotation request for user %s", current_user.id)
-    with db_session() as db:
-
-        # TODO: test/sanity check
-        annotation_in_db = (
-            db.query(Annotation)
-            .filter(
-                Annotation.id == annotation_id,
-                Image.id == Annotation.image_id,
-                Image.collections.any(ImageCollection.user_id == current_user.id),
-            )
-            .first()
+    # TODO: test/sanity check
+    annotation_in_db = (
+        new_db.session.query(Annotation)
+        .filter(
+            Annotation.id == annotation_id,
+            Image.id == Annotation.image_id,
+            Image.collections.any(ImageCollection.user_id == current_user.id),
         )
+        .first()
+    )
 
-        if not annotation_in_db:
-            abort(404)
+    if not annotation_in_db:
+        abort(404)
 
-        db.delete(annotation_in_db)
-        return ("", 204)
+    new_db.session.delete(annotation_in_db)
+    new_db.session.commit()
+    return ("", 204)
