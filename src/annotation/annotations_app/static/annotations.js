@@ -206,7 +206,7 @@ function annotations(image_id, panel_id, highlights) {
             if (a.committed) return;
 
             // replace the annotation. TODO: maybe there is a race condition? we want to update
-            var url = "/api/v0/annotations/";
+            var url = "/api/v0/annotations";
             var method = 'POST'
             if (a.id) {
                 var db_id = a.id;

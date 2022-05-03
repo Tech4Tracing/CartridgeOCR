@@ -11,7 +11,7 @@ from annotations_app.utils import db_session
 from sqlalchemy import and_
 
 
-@app.route("/api/v0/annotations/", methods=["GET"])
+@app.route("/api/v0/annotations", methods=["GET"])
 @login_required
 def annotations_list():
     """List of annotations for a given user/collection/image
@@ -76,7 +76,7 @@ def annotations_list():
 
 # TODO: geometry and metadata types
 # TODO: multipart/form request?
-@app.route("/api/v0/annotations/", methods=["POST"])
+@app.route("/api/v0/annotations", methods=["POST"])
 @login_required
 def annotation_post():
     """Upload annotation to collection (or without one)
