@@ -27,7 +27,7 @@ class ImageDisplaySchema(Schema):
     size = fields.Int()
     extra_data = fields.Dict()
     collections = fields.List(fields.Str())
-    storageKey = fields.Str()
+    # storageKey = fields.Str()
 
 
 class ImageListSchema(Schema):
@@ -37,6 +37,7 @@ class ImageListSchema(Schema):
 
 class AnnotationDisplaySchema(Schema):
     id = fields.Str()
+    created_at = fields.Str()
     image_id = fields.Str()
     geometry = fields.Str()
     annotation = fields.Str()

@@ -13,6 +13,8 @@ class Annotation(db.Model):
     __tablename__ = 'annotations'
 
     id = db.Column(String(36), primary_key=True, default=uuid.uuid4)
+    created_at = db.Column(DateTime(timezone=True), default=datetime.datetime.utcnow)
+
     image_id = db.Column(String(36))
     geometry = db.Column(Text)
     annotation = db.Column(Text)
@@ -60,7 +62,7 @@ class ImageCollection(db.Model):
     __tablename__ = 'imagecollections'
 
     id = db.Column(String(36), primary_key=True, default=uuid.uuid4)
-    created_at = db.Column(DateTime(timezone=True), default=datetime.datetime.utcnow())
+    created_at = db.Column(DateTime(timezone=True), default=datetime.datetime.utcnow)
 
     user_id = db.Column(String(255))
     name = db.Column(String(255))
@@ -80,7 +82,7 @@ class Image(db.Model):
 
     id = db.Column(String(36), primary_key=True, default=uuid.uuid4)
     # collection_id = db.Column(String(36), nullable=True, default=None)
-    created_at = db.Column(DateTime, nullable=False, default=datetime.datetime.utcnow())
+    created_at = db.Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
     mimetype = db.Column(String(255))
     size = db.Column(Integer)
     storageKey = db.Column(String(1024))
@@ -102,3 +104,23 @@ class Image(db.Model):
         except Exception as e:
             print(e)
             return "file.bin"
+
+    @staticmethod
+    def get_image_or_abort(image_id, current_user):
+        """
+        Either return first(single) image or raises an 404 exception which is handled elsewhere
+        """
+        from flask import abort
+        from annotations_app.flask_app import db
+
+        image_in_db = (
+            db.session.query(Image)
+            .filter(
+                Image.id == image_id,
+                Image.collections.any(ImageCollection.user_id == current_user.id),
+            )
+            .first()
+        )
+        if not image_in_db:
+            abort(404, description="Image not found")
+        return image_in_db

@@ -6,7 +6,7 @@ from apispec import APISpec
 from apispec_webframeworks.flask import FlaskPlugin
 from apispec.ext.marshmallow import MarshmallowPlugin
 from dotenv import load_dotenv
-from flask import Flask, g, redirect, request, url_for
+from flask import Flask, g, redirect, request, url_for, jsonify
 from flask_login import (
     LoginManager,
     login_required,
@@ -69,6 +69,42 @@ login_manager.login_view = '/'
 # OAuth 2 client setup
 logging.info('Creating google client')
 client = WebApplicationClient(GOOGLE_CLIENT_ID)
+
+
+@app.errorhandler(400)
+def bad_request(e):
+    return jsonify({
+        "errors": [
+            {
+                "status": "400",
+                "detail": str(e)
+            },
+        ]
+    }), 400
+
+
+@app.errorhandler(404)
+def resource_not_found(e):
+    return jsonify({
+        "errors": [
+            {
+                "status": "404",
+                "detail": str(e)
+            },
+        ]
+    }), 404
+
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    return jsonify({
+        "errors": [
+            {
+                "status": "500",
+                "detail": str(e)
+            },
+        ]
+    }), 500
 
 
 # Flask-Login helper to retrieve a user from our db

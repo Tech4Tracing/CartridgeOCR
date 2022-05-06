@@ -15,7 +15,9 @@ services:
       AZURE_STORAGE_CONNECTION_STRING: ""
       IS_READONLY: "false"
       DATABASE_URL: "sa:Your_password123@annotations_mssql/master?charset=utf8"
-      SQLALCHEMY_URL: "mssql+pymssql://sa:Your_password123@annotations_mssql/master?charset=utf8"
+      # we need tds_version because of pymssql and datetimes parsing issues
+      # pyodbc is even worse
+      SQLALCHEMY_URL: "mssql+pymssql://sa:Your_password123@annotations_mssql/master?charset=utf8&tds_version=7.2"
       STORAGE_AZURE_CONNECTIONSTRING: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://annotations_objstore:10000/devstoreaccount1;"
       STORAGE_AZURE_CONTAINERNAME: "peremages"
     volumes:
