@@ -38,26 +38,29 @@ def annotations_list():
     """
     # TODO: add 404s for collection or image mismatch
     args = request.args
-    image_id = args.get("image_id")
-    collection_id = args.get("collection_id")
+    image_id = args.get("image_id") or None
+    collection_id = args.get("collection_id") or None
 
     if image_id:
         # by retrieving the image ID we ensure it's available
         Image.get_image_or_abort(image_id, current_user)
-        # TODO: some code from the queryset below can be simplified now
 
-    logging.info(
-        f"GET annotations collection_id: {collection_id} image_id: {image_id}"
-    )
+    if collection_id:
+        # access check
+        ImageCollection.get_collection_or_abort(collection_id, current_user)
+
+    # logging.info(
+    #     f"GET annotations collection_id: {collection_id} image_id: {image_id}"
+    # )
     queryset = new_db.session.query(Annotation).filter(
         and_(
-            Image.id == image_id if image_id is not None else True,
+            # filter by image
+            Annotation.image_id == image_id if image_id else True,
+            # filter by collection (including only collections visible to user if no collection is provided)
             Annotation.image_id == Image.id,
             Image.collections.any(
                 and_(
-                    ImageCollection.id == collection_id
-                    if collection_id is not None
-                    else True,
+                    ImageCollection.id == collection_id if collection_id else True,
                     ImageCollection.user_id == current_user.id,
                 )
             ),

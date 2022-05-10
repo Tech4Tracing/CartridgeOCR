@@ -76,6 +76,26 @@ class ImageCollection(db.Model):
     def __str__(self):
         return self.id
 
+    @staticmethod
+    def get_collection_or_abort(image_id, current_user):
+        """
+        Either return first(single) collection or raise 404 exception
+        """
+        from flask import abort
+        from annotations_app.flask_app import db
+
+        collection = (
+            db.session.query(ImageCollection)
+            .filter(
+                ImageCollection.id == image_id,
+                ImageCollection.user_id == current_user.id,
+            )
+            .first()
+        )
+        if not collection:
+            abort(404, description="Collection not found")
+        return collection
+
 
 class Image(db.Model):
     __tablename__ = 'images'
