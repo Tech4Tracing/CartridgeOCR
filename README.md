@@ -1,5 +1,7 @@
 # CartridgeOCR
 
+If you came here for instructions how to start the Flask API to annotate images please see [related readme](./src/annotation/README.md)
+
 src folder contains the training code based on the AML annotations.
 
 h4g deck is [here](https://1drv.ms/p/s!Aq_TlvfieKvqu8t5DYBMbiD91PxE6Q?e=STaglB)
