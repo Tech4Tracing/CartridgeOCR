@@ -7,7 +7,6 @@ from annotations_app.flask_app import app, db as new_db
 from annotations_app import schemas
 from annotations_app.config import logging
 from annotations_app.models.base import ImageCollection, Image, Annotation
-from annotations_app.utils import db_session
 from sqlalchemy import and_
 
 
@@ -37,41 +36,48 @@ def annotations_list():
             application/json:
               schema: AnnotationListSchema
     """
-    with db_session() as db:
-        # TODO: add 404s for collection or image mismatch
-        args = request.args
-        image_id = args.get("image_id")
-        collection_id = args.get("collection_id")
+    # TODO: add 404s for collection or image mismatch
+    args = request.args
+    image_id = args.get("image_id") or None
+    collection_id = args.get("collection_id") or None
 
-        logging.info(
-            f"GET annotations collection_id: {collection_id} image_id: {image_id}"
-        )
-        queryset = db.query(Annotation).filter(
-            and_(
-                Image.id == image_id if image_id is not None else True,
-                Annotation.image_id == Image.id,
-                Image.collections.any(
-                    and_(
-                        ImageCollection.id == collection_id
-                        if collection_id is not None
-                        else True,
-                        ImageCollection.user_id == current_user.id,
-                    )
-                ),
-            )
-        )
+    if image_id:
+        # by retrieving the image ID we ensure it's available
+        Image.get_image_or_abort(image_id, current_user)
 
-        total = queryset.count()
-        results = queryset.order_by(
-            "id"
-        )  # TODO: this will re-order the display order of the annotations.
+    if collection_id:
+        # access check
+        ImageCollection.get_collection_or_abort(collection_id, current_user)
 
-        return schemas.AnnotationListSchema().dump(
-            {
-                "total": total,
-                "annotations": results,
-            }
+    # logging.info(
+    #     f"GET annotations collection_id: {collection_id} image_id: {image_id}"
+    # )
+    queryset = new_db.session.query(Annotation).filter(
+        and_(
+            # filter by image
+            Annotation.image_id == image_id if image_id else True,
+            # filter by collection (including only collections visible to user if no collection is provided)
+            Annotation.image_id == Image.id,
+            Image.collections.any(
+                and_(
+                    ImageCollection.id == collection_id if collection_id else True,
+                    ImageCollection.user_id == current_user.id,
+                )
+            ),
         )
+    )
+
+    total = queryset.count()
+    results = queryset.order_by(
+        "created_at", "id",
+    )
+
+    return schemas.AnnotationListSchema().dump(
+        {
+            "total": total,
+            "annotations": results,
+        }
+    )
 
 
 # TODO: geometry and metadata types
@@ -105,37 +111,25 @@ def annotation_post():
     """
     logging.info("Uploading annotation for user %s", current_user.id)
 
-    with db_session() as db:
-        req = request.get_json()
-        image_id = req["image_id"] if "image_id" in req else None
+    req = request.get_json()
 
-        if not image_id:
-            abort(404)
+    image_id = req["image_id"] if "image_id" in req else None
+    if not image_id:
+        abort(400, description="image_id parameter is required")
 
-        image_in_db = (
-            db.query(Image)
-            .filter(
-                Image.id == image_id,
-                Image.collections.any(ImageCollection.user_id == current_user.id),
-            )
-            .first()
-        )
+    Image.get_image_or_abort(image_id, current_user)  # ensure exists and available
 
-        if not image_in_db:
-            abort(404)
-
-        # create database object if succesfull
-
-        annotation_in_db = Annotation(
-            image_id=image_id,
-            geometry=json.dumps(req["geometry"]),
-            annotation=req["annotation"],
-            metadata_=json.dumps(req["metadata_"]),
-        )
-        db.add(annotation_in_db)
-        db.commit()
-        db.refresh(annotation_in_db)
-        return schemas.AnnotationDisplaySchema().dump(annotation_in_db)
+    # create database object if succesfull
+    annotation_in_db = Annotation(
+        image_id=image_id,
+        geometry=json.dumps(req["geometry"]),
+        annotation=req["annotation"],
+        metadata_=json.dumps(req["metadata_"]),
+    )
+    new_db.session.add(annotation_in_db)
+    new_db.session.commit()
+    new_db.session.refresh(annotation_in_db)
+    return schemas.AnnotationDisplaySchema().dump(annotation_in_db)
 
 
 @app.route("/api/v0/annotations/<string:annotation_id>", methods=["PUT"])
@@ -176,43 +170,34 @@ def annotation_replace(annotation_id):
 
     # TODO: validate the payload.
     # TODO: escape quotes and other dangerous chars
-    with db_session() as db:
-        req = request.get_json()
-        image_id = req["image_id"] if "image_id" in req else None
-        image_in_db = (
-            db.query(Image)
-            .filter(
-                Image.id == image_id,
-                Image.collections.any(ImageCollection.user_id == current_user.id),
-            )
-            .first()
+    req = request.get_json()
+
+    image_id = req["image_id"] if "image_id" in req else None
+    if not image_id:
+        abort(400, description="image_id parameter is required")
+
+    Image.get_image_or_abort(image_id, current_user)  # ensure exists and available
+
+    # retrieve existing annotation object
+    # TODO: test/sanity check
+    annotation_in_db = (
+        new_db.session.query(Annotation)
+        .filter(
+            Annotation.id == annotation_id,
+            Image.id == image_id,
+            Image.collections.any(ImageCollection.user_id == current_user.id),
         )
+        .first()
+    )
+    if not annotation_in_db:
+        abort(404)
 
-        if not image_in_db:
-            abort(404)
-
-        # create database object if succesfull
-        # TODO: test/sanity check
-        annotation_in_db = (
-            db.query(Annotation)
-            .filter(
-                Annotation.id == annotation_id,
-                Image.id == image_id,
-                Image.collections.any(ImageCollection.user_id == current_user.id),
-            )
-            .first()
-        )
-        if not annotation_in_db:
-            abort(404)
-
-        annotation_in_db.geometry = json.dumps(req["geometry"])
-        annotation_in_db.annotation = req["annotation"]
-        annotation_in_db.metadata_ = json.dumps(req["metadata_"])
-
-        # db.update(annotation_in_db)
-        db.commit()
-        db.refresh(annotation_in_db)
-        return schemas.AnnotationDisplaySchema().dump(annotation_in_db)
+    annotation_in_db.geometry = json.dumps(req["geometry"])
+    annotation_in_db.annotation = req["annotation"]
+    annotation_in_db.metadata_ = json.dumps(req["metadata_"])
+    new_db.session.commit()
+    new_db.session.refresh(annotation_in_db)
+    return schemas.AnnotationDisplaySchema().dump(annotation_in_db)
 
 
 @app.route("/api/v0/annotations/<string:annotation_id>", methods=["DELETE"])

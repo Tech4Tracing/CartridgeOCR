@@ -9,7 +9,7 @@ oauthlib==3.2.0
 # Database access
 Flask-SQLAlchemy==2.5.1
 alembic==1.7.5  # migrations
-pymssql==2.2.2  # for MsSQL support
+pymssql==2.2.5  # for MsSQL support
 
 requests==2.27.1
 
