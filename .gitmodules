@@ -1,0 +1,3 @@
+[submodule "src/t4t-annotation-UI"]
+	path = src/t4t-annotation-UI
+	url = git@github.com:Tech4Tracing/t4t-annotation-UI.git

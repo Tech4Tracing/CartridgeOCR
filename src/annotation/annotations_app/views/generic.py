@@ -2,25 +2,37 @@ import logging
 import os
 
 import sqlalchemy as sqldb
-from flask import send_file, abort, redirect, render_template, request
+from flask import send_file, abort, render_template, request
 from flask_login import current_user, login_required
+# from flask import render_template
+# from flask_login import current_user
 
 from annotations_app.flask_app import app
 from annotations_app.models.base import ImageCollection, Image
 from annotations_app.utils import get_db, get_global, parse_boolean, db_session
 
 
-@app.route("/")
-def index():
+# @app.route("/")
+# def index():
+#     if current_user.is_authenticated:
+#         return redirect("/annotate/")
+#     else:
+#         return render_template("unauth.html")
+
+
+# the react widget catch-all page (apart of other existing endpoints like API)
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def index(path):
     if current_user.is_authenticated:
-        return redirect("/annotate/")
+        return render_template("ui/index.html")
     else:
         return render_template("unauth.html")
 
 
 # TODO: update to use the ORM model.
-@app.route("/annotate/")
-@app.route("/annotate/<string:image_id>")
+@app.route("/old/annotate/")
+@app.route("/old/annotate/<string:image_id>")
 @login_required
 def annotate(image_id=None):
     show_annot = parse_boolean(request.args.get("show_annot", False))
@@ -44,7 +56,7 @@ def annotate(image_id=None):
     )
 
 
-@app.route("/annotate/<string:id>/prev")
+@app.route("/old/annotate/<string:id>/prev")
 @login_required
 def prev_image(id):
     """Move to the previous image to `id`. If show_annot is false,
@@ -67,7 +79,7 @@ def prev_image(id):
     return annotate(id)
 
 
-@app.route("/annotate/<string:id>/next")
+@app.route("/old/annotate/<string:id>/next")
 @login_required
 def next_image(id):
     """Move to the next image after `id`. If show_annot is false,
@@ -92,7 +104,7 @@ def next_image(id):
 
 # TODO: deprecated
 # maybe this could be a static route to storage?
-@app.route("/images/<string:image_id>")
+@app.route("/old/images/<string:image_id>")
 @login_required
 def img(image_id):
     try:
@@ -110,9 +122,9 @@ def img(image_id):
         abort(404)
 
 
-@app.route("/collections/")
-@app.route("/collections/<string:collection_id>/")
-@app.route("/collections/<string:collection_id>/<int:page>")
+@app.route("/old/collections/")
+@app.route("/old/collections/<string:collection_id>/")
+@app.route("/old/collections/<string:collection_id>/<int:page>")
 @login_required
 def collections(collection_id=None, page=0):
     from math import ceil
@@ -145,7 +157,7 @@ def collections(collection_id=None, page=0):
                 .name
             )
         total_pages = ceil(images.count() / page_size) if images else 0
-        images = images[page * page_size : (page + 1) * page_size] if images else []
+        images = images[page * page_size: (page + 1) * page_size] if images else []
         return render_template(
             "collections.html",
             collection_name=collection_name,

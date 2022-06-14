@@ -6,6 +6,14 @@ volumes:
   annotations_db: {}
 
 services:
+
+  widgetbuild:
+    image: "node:18-alpine"
+    volumes:
+      - ./src:/app
+    command: /bin/sh -c "rm -rf /app/annotation/annotations_app/static/js /app/annotation/annotations_app/static/css /app/annotation/annotations_app/templates/ui/index.html && cd /app/t4t-annotation-UI && yarn install && yarn build && cp ./build/index.html ../annotation/annotations_app/templates/ui/ && cp -R ./build/static/css ./build/static/js ../annotation/annotations_app/static/"
+    stop_signal: sigkill
+
   annotations:
     build:
       context: ./src/annotation/

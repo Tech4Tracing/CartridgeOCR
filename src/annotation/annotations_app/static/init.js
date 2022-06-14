@@ -10,7 +10,7 @@ function init_app(image_id) {
     hl = radialDraw(image_id, canvas_id, 'radial');
     ann = annotations(image_id, panel_id, hl);
     // TODO: fix this notion of prev/next
-    var next_url = '/annotate/'+image_id+'/next';
+    var next_url = '/old/annotate/'+image_id+'/next';
     
     document.getElementById(save_id).onclick = (e) =>{ ann.save() };
     document.getElementById(save_advance_id).onclick = (e) => {
@@ -45,14 +45,14 @@ function init_app(image_id) {
     function next_image(id) {
         //var chk = document.getElementById(chk_nav_annot).checked;
         console.log('cookie: '+get_cookie('show_annot'));
-        var url = '/annotate/'+id+'/next'; //+'?show_annot='+chk;
+        var url = '/old/annotate/'+id+'/next'; //+'?show_annot='+chk;
         window.location.href = url;
     }
 
     function prev_image(id) {
         // var chk = document.getElementById(chk_nav_annot).checked;
         console.log('cookie: '+get_cookie('show_annot'));
-        var url = '/annotate/'+id+'/prev'; //+'?show_annot='+chk;
+        var url = '/old/annotate/'+id+'/prev'; //+'?show_annot='+chk;
         window.location.href = url;
     }
 
