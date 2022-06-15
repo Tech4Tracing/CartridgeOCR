@@ -4,10 +4,8 @@ import os
 import sqlalchemy as sqldb
 from flask import send_file, abort, render_template, request
 from flask_login import current_user, login_required
-# from flask import render_template
-# from flask_login import current_user
 
-from annotations_app.flask_app import app
+from annotations_app.flask_app import app, db as flask_db
 from annotations_app.models.base import ImageCollection, Image
 from annotations_app.utils import get_db, get_global, parse_boolean, db_session
 
@@ -24,6 +22,8 @@ from annotations_app.utils import get_db, get_global, parse_boolean, db_session
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def index(path):
+    if path.startswith("api/v0/"):
+        abort(404)
     if current_user.is_authenticated:
         return render_template("ui/index.html")
     else:
@@ -38,16 +38,25 @@ def annotate(image_id=None):
     show_annot = parse_boolean(request.args.get("show_annot", False))
     logging.info("show_annot: %s (%s) for %s", image_id, show_annot, current_user)
     if image_id is None:
-        db = get_db()
-        images = db.metadata.tables["images"]
-        query = sqldb.select([sqldb.func.min(images.c.id).label("id")])
-        if not show_annot:
-            annotations = db.metadata.tables["annotations"]
-            query = query.select_from(
-                images.outerjoin(annotations, images.c.id == annotations.c.image_id)
-            ).filter(annotations.c.image_id == None)
-        result = db.connection.execute(query).one()
-        image_id = result["id"]
+        queryset = flask_db.session.query(Image).filter(
+            Image.collections.any(ImageCollection.user_id == current_user.id),
+        ).order_by("id")
+        # TODO: if not show_annot then filter out annotated images here
+        first_image = queryset.first()
+        if first_image:
+            image_id = first_image.id
+
+        # old code is more verbose and ignoring image access permissions
+        # db = get_db()
+        # images = db.metadata.tables["images"]
+        # query = sqldb.select([sqldb.func.min(images.c.id).label("id")])
+        # if not show_annot:
+        #     annotations = db.metadata.tables["annotations"]
+        #     query = query.select_from(
+        #         images.outerjoin(annotations, images.c.id == annotations.c.image_id)
+        #     ).filter(annotations.c.image_id == None)
+        # result = db.connection.execute(query).one()
+        # image_id = result["id"]
 
     return render_template(
         "annotate.html",
