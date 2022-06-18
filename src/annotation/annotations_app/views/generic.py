@@ -2,40 +2,61 @@ import logging
 import os
 
 import sqlalchemy as sqldb
-from flask import send_file, abort, redirect, render_template, request
+from flask import send_file, abort, render_template, request
 from flask_login import current_user, login_required
 
-from annotations_app.flask_app import app
+from annotations_app.flask_app import app, db as flask_db
 from annotations_app.models.base import ImageCollection, Image
 from annotations_app.utils import get_db, get_global, parse_boolean, db_session
 
 
-@app.route("/")
-def index():
+# @app.route("/")
+# def index():
+#     if current_user.is_authenticated:
+#         return redirect("/annotate/")
+#     else:
+#         return render_template("unauth.html")
+
+
+# the react widget catch-all page (apart of other existing endpoints like API)
+@app.route('/', defaults={'path': ''})
+@app.route('/<path:path>')
+def index(path):
+    if path.startswith("api/v0/"):
+        abort(404)
     if current_user.is_authenticated:
-        return redirect("/annotate/")
+        return render_template("ui/index.html")
     else:
         return render_template("unauth.html")
 
 
 # TODO: update to use the ORM model.
-@app.route("/annotate/")
-@app.route("/annotate/<string:image_id>")
+@app.route("/old/annotate/")
+@app.route("/old/annotate/<string:image_id>")
 @login_required
 def annotate(image_id=None):
     show_annot = parse_boolean(request.args.get("show_annot", False))
     logging.info("show_annot: %s (%s) for %s", image_id, show_annot, current_user)
     if image_id is None:
-        db = get_db()
-        images = db.metadata.tables["images"]
-        query = sqldb.select([sqldb.func.min(images.c.id).label("id")])
-        if not show_annot:
-            annotations = db.metadata.tables["annotations"]
-            query = query.select_from(
-                images.outerjoin(annotations, images.c.id == annotations.c.image_id)
-            ).filter(annotations.c.image_id == None)
-        result = db.connection.execute(query).one()
-        image_id = result["id"]
+        queryset = flask_db.session.query(Image).filter(
+            Image.collections.any(ImageCollection.user_id == current_user.id),
+        ).order_by("id")
+        # TODO: if not show_annot then filter out annotated images here
+        first_image = queryset.first()
+        if first_image:
+            image_id = first_image.id
+
+        # old code is more verbose and ignoring image access permissions
+        # db = get_db()
+        # images = db.metadata.tables["images"]
+        # query = sqldb.select([sqldb.func.min(images.c.id).label("id")])
+        # if not show_annot:
+        #     annotations = db.metadata.tables["annotations"]
+        #     query = query.select_from(
+        #         images.outerjoin(annotations, images.c.id == annotations.c.image_id)
+        #     ).filter(annotations.c.image_id == None)
+        # result = db.connection.execute(query).one()
+        # image_id = result["id"]
 
     return render_template(
         "annotate.html",
@@ -44,7 +65,7 @@ def annotate(image_id=None):
     )
 
 
-@app.route("/annotate/<string:id>/prev")
+@app.route("/old/annotate/<string:id>/prev")
 @login_required
 def prev_image(id):
     """Move to the previous image to `id`. If show_annot is false,
@@ -67,7 +88,7 @@ def prev_image(id):
     return annotate(id)
 
 
-@app.route("/annotate/<string:id>/next")
+@app.route("/old/annotate/<string:id>/next")
 @login_required
 def next_image(id):
     """Move to the next image after `id`. If show_annot is false,
@@ -92,7 +113,7 @@ def next_image(id):
 
 # TODO: deprecated
 # maybe this could be a static route to storage?
-@app.route("/images/<string:image_id>")
+@app.route("/old/images/<string:image_id>")
 @login_required
 def img(image_id):
     try:
@@ -110,9 +131,9 @@ def img(image_id):
         abort(404)
 
 
-@app.route("/collections/")
-@app.route("/collections/<string:collection_id>/")
-@app.route("/collections/<string:collection_id>/<int:page>")
+@app.route("/old/collections/")
+@app.route("/old/collections/<string:collection_id>/")
+@app.route("/old/collections/<string:collection_id>/<int:page>")
 @login_required
 def collections(collection_id=None, page=0):
     from math import ceil
@@ -145,7 +166,7 @@ def collections(collection_id=None, page=0):
                 .name
             )
         total_pages = ceil(images.count() / page_size) if images else 0
-        images = images[page * page_size : (page + 1) * page_size] if images else []
+        images = images[page * page_size: (page + 1) * page_size] if images else []
         return render_template(
             "collections.html",
             collection_name=collection_name,

@@ -1,5 +1,4 @@
 import json
-import os
 
 import requests
 from apispec import APISpec
@@ -27,22 +26,10 @@ load_dotenv()
 # TODO: add casing detection model and pre-compute detections
 # TODO: mouseover polygon color change
 # TODO: better db representation of metadata, geometry
-# TODO: migrate to jquery/modern widget framework
 # TODO: deal with unusual image shapes, enable zoom, panning, etc. tiling very large images
 # TODO: double-check replace events are updating the annotation id correctly.
 # TODO: adding more images
-# TODO: host db online/ migrate to modern/robust db.
 # TODO: e2e image processing pipeline/user experience
-# TODO: env variable for database URI
-# TODO: logout button
-# TODO: beautify login page
-# TODO: move to env.py?
-GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", None)
-GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", None)
-GOOGLE_DISCOVERY_URL = (
-    "https://accounts.google.com/.well-known/openid-configuration"
-)
-logging.info(f'Client_ID: {GOOGLE_CLIENT_ID}')
 
 
 spec = APISpec(
@@ -53,13 +40,13 @@ spec = APISpec(
 )
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY") or os.urandom(24)
+app.secret_key = Config.SECRET_KEY
 app.config["SQLALCHEMY_DATABASE_URI"] = Config.SQLALCHEMY_DATABASE_URI
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 
-logging.info('Launching login manager')
+# logging.info('Launching login manager')
 # User session management setup
 # https://flask-login.readthedocs.io/en/latest
 login_manager = LoginManager()
@@ -67,8 +54,7 @@ login_manager.init_app(app)
 login_manager.login_view = '/'
 
 # OAuth 2 client setup
-logging.info('Creating google client')
-client = WebApplicationClient(GOOGLE_CLIENT_ID)
+client = WebApplicationClient(Config.GOOGLE_CLIENT_ID)
 
 
 @app.errorhandler(400)
@@ -113,7 +99,7 @@ def load_user(user_id):
     from annotations_app.user import User
     u = User.get(user_id)
     if not u or not u.is_active:
-        return None  # means that user won't be logged in
+        return None  # returning None means that user won't be allowed to login
     return u
 
 
@@ -123,27 +109,27 @@ def load_user(user_id):
 def close_connection(exception):
     db = getattr(g, '_db', None)
     if db is not None:
+        logging.info("Disposing the DB...")
         db.engine.dispose()
         g._db = None
 
 
 # Reference for GOOG oauth: https://realpython.com/flask-google-login/
 def get_google_provider_cfg():
-    logging.info('get_google_provider_cfg')
-    return requests.get(GOOGLE_DISCOVERY_URL).json()
+    if not Config.GOOGLE_PROVIDER_CFG:
+        Config.GOOGLE_PROVIDER_CFG = requests.get(Config.GOOGLE_DISCOVERY_URL).json()
+    return Config.GOOGLE_PROVIDER_CFG
 
 
 @app.route("/login")
 def login():
-    logging.info('login')
-    # Find out what URL to hit for Google login
-    google_provider_cfg = get_google_provider_cfg()
-    authorization_endpoint = google_provider_cfg["authorization_endpoint"]
-
+    """
+    Loging endpoints just redirects user to the Google 3rd party auth url (which returns them back later)
+    """
     # Use library to construct the request for Google login and provide
     # scopes that let you retrieve user's profile from Google
     request_uri = client.prepare_request_uri(
-        authorization_endpoint,
+        get_google_provider_cfg()["authorization_endpoint"],
         redirect_uri=request.base_url + "/callback",
         scope=["openid", "email", "profile"],
     )
@@ -152,6 +138,10 @@ def login():
 
 @app.route("/login/callback")
 def google_callback():
+    """
+    Callback endpoint handles Google 3rd party auth response and either logs in the user
+    or fails the thing
+    """
     from annotations_app.user import User
 
     logging.info('login callback')
@@ -173,7 +163,7 @@ def google_callback():
         token_url,
         headers=headers,
         data=body,
-        auth=(GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET),
+        auth=(Config.GOOGLE_CLIENT_ID, Config.GOOGLE_CLIENT_SECRET),
     )
 
     # Parse the tokens!
