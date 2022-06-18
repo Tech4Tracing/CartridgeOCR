@@ -17,6 +17,24 @@ from oauthlib.oauth2 import WebApplicationClient
 
 from config import Config, logging
 
+from flask import jsonify, render_template, Blueprint
+from flask_login import login_required
+
+from config import logging, Config
+
+
+
+# TODO: many below
+# figure out topology. This should run in a separate container. Are requests all proxied through the annotation api?
+# auth - either it runs behind the main container or we need separate auth
+# options to add to the API:
+#   - return diagnostic on processing time
+#   - versions of the inference algo - over time we want this more robust
+# model versioning.  Maybe the model comes from a blob storage url?
+# data model for image upload -> predictions -> annotations
+# fix the API setup issues and swagger - there was an odd circular dependency.
+# Fix the inference API and return robust predictions
+
 load_dotenv()
 
 
@@ -29,7 +47,6 @@ spec = APISpec(
 
 app = Flask(__name__)
 app.secret_key = Config.SECRET_KEY
-
 
 # logging.info('Launching login manager')
 # User session management setup
@@ -127,7 +144,7 @@ def google_callback():
     Callback endpoint handles Google 3rd party auth response and either logs in the user
     or fails the thing
     """
-    from annotations_app.user import User
+    from user import User
 
     logging.info('login callback')
     # Get authorization code Google sent back to you
@@ -200,3 +217,24 @@ def google_callback():
 def logout():
     logout_user()
     return redirect(url_for("index"))
+
+logging.info('Adding home')
+@app.route('/')
+def home():
+    
+    from flask import url_for
+    def has_no_empty_params(rule):
+        defaults = rule.defaults if rule.defaults is not None else ()
+        arguments = rule.arguments if rule.arguments is not None else ()
+        return len(defaults) >= len(arguments)
+
+    
+    
+    for rule in app.url_map.iter_rules():
+        if has_no_empty_params(rule):
+            logging.info(f'{rule.methods}, {rule.endpoint}, {rule.rule}')
+
+    return "hello world"
+
+
+import views.api

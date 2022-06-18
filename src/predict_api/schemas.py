@@ -1,21 +1,14 @@
 from marshmallow import Schema, fields
 
+# TODO: rework so each primer is associated with its casing
 class BBoxSchema(Schema):
     confidence = fields.Float()
-    x = fields.Float()
-    y = fields.Float()
-    w = fields.Float()
-    h = fields.Float()
+    box = fields.List(fields.Float)    
 
 class HeadstampPredictionSchema(Schema):
-    id = fields.Str()
-    primer = BBoxSchema()
-    casing = BBoxSchema()
-    
-
-class HeadstampPredictionListSchema(Schema):
-    id = fields.Str()
-    predictions = fields.List(fields.Nested(HeadstampPredictionSchema))
+    image = fields.Str()
+    primers = fields.List(fields.Nested(BBoxSchema))
+    casings = fields.List(fields.Nested(BBoxSchema))
 
 class ErrorSchema(Schema):
     status = fields.Int()
