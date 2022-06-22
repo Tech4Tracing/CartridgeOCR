@@ -13,4 +13,7 @@ RUN apk add gcc g++ musl-dev python3-dev libffi-dev openssl-dev make freetds-dev
 COPY ./requirements.txt /requirements.txt
 RUN pip install -r /requirements.txt
 
+ADD . /app
 WORKDIR /app
+
+CMD ./devops/run-annotation-api-local.sh
