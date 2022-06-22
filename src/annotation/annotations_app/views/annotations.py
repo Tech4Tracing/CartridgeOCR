@@ -13,7 +13,9 @@ from sqlalchemy import and_
 @app.route("/api/v0/annotations", methods=["GET"])
 @login_required
 def annotations_list():
-    """List of annotations for a given user/collection/image
+    """List of annotations for a given user/collection/image. This endpoint is not paginated,
+    caller is supposed to filter it by collection or image first (or both) to avoid too much
+    data transfered
     ---
     get:
       parameters:
@@ -22,13 +24,13 @@ def annotations_list():
           schema:
             type: string
           required: false
-          description: Unique collection ID
+          description: The collection ID to filter on
         - in: query
           name: image_id
           schema:
             type: string
           required: false
-          description: Unique image ID in the specified collection
+          description: The image ID; if provided only annotations for that image are returned
       responses:
         200:
           description: List of all annotations for the given user/collection/image, depending on specificity
@@ -36,22 +38,16 @@ def annotations_list():
             application/json:
               schema: AnnotationListSchema
     """
-    # TODO: add 404s for collection or image mismatch
     args = request.args
     image_id = args.get("image_id") or None
     collection_id = args.get("collection_id") or None
 
+    # retrieve image and collection (if requested) just to ensure they exist and visible
     if image_id:
-        # by retrieving the image ID we ensure it's available
         Image.get_image_or_abort(image_id, current_user)
-
     if collection_id:
-        # access check
         ImageCollection.get_collection_or_abort(collection_id, current_user)
 
-    # logging.info(
-    #     f"GET annotations collection_id: {collection_id} image_id: {image_id}"
-    # )
     queryset = new_db.session.query(Annotation).filter(
         and_(
             # filter by image
@@ -81,11 +77,10 @@ def annotations_list():
 
 
 # TODO: geometry and metadata types
-# TODO: multipart/form request?
 @app.route("/api/v0/annotations", methods=["POST"])
 @login_required
 def annotation_post():
-    """Upload annotation to collection (or without one)
+    """Create annotation for image
     ---
     post:
         requestBody:

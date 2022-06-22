@@ -1,6 +1,6 @@
 # CartridgeOCR
 
-If you came here for instructions how to start the Flask API to annotate images please see [related readme](./src/annotation/README.md)
+If you came here for instructions how to start the Web UI (flask API + react widget) to annotate images please see [related readme](./src/annotation/README.md)
 
 src folder contains the training code based on the AML annotations.
 
