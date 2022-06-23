@@ -11,10 +11,11 @@ from flask_app import app
 inf = Inference()
 inf.init(modelfolder=Config.MODEL_FOLDER, checkpoint=Config.MODEL_SNAPSHOT_NAME)
 
-
-@app.route("/api/v0/headstamp_predict", methods=["POST"])
+# TODO: this method matches the rest of the API for image uploads.
+# Some challenges invoking it from TypeScript so we'll add a json form too.
+@app.route("/api/v0/headstamp_predict_multiform", methods=["POST"])
 #@login_required
-def headstamp_predict_post():
+def headstamp_predict_multiform():
     """Predict headstamps in image
     ---
     post:
@@ -57,3 +58,46 @@ def headstamp_predict_post():
     return schemas.HeadstampPredictionSchema().dump(result)
      # schemas.ImageDisplaySchema().dump(image_in_db)
 
+@app.route("/api/v0/headstamp_predict", methods=["POST"])
+#@login_required
+def headstamp_predict():
+    """Predict headstamps in image
+    ---
+    post:
+        requestBody:
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:                  
+                  image:
+                    type: string
+                  render:
+                    type: boolean                                
+        responses:
+            201:
+              description: Predictions from image
+              content:
+                application/json:
+                  schema: HeadstampPredictionSchema
+    """
+    req = request.json
+    logging.debug(req)
+    logging.debug(dir(request))
+    # load the image and base64 encode it.
+    encoded = req.get('image', None)
+    if encoded is None:
+        return (
+            schemas.Errors().dump(
+                {"errors": [{"title": "ValidationError", "detail": "No file provided"}]}
+            ),
+            400,
+        )
+    result = inf.run(json.dumps(req))
+    for p in ['casings','primers']:
+      if p in result:
+        logging.info(f'{p}: {result[p]}')
+    
+    logging.debug(result)
+    return schemas.HeadstampPredictionSchema().dump(result)
+     # schemas.ImageDisplaySchema().dump(image_in_db)

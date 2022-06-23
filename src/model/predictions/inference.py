@@ -33,8 +33,9 @@ class Inference():
                 canvas = None
                 if render:
                     i1 = Image.fromarray(img.mul(255).permute(1, 2, 0).byte().numpy())
-                    dst = Image.new('RGB', i1.size)
-                    dst.paste(i1, (0, 0))
+                    dst = Image.new('RGBA', i1.size, (0,0,0,0))
+                    # We're going to draw an overlay and paste it on top later.
+                    #dst.paste(i1, (0, 0))
                     canvas = ImageDraw.Draw(dst)
                 boxesOut = []
                 primersOut = []
@@ -46,15 +47,18 @@ class Inference():
                     else:
                         boxesOut.append((box,score))
                         if canvas:
-                            canvas.rectangle(box, outline='red', width=3)
+                            canvas.ellipse(box, outline='red', fill=(255,0,0,50), width=5)
 
                 for box, score, label in list(sorted(primers, key=(lambda x: x[1]), reverse=True)):
                     if any(map(lambda x: isContained(box, x[0]), boxesOut)):
                         if not any(map(lambda x: isRectangleOverlap(box, x[0]), primersOut)):
                             primersOut.append((box,score))
                             if canvas:
-                                canvas.rectangle(box, outline='yellow', width=3)
-                return dst, boxesOut, primersOut
+                                canvas.ellipse(box, outline='yellow', fill=(255,255,0,50), width=5)
+                # Draw the overlay on top of a new image
+                final = Image.alpha_composite(i1.convert("RGBA"), dst)
+                
+                return final, boxesOut, primersOut
 
     def init(self, modelfolder=None, checkpoint='checkpoint.pth'):
         global model, rt, isRectangleOverlap, isContained, get_transform, load_snapshot
@@ -131,6 +135,7 @@ class Inference():
             dst_b64 = None
             if render:
                 in_mem_file = io.BytesIO()
+                dst = dst.convert("RGB")
                 dst.save(in_mem_file, format="JPEG")  # temporary file to store image data
                 dst_bytes = in_mem_file.getvalue()      # image in binary format
                 dst_b64 = base64.b64encode(dst_bytes)   # encode in base64 for response

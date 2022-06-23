@@ -22,4 +22,5 @@ def openapi_ui():
 
 # Register the path and the entities within it
 with app.test_request_context():
-    spec.path(view=predictions.headstamp_predict_post)
+    spec.path(view=predictions.headstamp_predict)
+    spec.path(view=predictions.headstamp_predict_multiform)

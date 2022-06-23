@@ -5,6 +5,7 @@ import { Photo } from "./useDeviceCamera";
 import { isPlatform } from '@ionic/react';
 import { CameraResultType, CameraSource, CameraPhoto, Capacitor, FilesystemDirectory, Filesystem, Storage, Camera } from "@capacitor/core";
 import { useCamera } from '@ionic/react-hooks/camera';
+import FormData from 'form-data';
 
 export function usePredictionApi() {
     const { getPhoto } = useCamera();
@@ -14,12 +15,12 @@ export function usePredictionApi() {
         const photo = await takePhoto();
         console.log("took a pic!");
         const base64photo = await convertToBase64(photo);
-        console.log(base64photo);
+        // console.log(base64photo);
         const predictResponse = await predict(base64photo);
-        console.log('response: ' + predictResponse);
+        // console.log('response: ' + predictResponse);
         if (predictResponse) {
             const base64prediction = predictResponse['image'];
-            console.log(base64prediction);        
+            // console.log(base64prediction);        
             const fileName = "prediction" + new Date().getTime() + '.jpeg';
             const prediction = convertToImage(base64prediction, fileName);
             setPrediction(prediction);
@@ -59,19 +60,49 @@ export function usePredictionApi() {
     const predict = async (base64Image: string) => {
         const predictAPIURI = config.predictAPIURI;
 
-        const body = { image: base64Image }
-        console.log(body);
+        const body = { 
+            image: base64Image, 
+            render: true 
+        }
+        //console.log(body);
 
         // Call the prediction API
         try {
             const res = await fetch(
                 predictAPIURI, {
                 method: "POST",
-                body: JSON.stringify(body),
-                headers: new Headers({
+                mode: 'cors',
+                headers: {
                     //'Authorization': 'Bearer ' + idToken,
-                    'Content-Type': 'application/json'
-                })
+                    'Content-Type': 'application/json;charset=UTF-8'
+                },
+                body: JSON.stringify(body)                
+            });
+            return await res.json();
+        } catch (error) {
+            // Handle errors posting to API
+            console.error("Error calling upload API: ", error);
+        }
+    };
+
+    /* TODO: learn how to do multipart submissions, and update the prediction API */
+    const predict_multipart = async (base64Image: string) => {
+        const predictAPIURI = config.predictAPIURI;
+
+        //const body = { image: base64Image }
+        //console.log(body);
+        
+        const form = new FormData();
+        form.append("file", base64Image);
+        form.append('render', true);
+        // Call the prediction API
+        try {
+            const res = await fetch(
+                predictAPIURI, {
+                method: "POST",
+                body: null, // form
+                headers: form.getHeaders()
+                
             });
             return await res.json();
         } catch (error) {

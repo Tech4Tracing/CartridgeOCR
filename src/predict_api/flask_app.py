@@ -12,6 +12,7 @@ from flask_login import (
     login_user,
     logout_user,
 )
+from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from oauthlib.oauth2 import WebApplicationClient
 
@@ -27,6 +28,7 @@ from config import logging, Config
 # TODO: many below
 # figure out topology. This should run in a separate container. Are requests all proxied through the annotation api?
 # auth - either it runs behind the main container or we need separate auth
+# CORS lockdown - we're currently allowing any cross-origin request
 # options to add to the API:
 #   - return diagnostic on processing time
 #   - versions of the inference algo - over time we want this more robust
@@ -46,6 +48,7 @@ spec = APISpec(
 )
 
 app = Flask(__name__)
+cors = CORS(app)
 app.secret_key = Config.SECRET_KEY
 
 # logging.info('Launching login manager')

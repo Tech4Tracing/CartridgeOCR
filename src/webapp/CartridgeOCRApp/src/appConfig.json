@@ -1,4 +1,4 @@
 {
     "imageAPIURI": "http://localhost:7071/api/image-upload",
-    "predictAPIURI": "https://cartridgeocr3nta3a.westeurope.cloudapp.azure.com:443/api/v1/service/cartridgeocraks/score"
+    "predictAPIURI": "http://localhost:8081/api/v0/headstamp_predict"
 }

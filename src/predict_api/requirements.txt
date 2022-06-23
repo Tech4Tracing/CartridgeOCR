@@ -19,3 +19,6 @@ apispec-webframeworks==0.5.2
 
 # Azure file storage
 azure-storage-blob==12.9.0  # for Azure Blob storage
+
+# Flask CORS policies
+flask_cors==3.0.10
