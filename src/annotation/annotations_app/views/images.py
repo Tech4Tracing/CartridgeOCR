@@ -114,12 +114,11 @@ def image_post():
         mimetype=mime,
         size=size,
         storageKey=storage_file_key,
+        collection_id=collection_in_db.id,
     )
     db.session.add(image_in_db)
     db.session.commit()
     db.session.refresh(image_in_db)
-    collection_in_db.images.append(image_in_db)
-    db.session.commit()
     return schemas.ImageDisplaySchema().dump(image_in_db)
 
 
@@ -146,12 +145,15 @@ def images_list():
     collection_id = request.args.get("collection_id")
     # TODO: ensure that the collection ID is visible to the given user
     # it won't return anything if the ID is incorrect but it's better to raise 404
+
+    this_user_collections = ImageCollection.get_collections_for_user(current_user)
+
     queryset = db.session.query(Image).filter(
-        Image.collections.any(ImageCollection.user_id == current_user.id),
+        Image.collection_id.in_(this_user_collections.with_entities(ImageCollection.id).distinct()),
     )
     if collection_id:
         queryset = queryset.filter(
-            Image.collections.any(ImageCollection.id == collection_id)
+            Image.collection_id == collection_id
         )
     total = queryset.count()
     results = queryset.order_by("id")

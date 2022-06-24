@@ -1,9 +1,9 @@
 import datetime
+import random
 import uuid
 
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Boolean, Column, Integer, Text, String, DateTime, Table, ForeignKey
-from sqlalchemy.orm import relationship
+from sqlalchemy import Boolean, Integer, Text, String, DateTime
 
 db = SQLAlchemy()
 
@@ -50,34 +50,38 @@ class User(db.Model):
     is_superuser = db.Column(Boolean, default=False, nullable=False)
 
 
-images_to_collections_table = Table(
-    'images_to_collections_table',
-    db.metadata,
-    Column('image_id', ForeignKey('images.id'), primary_key=True),
-    Column('collection_id', ForeignKey('imagecollections.id'), primary_key=True)
-)
+def generate_short_id(len: int = 15):
+    """
+    Generates short random value, useful for unique IDs but shorter and more readable than UUID
+    """
+    return "".join(
+        random.choice("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789")
+        for i in range(0, len)
+    )
 
 
 class ImageCollection(db.Model):
     __tablename__ = 'imagecollections'
 
-    id = db.Column(String(36), primary_key=True, default=uuid.uuid4)
+    id = db.Column(String(36), primary_key=True, default=generate_short_id)
     created_at = db.Column(DateTime(timezone=True), default=datetime.datetime.utcnow)
 
     user_id = db.Column(String(255))
     name = db.Column(String(255))
 
-    images = relationship(
-        "Image",
-        secondary=images_to_collections_table,
-        back_populates="collections",
-    )
-
     def __str__(self):
         return self.id
 
     @staticmethod
-    def get_collection_or_abort(image_id, current_user):
+    def get_collections_for_user(current_user):
+        from annotations_app.flask_app import db
+
+        return db.session.query(ImageCollection).filter(
+            ImageCollection.user_id == current_user.id,
+        )
+
+    @staticmethod
+    def get_collection_or_abort(collection_id, current_user):
         """
         Either return first(single) collection or raise 404 exception
         """
@@ -87,7 +91,7 @@ class ImageCollection(db.Model):
         collection = (
             db.session.query(ImageCollection)
             .filter(
-                ImageCollection.id == image_id,
+                ImageCollection.id == collection_id,
                 ImageCollection.user_id == current_user.id,
             )
             .first()
@@ -101,18 +105,13 @@ class Image(db.Model):
     __tablename__ = 'images'
 
     id = db.Column(String(36), primary_key=True, default=uuid.uuid4)
-    # collection_id = db.Column(String(36), nullable=True, default=None)
-    created_at = db.Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
+    collection_id = db.Column(String(36), nullable=False)
+    created_at = db.Column(DateTime(timezone=True), default=datetime.datetime.utcnow)
     mimetype = db.Column(String(255))
     size = db.Column(Integer)
+    file_hash = db.Column(String(255), default="")
     storageKey = db.Column(String(1024))
     extra_data = db.Column(Text)
-
-    collections = relationship(
-        "ImageCollection",
-        secondary=images_to_collections_table,
-        back_populates="images",
-    )
 
     def __str__(self):
         return self.id
@@ -133,11 +132,15 @@ class Image(db.Model):
         from flask import abort
         from annotations_app.flask_app import db
 
+        this_user_collections = ImageCollection.get_collections_for_user(current_user)
+
         image_in_db = (
             db.session.query(Image)
             .filter(
+                Image.collection_id.in_(this_user_collections.with_entities(ImageCollection.id).distinct()),
+            )
+            .filter(
                 Image.id == image_id,
-                Image.collections.any(ImageCollection.user_id == current_user.id),
             )
             .first()
         )
