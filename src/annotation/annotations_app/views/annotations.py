@@ -48,18 +48,16 @@ def annotations_list():
     if collection_id:
         ImageCollection.get_collection_or_abort(collection_id, current_user)
 
+    this_user_collections = ImageCollection.get_collections_for_user(current_user)
+
     queryset = new_db.session.query(Annotation).filter(
         and_(
             # filter by image
             Annotation.image_id == image_id if image_id else True,
             # filter by collection (including only collections visible to user if no collection is provided)
             Annotation.image_id == Image.id,
-            Image.collections.any(
-                and_(
-                    ImageCollection.id == collection_id if collection_id else True,
-                    ImageCollection.user_id == current_user.id,
-                )
-            ),
+            Image.collection_id.in_(this_user_collections.with_entities(ImageCollection.id).distinct()),
+            ImageCollection.id == collection_id if collection_id else True,
         )
     )
 
@@ -180,7 +178,7 @@ def annotation_replace(annotation_id):
         .filter(
             Annotation.id == annotation_id,
             Image.id == image_id,
-            Image.collections.any(ImageCollection.user_id == current_user.id),
+            # don't need image access filter while checked above
         )
         .first()
     )
@@ -209,17 +207,19 @@ def annotation_delete(annotation_id):
           required: true
           description: Unique annotation ID
       responses:
-        202:
+        204:
           description: Success
     """
     logging.info("DELETE annotation request for user %s", current_user.id)
     # TODO: test/sanity check
+    this_user_collections = ImageCollection.get_collections_for_user(current_user)
+
     annotation_in_db = (
         new_db.session.query(Annotation)
         .filter(
             Annotation.id == annotation_id,
             Image.id == Annotation.image_id,
-            Image.collections.any(ImageCollection.user_id == current_user.id),
+            Image.collection_id.in_(this_user_collections.with_entities(ImageCollection.id).distinct()),
         )
         .first()
     )

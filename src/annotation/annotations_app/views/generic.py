@@ -38,8 +38,9 @@ def annotate(image_id=None):
     show_annot = parse_boolean(request.args.get("show_annot", False))
     logging.info("show_annot: %s (%s) for %s", image_id, show_annot, current_user)
     if image_id is None:
+        this_user_collections = ImageCollection.get_collections_for_user(current_user)
         queryset = flask_db.session.query(Image).filter(
-            Image.collections.any(ImageCollection.user_id == current_user.id),
+            Image.collection_id.in_(this_user_collections.with_entities(ImageCollection.id).distinct()),
         ).order_by("id")
         # TODO: if not show_annot then filter out annotated images here
         first_image = queryset.first()

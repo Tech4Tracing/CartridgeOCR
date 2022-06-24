@@ -11,8 +11,16 @@ class CollectionCreateSchema(Schema):
 
 class CollectionDisplaySchema(Schema):
     id = fields.Str()
-    # created_at = fields.DateTime()
+    created_at = fields.Str()
     name = fields.Str()
+
+    def dump(self, *args, **kwargs):
+        result = super().dump(*args, **kwargs)
+        if result.get("created_at"):
+            if isinstance(result["created_at"], str) and result["created_at"].endswith(" +00:00"):
+                # strip that space
+                result["created_at"] = result["created_at"].rstrip(" +00:00") + "Z"
+        return result
 
 
 class CollectionsListSchema(Schema):
@@ -22,12 +30,11 @@ class CollectionsListSchema(Schema):
 
 class ImageDisplaySchema(Schema):
     id = fields.Str()
-    # created_at = fields.DateTime()
+    created_at = fields.Str()
+    collection_id = fields.Str()
     mimetype = fields.Str()
     size = fields.Int()
     extra_data = fields.Dict()
-    collections = fields.List(fields.Str())
-    # storageKey = fields.Str()
 
 
 class ImageListSchema(Schema):
