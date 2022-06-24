@@ -14,7 +14,7 @@ class Inference():
     def __init__(self) -> None:
         self.max_width = 1080
 
-    def predict(self, img, prediction):
+    def predict(self, img, prediction, render=False):
         masksout = []
         casings = []
         primers = []
@@ -29,25 +29,36 @@ class Inference():
             masksout.append(imgOut)
         else:
             if len(masksout) > 0:
-                i1 = Image.fromarray(img.mul(255).permute(1, 2, 0).byte().numpy())
-                dst = Image.new('RGB', i1.size)
-                dst.paste(i1, (0, 0))
-                canvas = ImageDraw.Draw(dst)
+                dst = None
+                canvas = None
+                if render:
+                    i1 = Image.fromarray(img.mul(255).permute(1, 2, 0).byte().numpy())
+                    dst = Image.new('RGBA', i1.size, (0,0,0,0))
+                    # We're going to draw an overlay and paste it on top later.
+                    #dst.paste(i1, (0, 0))
+                    canvas = ImageDraw.Draw(dst)
                 boxesOut = []
                 primersOut = []
-                for box, _, label in list(sorted(casings, key=(lambda x: x[1]), reverse=True)):
-                    if any(map(lambda x: isRectangleOverlap(box, x), boxesOut)):
+                for box, score, label in list(sorted(casings, key=(lambda x: x[1]), reverse=True)):
+                    # Skip if it overlaps an existing output.
+                    # TODO: change to circle overlap
+                    if any(map(lambda x: isRectangleOverlap(box, x[0]), boxesOut)):
                         pass
                     else:
-                        boxesOut.append(box)
-                        canvas.rectangle(box, outline='red', width=3)
+                        boxesOut.append((box,score))
+                        if canvas:
+                            canvas.ellipse(box, outline='red', fill=(255,0,0,50), width=5)
 
-                for box, _, label in list(sorted(primers, key=(lambda x: x[1]), reverse=True)):
-                    if any(map(lambda x: isContained(box, x), boxesOut)):
-                        if not any(map(lambda x: isRectangleOverlap(box, x), primersOut)):
-                            primersOut.append(box)
-                            canvas.rectangle(box, outline='yellow', width=3)
-                return dst, boxesOut, primersOut
+                for box, score, label in list(sorted(primers, key=(lambda x: x[1]), reverse=True)):
+                    if any(map(lambda x: isContained(box, x[0]), boxesOut)):
+                        if not any(map(lambda x: isRectangleOverlap(box, x[0]), primersOut)):
+                            primersOut.append((box,score))
+                            if canvas:
+                                canvas.ellipse(box, outline='yellow', fill=(255,255,0,50), width=5)
+                # Draw the overlay on top of a new image
+                final = Image.alpha_composite(i1.convert("RGBA"), dst)
+                
+                return final, boxesOut, primersOut
 
     def init(self, modelfolder=None, checkpoint='checkpoint.pth'):
         global model, rt, isRectangleOverlap, isContained, get_transform, load_snapshot
@@ -84,13 +95,14 @@ class Inference():
         Inputs:
         request (string): a json-formatted payload:
         {
-            'image': <base 64 encoded input image>
+            'image': <base 64 encoded input image>,
+            'render': boolean indicating whether an image with the rendered boxes should be returned.
         }
         Returns:
         Dictionary with results:
         {
-            'image': <base 64 encoded output image>,
-            'boxes': <list of casing bounding boxes>,
+            'image': <optional base 64 encoded output image>,
+            'casings': <list of casing bounding boxes>,
             'primers': <list of primer bounding boxes>
         }
         bounding boxes are encoded as [x0, y0, x1, y1]
@@ -99,6 +111,7 @@ class Inference():
         # print("Request" + request)
         parsed = json.loads(request)
         encodedImage = parsed["image"]
+        render = parsed.get("render", False)
 
         try:
             # Convert request from base64 to a PIL Image
@@ -117,22 +130,26 @@ class Inference():
             print('running inference')
             prediction = self.run_inference(img)
             # print(masks, prediction)
-            dst, boxes, primers = self.predict(img, prediction)
+            dst, boxes, primers = self.predict(img, prediction, render)
 
-            in_mem_file = io.BytesIO()
-            dst.save(in_mem_file, format="JPEG")  # temporary file to store image data
-            dst_bytes = in_mem_file.getvalue()      # image in binary format
-            dst_b64 = base64.b64encode(dst_bytes)   # encode in base64 for response
+            dst_b64 = None
+            if render:
+                in_mem_file = io.BytesIO()
+                dst = dst.convert("RGB")
+                dst.save(in_mem_file, format="JPEG")  # temporary file to store image data
+                dst_bytes = in_mem_file.getvalue()      # image in binary format
+                dst_b64 = base64.b64encode(dst_bytes)   # encode in base64 for response
             logging.info(f'detected {len(boxes)} boxes and {len(primers)} primers')
 
             # TODO: this should probably move to predict() but at that point we have a tensor in hand.
             # It's easier to reliably get the image width and height here.
-            def normalize(b):
-                return list(map(lambda x: x[0] / x[1], zip(b, [width, height, width, height])))
+            def normalize(bs):
+                b, score = bs
+                return {'confidence': score, 'box': list(map(lambda x: x[0] / x[1], zip(b, [width, height, width, height]))) }
 
             return {
-                'image': dst_b64.decode(),
-                'boxes': list(map(normalize, boxes)),
+                'image': dst_b64.decode() if dst_b64 else None,
+                'casings': list(map(normalize, boxes)),
                 'primers': list(map(normalize, primers))
             }
         except Exception as ex:
