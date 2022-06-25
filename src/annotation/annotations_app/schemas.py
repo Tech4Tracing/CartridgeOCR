@@ -1,3 +1,6 @@
+import json
+import logging
+
 from marshmallow import Schema, fields
 
 
@@ -13,6 +16,8 @@ class CollectionDisplaySchema(Schema):
     id = fields.Str()
     created_at = fields.Str()
     name = fields.Str()
+    images_count = fields.Int()
+    annotations_count = fields.Int()
 
     def dump(self, *args, **kwargs):
         result = super().dump(*args, **kwargs)
@@ -28,20 +33,6 @@ class CollectionsListSchema(Schema):
     collections = fields.List(fields.Nested(CollectionDisplaySchema))
 
 
-class ImageDisplaySchema(Schema):
-    id = fields.Str()
-    created_at = fields.Str()
-    collection_id = fields.Str()
-    mimetype = fields.Str()
-    size = fields.Int()
-    extra_data = fields.Dict()
-
-
-class ImageListSchema(Schema):
-    total = fields.Int()
-    images = fields.List(fields.Nested(ImageDisplaySchema))
-
-
 class AnnotationDisplaySchema(Schema):
     id = fields.Str()
     created_at = fields.Str()
@@ -49,6 +40,39 @@ class AnnotationDisplaySchema(Schema):
     geometry = fields.Str()
     annotation = fields.Str()
     metadata_ = fields.Str()
+
+    def dump(self, *args, **kwargs):
+        result = super().dump(*args, **kwargs)
+        if result.get("metadata_"):
+            # new way of returining metadata, keeping backwards compatibility
+            try:
+                result["metadata"] = json.loads(result["metadata_"])
+            except Exception as e:
+                logging.exception(e)
+                result["metadata"] = {}
+        else:
+            result["metadata"] = {}
+        if result.get("created_at"):
+            if isinstance(result["created_at"], str) and result["created_at"].endswith(" +00:00"):
+                # strip that space
+                result["created_at"] = result["created_at"].rstrip(" +00:00") + "Z"
+        return result
+
+
+class ImageDisplaySchema(Schema):
+    id = fields.Str()
+    created_at = fields.Str()
+    collection_id = fields.Str()
+    mimetype = fields.Str()
+    size = fields.Int()
+    extra_data = fields.Dict()
+    # Helpful but noisy
+    annotations = fields.List(fields.Nested(AnnotationDisplaySchema))
+
+
+class ImageListSchema(Schema):
+    total = fields.Int()
+    images = fields.List(fields.Nested(ImageDisplaySchema))
 
 
 class AnnotationListSchema(Schema):

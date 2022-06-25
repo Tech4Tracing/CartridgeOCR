@@ -3,19 +3,30 @@ import random
 import uuid
 
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Boolean, Integer, Text, String, DateTime
+from sqlalchemy_mixins import AllFeaturesMixin
+from sqlalchemy import Boolean, ForeignKey, Integer, Text, String, DateTime
+from sqlalchemy.orm import relationship
 
 db = SQLAlchemy()
 
 
+class BaseModel(db.Model, AllFeaturesMixin):
+    __abstract__ = True
+    pass
+
+
+BaseModel.set_session(db.session)
+
+
 # TODO: define a relationship?
-class Annotation(db.Model):
+class Annotation(BaseModel):
     __tablename__ = 'annotations'
 
     id = db.Column(String(36), primary_key=True, default=uuid.uuid4)
     created_at = db.Column(DateTime(timezone=True), default=datetime.datetime.utcnow)
 
-    image_id = db.Column(String(36))
+    image_id = db.Column(String(36), ForeignKey("images.id"))
+    image = relationship("Image", back_populates="annotations")
     geometry = db.Column(Text)
     annotation = db.Column(Text)
     metadata_ = db.Column('metadata', Text)
@@ -32,7 +43,7 @@ class Global(db.Model):
     value = db.Column(Text)
 
 
-class User(db.Model):
+class User(BaseModel):
     __tablename__ = 'users'
 
     # ID in our system
@@ -60,7 +71,7 @@ def generate_short_id(len: int = 15):
     )
 
 
-class ImageCollection(db.Model):
+class ImageCollection(BaseModel):
     __tablename__ = 'imagecollections'
 
     id = db.Column(String(36), primary_key=True, default=generate_short_id)
@@ -69,8 +80,24 @@ class ImageCollection(db.Model):
     user_id = db.Column(String(255))
     name = db.Column(String(255))
 
+    images = relationship("Image", back_populates="collection")
+
     def __str__(self):
         return self.id
+
+    @property
+    def images_count(self):
+        return db.session.query(Image).filter(
+            Image.collection_id == self.id,
+        ).count()
+
+    @property
+    def annotations_count(self):
+        try:
+            image_ids = Image.where(collection_id=self.id).with_entities(Image.id).distinct()
+            return Annotation.where(image_id__in=image_ids).count()
+        except Exception as e:
+            print(e)
 
     @staticmethod
     def get_collections_for_user(current_user):
@@ -101,17 +128,21 @@ class ImageCollection(db.Model):
         return collection
 
 
-class Image(db.Model):
+class Image(BaseModel):
     __tablename__ = 'images'
 
     id = db.Column(String(36), primary_key=True, default=uuid.uuid4)
-    collection_id = db.Column(String(36), nullable=False)
+
+    collection_id = db.Column(String(36), ForeignKey("imagecollections.id"), nullable=False)
     created_at = db.Column(DateTime(timezone=True), default=datetime.datetime.utcnow)
     mimetype = db.Column(String(255))
     size = db.Column(Integer)
     file_hash = db.Column(String(255), default="")
     storageKey = db.Column(String(1024))
     extra_data = db.Column(Text)
+
+    collection = relationship("ImageCollection", back_populates="images")
+    annotations = relationship("Annotation", back_populates="image")
 
     def __str__(self):
         return self.id

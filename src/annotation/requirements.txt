@@ -10,6 +10,7 @@ oauthlib==3.2.0
 Flask-SQLAlchemy==2.5.1
 alembic==1.7.5  # migrations
 pymssql==2.2.5  # for MsSQL support
+sqlalchemy-mixins==1.5.3  # make SA readable
 
 requests==2.27.1
 
