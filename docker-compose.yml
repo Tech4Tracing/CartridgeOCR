@@ -60,5 +60,7 @@ services:
     command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 -l /workspace -d /workspace/debug.log
     volumes:
       - "annotations_storage:/workspace"
+    ports:
+      - "10000:10000"  # so redirect urls for images work
     logging:
       driver: none

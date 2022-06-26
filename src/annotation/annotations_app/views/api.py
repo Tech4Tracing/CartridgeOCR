@@ -26,6 +26,7 @@ with app.test_request_context():
     spec.path(view=images.image_post)
     spec.path(view=images.image_detail)
     spec.path(view=images.image_retrieve)
+    spec.path(view=images.image_link)
     spec.path(view=images.image_delete)
     spec.path(view=images.image_annotations)
     spec.path(view=annotations.annotations_list)
