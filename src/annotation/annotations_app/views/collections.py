@@ -79,7 +79,7 @@ def collection_delete(collection_id: str):
           required: true
           description: Unique collection ID
       responses:
-        202:
+        204:
           description: Success
     """
     collection_in_db = db.session.query(ImageCollection).filter(
@@ -91,7 +91,7 @@ def collection_delete(collection_id: str):
 
     first_existing_image = (
         db.session.query(Image).filter(
-            Image.collections.any(ImageCollection.id.in_([collection_in_db.id])),
+            Image.collection_id == collection_in_db.id,
         ).first()
     )
 
