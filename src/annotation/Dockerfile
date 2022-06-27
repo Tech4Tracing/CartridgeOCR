@@ -16,4 +16,6 @@ RUN pip install -r /requirements.txt
 ADD . /app
 WORKDIR /app
 
+EXPOSE 8080
+
 CMD ./devops/run-annotation-api-local.sh
