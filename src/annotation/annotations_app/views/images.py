@@ -1,7 +1,7 @@
 import mimetypes
 from io import BytesIO
 
-from flask import request, send_file
+from flask import request, send_file, redirect
 from flask_login import login_required, current_user
 
 from annotations_app.flask_app import app, db
@@ -243,6 +243,35 @@ def image_retrieve(image_id: str):
         attachment_filename=image_in_db.filename,
         mimetype=image_in_db.mimetype,
         as_attachment=False,
+    )
+
+
+@app.route("/api/v0/images/<string:image_id>/link", methods=["GET"])
+@login_required
+def image_link(image_id: str):
+    """Return pre-signed short-lived link to the image
+    ---
+    get:
+      parameters:
+        - in: path
+          name: image_id
+          schema:
+            type: string
+          required: true
+          description: Unique image ID
+      responses:
+        302:
+          description: Redirect user to the real image location
+    """
+    image_in_db = Image.get_image_or_abort(image_id, current_user)
+
+    storage_provider = StorageProvider()
+
+    return redirect(
+        storage_provider.get_file_presigned_link(
+            storage_key=image_in_db.storageKey,
+            content_type=image_in_db.mimetype,
+        )
     )
 
 
