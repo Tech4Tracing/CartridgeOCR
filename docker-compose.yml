@@ -1,12 +1,11 @@
 # This docker compose file is specific to running the annotations app.
-version: '3'
+version: "3.2"
 
 volumes:
   annotations_storage: {}
   annotations_db: {}
 
 services:
-
   widgetbuild:
     image: "node:18-alpine"
     volumes:
@@ -37,7 +36,7 @@ services:
     ports:
       - "8080:8080"
     env_file:
-        - ./src/annotation/.env
+      - ./src/annotation/.env
     command: /app/devops/run-annotation-api-local.sh
     depends_on:
       - annotations_mssql
@@ -47,8 +46,8 @@ services:
   annotations_mssql:
     image: "mcr.microsoft.com/mssql/server"
     environment:
-        SA_PASSWORD: "Your_password123"
-        ACCEPT_EULA: "Y"
+      SA_PASSWORD: "Your_password123"
+      ACCEPT_EULA: "Y"
     volumes:
       - annotations_db:/var/opt/mssql
     logging:
@@ -60,5 +59,7 @@ services:
     command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 -l /workspace -d /workspace/debug.log
     volumes:
       - "annotations_storage:/workspace"
+    ports:
+      - "10000:10000"  # so redirect urls for images work
     logging:
       driver: none
