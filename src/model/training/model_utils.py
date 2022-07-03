@@ -41,9 +41,6 @@ def isRectangleOverlap(R1, R2):
 import numpy as np
 from scipy.linalg import eigh
 from scipy.optimize import minimize_scalar
-import matplotlib.pyplot as plt
-from matplotlib.patches import Ellipse
-
 
 def ellipsoid_intersection_test(Sigma_A, Sigma_B, mu_A, mu_B, tau):
     lambdas, Phi, v_squared = ellipsoid_intersection_test_helper(Sigma_A, Sigma_B, mu_A, mu_B)
