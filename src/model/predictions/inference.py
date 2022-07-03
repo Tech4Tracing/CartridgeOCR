@@ -8,57 +8,79 @@ from PIL import Image, ImageDraw
 import torch.utils.data
 import torchvision
 from azureml.core.model import Model
+from model.training.model_utils import rt, isEllipseOverlap, isContained, get_transform, load_snapshot
 
 
 class Inference():
     def __init__(self) -> None:
         self.max_width = 1080
+        self.INFERENCE_VERSION = 1.0
 
-    def predict(self, img, prediction, render=False):
-        masksout = []
+    def predict(self, img, prediction, threshold=0.5, render=False):
         casings = []
         primers = []
         for m_i, p in enumerate(prediction):
+            # TODO: can we avoid this by just comparing with img dimensions?
             i2 = torchvision.transforms.ToPILImage()(img)
-            imgOut = Image.new('RGB', i2.size)
-            imgOut.paste(i2, (0, 0))
-            canvas = ImageDraw.Draw(imgOut)
-            # boxes = [(b, s, l) for b, s, l in zip(p['boxes'], p['scores'], p['labels']) if b[2] < i2.width if b[3] < i2.height if b[2] - b[0] > 20 if b[3] - b[1] > 20]
-            casings = [(b, s, l) for b, s, l in zip(p['boxes'], p['scores'], p['labels']) if l == 1 if b[2] < i2.width if b[3] < i2.height if b[2] - b[0] > 20 if b[3] - b[1] > 20]
-            primers = [(b, s, l) for b, s, l in zip(p['boxes'], p['scores'], p['labels']) if l == 2 if b[2] < i2.width if b[3] < i2.height if b[2] - b[0] > 20 if b[3] - b[1] > 20]
-            masksout.append(imgOut)
+            casings += [(b, s, l) for b, s, l in zip(p['boxes'], p['scores'], p['labels']) 
+                        if l == 1 
+                        if s > threshold
+                        if b[2] < i2.width 
+                        if b[3] < i2.height 
+                        if b[2] - b[0] > 20 
+                        if b[3] - b[1] > 20 ]
+            primers += [(b, s, l) for b, s, l in zip(p['boxes'], p['scores'], p['labels']) 
+                        if l == 2 
+                        if s > threshold
+                        if b[2] < i2.width 
+                        if b[3] < i2.height 
+                        if b[2] - b[0] > 20 
+                        if b[3] - b[1] > 20 ]
+            # TODO: under what circumstances would there be more than one item in prediction?  
+            # Maybe this would happen if img were a tensor of multiple images.          
         else:
-            if len(masksout) > 0:
+            detectionsOut = []
+            dst = None
+            if len(casings) > 0:
                 dst = None
                 canvas = None
                 if render:
                     i1 = Image.fromarray(img.mul(255).permute(1, 2, 0).byte().numpy())
                     dst = Image.new('RGBA', i1.size, (0,0,0,0))
-                    # We're going to draw an overlay and paste it on top later.
-                    #dst.paste(i1, (0, 0))
+                    # We're going to draw an overlay and paste it on top later.                    
                     canvas = ImageDraw.Draw(dst)
-                boxesOut = []
-                primersOut = []
-                for box, score, label in list(sorted(casings, key=(lambda x: x[1]), reverse=True)):
-                    # Skip if it overlaps an existing output.
-                    # TODO: change to circle overlap
-                    if any(map(lambda x: isRectangleOverlap(box, x[0]), boxesOut)):
+                casingsOut = []
+                
+                for casing, score, label in list(sorted(casings, key=(lambda x: x[1]), reverse=True)):
+                    # Skip if it overlaps an existing output.                   
+                    if any(map(lambda x: isEllipseOverlap(casing, x[0]), casingsOut)):
                         pass
                     else:
-                        boxesOut.append((box,score))
+                        casingsOut.append((casing,score))
                         if canvas:
-                            canvas.ellipse(box, outline='red', fill=(255,0,0,50), width=5)
-
-                for box, score, label in list(sorted(primers, key=(lambda x: x[1]), reverse=True)):
-                    if any(map(lambda x: isContained(box, x[0]), boxesOut)):
-                        if not any(map(lambda x: isRectangleOverlap(box, x[0]), primersOut)):
-                            primersOut.append((box,score))
-                            if canvas:
-                                canvas.ellipse(box, outline='yellow', fill=(255,255,0,50), width=5)
-                # Draw the overlay on top of a new image
-                final = Image.alpha_composite(i1.convert("RGBA"), dst)
+                            canvas.ellipse(casing, outline='red', fill=(255,0,0,50), width=5)
                 
-                return final, boxesOut, primersOut
+                for primer, score, label in list(sorted(primers, key=(lambda x: x[1]), reverse=True)):
+                    toRemove = None
+                    # Match each primer detection with an available casing.
+                    # If no surrounding casing exists, reject it.
+                    for casing in casingsOut:
+                        if isContained(primer, casing[0]):
+                            detectionsOut.append((casing, (primer,score)))
+                            if canvas:
+                                canvas.ellipse(primer, outline='yellow', fill=(255,255,0,50), width=5)
+                            # remove the casing from casingsOut so we don't reassign it.
+                            toRemove = casing
+                            break
+                    if toRemove:
+                        casingsOut.remove(casing)
+                    
+                # Draw the overlay on top of a new image
+                if render:
+                    dst = Image.alpha_composite(i1.convert("RGBA"), dst)
+                
+            return dst, detectionsOut
+            
 
     def init(self, modelfolder=None, checkpoint='checkpoint.pth'):
         global model, rt, isRectangleOverlap, isContained, get_transform, load_snapshot
@@ -76,7 +98,6 @@ class Inference():
 
         print('model name:', model_name)
         print('model_path', model_path)
-        from model.training.model_utils import rt, isRectangleOverlap, isContained, get_transform, load_snapshot
 
         self.model = load_snapshot(os.path.join(model_path, checkpoint))
 
@@ -101,12 +122,15 @@ class Inference():
         Returns:
         Dictionary with results:
         {
+            'inference_version': <inference version>,
             'image': <optional base 64 encoded output image>,
-            'casings': <list of casing bounding boxes>,
-            'primers': <list of primer bounding boxes>
+            'detections': <list of detections, each with schema:
+                {'casing': {'box':<rectangle>, 'confidence': <float>},
+                 'primer': {'box': <rectangle>, 'confidence': <float>}}>
         }
         bounding boxes are encoded as [x0, y0, x1, y1]
         each box coordinate is in the range [0,1)
+        note for some headstamps a casing might be returned without a primer.
         """
         # print("Request" + request)
         parsed = json.loads(request)
@@ -130,29 +154,40 @@ class Inference():
             print('running inference')
             prediction = self.run_inference(img)
             # print(masks, prediction)
-            dst, boxes, primers = self.predict(img, prediction, render)
+            dst, detections = self.predict(img, prediction, render=render)
 
             dst_b64 = None
             if render:
+                assert dst is not None
                 in_mem_file = io.BytesIO()
                 dst = dst.convert("RGB")
                 dst.save(in_mem_file, format="JPEG")  # temporary file to store image data
                 dst_bytes = in_mem_file.getvalue()      # image in binary format
                 dst_b64 = base64.b64encode(dst_bytes)   # encode in base64 for response
-            logging.info(f'detected {len(boxes)} boxes and {len(primers)} primers')
+            logging.info(f'detected {len(detections)}')
 
             # TODO: this should probably move to predict() but at that point we have a tensor in hand.
             # It's easier to reliably get the image width and height here.
             def normalize(bs):
                 b, score = bs
-                return {'confidence': score, 'box': list(map(lambda x: x[0] / x[1], zip(b, [width, height, width, height]))) }
+                return {
+                    'confidence': score, 
+                    'box': list(map(lambda x: x[0] / x[1], zip(b, [width, height, width, height]))) 
+                }
+
+            def normalize_detection(detection):
+                casing, primer = detection
+                return {
+                    'casing': normalize(casing),
+                    'primer': normalize(primer)
+                }
 
             return {
                 'image': dst_b64.decode() if dst_b64 else None,
-                'casings': list(map(normalize, boxes)),
-                'primers': list(map(normalize, primers))
+                'detections': list(map(normalize_detection, detections)),
+                'inference_version': self.INFERENCE_VERSION                
             }
+
         except Exception as ex:
-            print('Exception:')
-            print(ex)
-            return "Failed with error: " + ex
+            logging.error(f'Exception: {ex}')
+            return {'error': str(ex)}

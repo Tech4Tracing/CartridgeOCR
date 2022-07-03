@@ -37,6 +37,43 @@ def isRectangleOverlap(R1, R2):
         return False
     return True
 
+# https://github.com/NickAlger/nalger_helper_functions/blob/master/tutorial_notebooks/ellipsoid_intersection_test_tutorial.ipynb
+import numpy as np
+from scipy.linalg import eigh
+from scipy.optimize import minimize_scalar
+import matplotlib.pyplot as plt
+from matplotlib.patches import Ellipse
+
+
+def ellipsoid_intersection_test(Sigma_A, Sigma_B, mu_A, mu_B, tau):
+    lambdas, Phi, v_squared = ellipsoid_intersection_test_helper(Sigma_A, Sigma_B, mu_A, mu_B)
+    res = minimize_scalar(ellipsoid_K_function,
+                          bracket=[0.0, 0.5, 1.0],
+                          args=(lambdas, v_squared, tau))
+    return (res.fun[0] >= 0)
+
+
+def ellipsoid_intersection_test_helper(Sigma_A, Sigma_B, mu_A, mu_B):
+    lambdas, Phi = eigh(Sigma_A, b=Sigma_B)
+    v_squared = np.dot(Phi.T, mu_A - mu_B) ** 2
+    return lambdas, Phi, v_squared
+
+
+def ellipsoid_K_function(ss, lambdas, v_squared, tau):
+    ss = np.array(ss).reshape((-1,1))
+    lambdas = np.array(lambdas).reshape((1,-1))
+    v_squared = np.array(v_squared).reshape((1,-1))
+    return 1.-(1./tau**2)*np.sum(v_squared*((ss*(1.-ss))/(1.+ss*(lambdas-1.))), axis=1)
+
+
+def isEllipseOverlap(R1, R2):
+    if not isRectangleOverlap(R1, R2):
+        return False
+    mu_A = np.array([(R1[0]+R1[2])/2, (R1[1]+R1[3])/2])
+    mu_B = np.array([(R2[0]+R2[2])/2, (R2[1]+R2[3])/2])
+    sigma_A = np.array([[1.0/(R1[2]-R1[0]), 0], [0, 1.0/(R1[3]-R1[1])]])
+    sigma_B = np.array([[1.0/(R2[2]-R2[0]), 0], [0, 1.0/(R2[3]-R2[1])]])
+    return ellipsoid_intersection_test(sigma_A, sigma_B, mu_A, mu_B, 1.0)    
 
 def isContained(R1, R2):
     if (R1[0] > R2[0]) and (R1[2] < R2[2]) and (R1[3] < R2[3]) and (R1[1] > R2[1]):
