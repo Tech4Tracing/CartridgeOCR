@@ -14,7 +14,8 @@ from model.training.model_utils import rt, isEllipseOverlap, isContained, get_tr
 class Inference():
     def __init__(self) -> None:
         self.max_width = 1080
-        self.INFERENCE_VERSION = 1.0
+        # Update with any major changes to inference method.
+        self.INFERENCE_VERSION = "1.0"
 
     def predict(self, img, prediction, threshold=0.5, render=False):
         casings = []
@@ -56,9 +57,7 @@ class Inference():
                     if any(map(lambda x: isEllipseOverlap(casing, x[0]), casingsOut)):
                         pass
                     else:
-                        casingsOut.append((casing,score))
-                        if canvas:
-                            canvas.ellipse(casing, outline='red', fill=(255,0,0,50), width=5)
+                        casingsOut.append((casing,score))                        
                 
                 for primer, score, label in list(sorted(primers, key=(lambda x: x[1]), reverse=True)):
                     toRemove = None
@@ -68,13 +67,16 @@ class Inference():
                         if isContained(primer, casing[0]):
                             detectionsOut.append((casing, (primer,score)))
                             if canvas:
+                                canvas.ellipse(casing, outline='red', fill=(255,0,0,50), width=5)
                                 canvas.ellipse(primer, outline='yellow', fill=(255,255,0,50), width=5)
                             # remove the casing from casingsOut so we don't reassign it.
                             toRemove = casing
                             break
                     if toRemove:
                         casingsOut.remove(casing)
-                    
+
+                # TODO: if any casings remain, we could optionally return them as well.
+
                 # Draw the overlay on top of a new image
                 if render:
                     dst = Image.alpha_composite(i1.convert("RGBA"), dst)
