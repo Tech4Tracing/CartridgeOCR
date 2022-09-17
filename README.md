@@ -1,11 +1,28 @@
 # CartridgeOCR
 
+## Annotation API
 If you came here for instructions how to start the Web UI (flask API + react widget) to annotate images please see [related readme](./src/annotation/README.md)
 
-src folder contains the training code based on the AML annotations.
+## New Annotation UI
+After setting up the API as above, a new UI is in development at src/t4t-annotation-UI.  Contact simra for access to the repo
+
+## Prediction API
+src/predict_api stands up a small flask app for uploading images and detecting headstamps. Contact simra for a copy of the model weights.
+
+
+## Headstamp Detection (not OCR)
+src/model/training folder contains the training code based on AML headstamp annotations.
+src/AML runs training in AzureML
+
+## Web app for image capture
+src/webapp: This app can be used for image capture. It's connected to the prediction API but doesn't predict in real time. It's not connected to the annotation database.
+
+## Other stuff
 
 h4g deck is [here](https://1drv.ms/p/s!Aq_TlvfieKvqu8t5DYBMbiD91PxE6Q?e=STaglB)
 
+
+# Training notes below
 ## Usage
 
 ### Local training on Windows (requires local dataset)
@@ -33,7 +50,7 @@ You might alo need the Workspace configuration. You can find it by going to the 
 
 If you export a dataset from AML, some conversion is needed- see convert_coco_urls.py
 
-## Roadmap
+# Roadmap
 
 Some areas to explore:
 
