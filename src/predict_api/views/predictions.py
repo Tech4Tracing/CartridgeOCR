@@ -94,10 +94,18 @@ def headstamp_predict():
             400,
         )
     result = inf.run(json.dumps(req))
-    for p in ['casings','primers']:
-      if p in result:
-        logging.info(f'{p}: {result[p]}')
-    
-    logging.debug(result)
+    if 'error' in result:
+      logging.error(result['error'])
+      return schemas.Errors().dump(
+                {
+                    "errors": [
+                        {
+                            "title": "InferenceError",
+                            "detail": result['error'],
+                        }
+                    ]
+                }
+            )
+
+    logging.info(result)
     return schemas.HeadstampPredictionSchema().dump(result)
-     # schemas.ImageDisplaySchema().dump(image_in_db)
