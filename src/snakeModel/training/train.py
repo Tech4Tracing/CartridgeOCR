@@ -1,1 +1,1 @@
-impor torch
+import torch
