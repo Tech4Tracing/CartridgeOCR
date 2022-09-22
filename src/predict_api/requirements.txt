@@ -1,3 +1,5 @@
+-f https://download.pytorch.org/whl/torch/
+-f https://download.pytorch.org/whl/torchvision/
 werkzeug==2.0.3
 flask==2.0.3
 python-dotenv==0.19.2
@@ -22,3 +24,15 @@ azure-storage-blob==12.9.0  # for Azure Blob storage
 
 # Flask CORS policies
 flask_cors==3.0.10
+
+# PIL
+Pillow==8.3.2
+
+# torch + torchvision
+torch==1.8.0
+torchvision==0.9.0
+
+azureml-sdk #==1.34.0
+pycocotools==2.0.2
+scipy==1.8.0
+#ruamel.yaml==0.17.4
