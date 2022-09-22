@@ -93,7 +93,15 @@ if __name__ == '__main__':
                                 raise Exception('Output file {} already exists'.format(output_file))
                             def scale(x,s):
                                 return list(map(lambda x,y: int(x*y), x, s))
-                            outImg = img.crop(scale(detection['casing']['box'], [width, height, width, height]))
+                            marginPct = 0.05
+                            boxMarginX = width * marginPct * (detection['casing']['box'][2] - detection['casing']['box'][0])
+                            boxMarginY = height * marginPct * (detection['casing']['box'][3] - detection['casing']['box'][1])
+                            coords = scale(detection['casing']['box'], [width, height, width, height])
+                            coords[0] = max(0, coords[0] - boxMarginX)
+                            coords[1] = max(0, coords[1] - boxMarginY)
+                            coords[2] = min(width, coords[2] + boxMarginX)
+                            coords[3] = min(height, coords[3] + boxMarginY)
+                            outImg = img.crop(coords)
                             with open(output_file, 'wb', ) as outIm:
                                 # TODO: save to png?
                                 outImg.save(outIm, format="PNG")

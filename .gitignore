@@ -4,6 +4,7 @@ src/annotation/annotations_app/static/css/
 src/annotation/annotations_app/static/js/
 src/annotation/annotations_app/static/manifest.json
 src/annotation/annotations_app/templates/ui/index.html
+.env.docker
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
