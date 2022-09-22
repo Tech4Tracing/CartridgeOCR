@@ -6,6 +6,9 @@ import json
 
 parser = argparse.ArgumentParser()
 
+# TODO: optional flag to export all images, even without annotations
+# TODO: import script to reload exported data
+
 parser.add_argument('--collection_id', type=str, default=None, required=False)
 parser.add_argument('output_folder', type=str)
 parser.add_argument('--overwrite', action='store_true', default=False, required=False)
