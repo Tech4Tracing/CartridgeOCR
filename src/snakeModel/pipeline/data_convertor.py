@@ -9,7 +9,10 @@ import json
 from mmocr.datasets.pipelines import TextSnakeTargets
 from PIL import Image
 import cv2
+import pickle
+from argparse import ArgumentParser, Namespace
 
+imgSize = 800
 class Point():
     def __init__(self, point) -> None:
         self.x = point['x']
@@ -25,11 +28,13 @@ class DummyObj():
     def __str__(self) -> str:
         return str(self.masks)
 
+#x warp, then y warp
+def getWarp(image):
+    return (800 / image.shape[0], 800 / image.shape[1])
+
 def displayRadialPolygon(center, nearPoint, farPoint, pointsList, image):
     mask = np.zeros((image.shape[0], image.shape[1], 3), dtype=np.uint8)
-    # print((center.x * image.shape[1], center.y * image.shape[0]))
     toDisplay = np.array(pointsList).reshape(-1,2).astype(np.int32).reshape(1, -1, 2)
-    print(toDisplay)
     cv2.fillPoly(mask, toDisplay, (255, 255, 255))
     mask = cv2.circle(mask, (int(center.x * image.shape[0]), int(center.y * image.shape[1])), 6, (255, 0, 0), 1)
     mask = cv2.circle(mask, (int(nearPoint.x * image.shape[0]), int(nearPoint.y * image.shape[1])), 6, (0, 255, 0), 1)
@@ -41,7 +46,7 @@ def displayRadialPolygon(center, nearPoint, farPoint, pointsList, image):
     cv2.destroyAllWindows()
 
 def extractBoxBorder(geometry, image):
-
+    warpRate = getWarp(image)
     geometry = json.loads(geometry)
     x1 = geometry[0]['x']
     y1 = geometry[0]['y']
@@ -54,9 +59,9 @@ def extractBoxBorder(geometry, image):
     pointsList = [x1, y1, x2, y2, x3, y3, x4, y4]
     for idx, x in enumerate(pointsList):
         if idx == 0: #x
-            x *= image.shape[1]
+            x *= image.shape[0] * warpRate[0]
         else: #y
-            x *= image.shape[0]
+            x *= image.shape[1] * warpRate[1]
     return np.array(pointsList)
 
 
@@ -67,14 +72,11 @@ def extractRadialBorder(geometry, image):
     Output:  1d np array of coordinates
     Example: [x1, y1, x2, y2...]
     """
+    warpRate = getWarp(image)
     geometry = json.loads(geometry)
     center = Point(geometry[0])
     point1 = Point(geometry[1])
     point2 = Point(geometry[2])
-    print('-' * 100)
-    print((center.x * image.shape[0], center.y * image.shape[1]))
-    print((point1.x * image.shape[0], point1.y * image.shape[1]))
-    print((point2.x * image.shape[0], point2.y * image.shape[1]))
     radius1 = sqrt((center.x - point1.x) ** 2 + (center.y - point1.y) ** 2)
     radius2 = sqrt((center.x - point2.x) ** 2 + (center.y - point2.y) ** 2)
     if radius1 >= radius2:
@@ -109,9 +111,9 @@ def extractRadialBorder(geometry, image):
 
     for idx, x in enumerate(pointsList):
         if idx % 2  == 0: #x
-            pointsList[idx] *= image.shape[0]
+            pointsList[idx] *= image.shape[0] * warpRate[0]
         else: #y
-            pointsList[idx] *= image.shape[1]
+            pointsList[idx] *= image.shape[1]* warpRate[1]
 
     # print(f'radial returning: {np.array(pointsList)} ')
     
@@ -136,11 +138,12 @@ def parseGeometries(annotation, npImage):
 # sin theta
 # radius map
 # https://arxiv.org/pdf/1807.01544.pdf
-def convertToSnakeFormat(root: str):
+def convertToSnakeFormat(inputPath: str, outputPath: str):
     """
     Input: root of the training data folder
 
     Output: List of dictionary objects with following fields
+    image file path
     gt_text_mask
     gt_center_region_mask
     gt_mask
@@ -148,7 +151,7 @@ def convertToSnakeFormat(root: str):
     gt_sin_map
     gt_cos_map
     """
-    with open(os.path.join(root, "annotations.json")) as f:
+    with open(os.path.join(inputPath, "annotations.json")) as f:
         finalResults = []
         finalResultToDump = {}
         firstRun = True
@@ -159,8 +162,7 @@ def convertToSnakeFormat(root: str):
         npImage = None
         for annotation in fileContent["annotations"]:
             filePath = annotation['image_id']
-            filePath = os.path.join(root, f'{filePath}.jpg')
-            print(filePath)
+            filePath = os.path.join(inputPath, f'{filePath}.jpg')
             npImage = np.asarray(Image.open(filePath))
             if len(npImage.shape) != 3:
                 continue
@@ -170,14 +172,16 @@ def convertToSnakeFormat(root: str):
                     resultDictionary = targets.generate_targets(resultDictionary)
 
                     finalResultToDump = {}
+                    finalResultToDump['mask_field_names'] = []
+                    finalResultToDump['file_path'] = filePath
                     for key in resultDictionary['mask_fields']:
                         finalResultToDump[key] = resultDictionary[key]
+                        finalResultToDump['mask_field_names'].append(key)
                     finalResults.append(finalResultToDump)
                 firstRun = False
                 resultDictionary = {}
 
-
-                resultDictionary['img_shape'] = npImage.shape
+                resultDictionary['img_shape'] = (imgSize, imgSize, 3)
                 resultDictionary['mask_fields'] = []
                 resultDictionary['gt_masks'] = DummyObj()
                 resultDictionary['gt_masks_ignore'] = DummyObj()
@@ -187,10 +191,8 @@ def convertToSnakeFormat(root: str):
 
             masks = parseGeometries(annotation, npImage)
             if (len(resultDictionary['gt_masks'].masks) == 0):
-                # print('line 133---')
                 resultDictionary['gt_masks'].masks = [[masks]]
             else :
-                # print('line 137---')
                 resultDictionary['gt_masks'].masks.append([masks])
             # resultDictionary['gt_masks_ignore'].masks.append(masks)#do not write to gt_masks_ignore, we aren't ignoring any sections of the screen, not masking
 
@@ -199,18 +201,41 @@ def convertToSnakeFormat(root: str):
         resultDictionary = targets.generate_targets(resultDictionary)
 
         finalResultToDump = {}
+        finalResultToDump['mask_field_names'] = []
+        finalResultToDump['file_path'] = filePath
         for key in resultDictionary['mask_fields']:
             finalResultToDump[key] = resultDictionary[key]
+            finalResultToDump['mask_field_names'].append(key)
         finalResults.append(finalResultToDump)
-    print(finalResults)
+    with open(outputPath, 'wb') as f:
+        pickle.dump(finalResults, f)
                             
-# root = "C:\\Users\\ecarlson\\Desktop\\azDest\\export_test"
-# convertToSnakeFormat(root)
-
-
     # gt_masks -> dictionary with a single field masks, 
     #     masks is a (list[list[ndarray]]) where it's textSections x 1 x polygon border point list length
     # gt_masks_ignore -> dictionary with single field masks,
     #     masks is a list[[ndarray]] The list of ignored text polygons.
     # img_shape -> 3d tensor of height, width, channels
     # mask_fields -> an empty list 
+
+def parse_args():
+    parser = ArgumentParser()
+    parser.add_argument(
+        '--outputPath',
+        type=str,
+        default='',
+        help='Output path for the data')
+
+    parser.add_argument(
+        '--inputPath',
+        type=str,
+        default='',
+        help='Input path for the data')
+    args = parser.parse_args()
+    return args    
+
+def main():
+    args = parse_args()
+    convertToSnakeFormat(**vars(args))
+
+if __name__ == '__main__':
+    main()
