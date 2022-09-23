@@ -175,6 +175,7 @@ def train(model, dataLoader, modelDumpPath, epochs = 10):
     for e in tqdm(range(epochs)):
         epochLoss = 0
         for img, gt_masks, gt_mask_ignore in dataLoader:
+            img = img.to(device)
             optimizer.zero_grad()
             target = {}
             target['gt_masks'] = DummyObj()
