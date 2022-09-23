@@ -12,6 +12,7 @@ from PIL import Image
 import cv2
 import pickle
 from argparse import ArgumentParser, Namespace
+from tqdm import tqdm
 
 imgSize = 800
 class Point():
@@ -161,7 +162,7 @@ def convertToSnakeFormat(inputPath: str, outputPath: str):
         fileContent = json.load(f)
         lastFilePath = ''
         npImage = None
-        for annotation in fileContent["annotations"]:
+        for annotation in tqdm(fileContent["annotations"]):
             filePath = annotation['image_id']
             filePath = os.path.join(inputPath, f'{filePath}.jpg')
             npImage = np.asarray(Image.open(filePath))
@@ -169,9 +170,6 @@ def convertToSnakeFormat(inputPath: str, outputPath: str):
                 continue
             if filePath != lastFilePath:
                 if not firstRun:
-                    print('----------------------------------------------')
-                    print(resultDictionary['file_path'])
-                    print(resultDictionary['gt_masks'])
                     x = np.array(resultDictionary['gt_masks'])
                     finalResults.append(resultDictionary)
                 firstRun = False
@@ -193,9 +191,6 @@ def convertToSnakeFormat(inputPath: str, outputPath: str):
             # resultDictionary['gt_masks_ignore'].masks.append(masks)#do not write to gt_masks_ignore, we aren't ignoring any sections of the screen, not masking
 
         #final annotation hasn't been dumped yet
-        print('----------------------------------------------')
-        print(resultDictionary['file_path'])
-        print(resultDictionary['gt_masks'])
         x = np.array(resultDictionary['gt_masks'])
         finalResults.append(resultDictionary)
     with open(outputPath, 'wb') as f:

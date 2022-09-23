@@ -34,7 +34,7 @@ def main():
     convertToSnakeFormat(args.inputPath, snakeFormatPath)
     model = loadModel(args.modelName)
     dataSet = loadDataLoader(snakeFormatPath, True)
-    train(model, dataSet)
+    train(model, dataSet, args.outputPath)
 
 if __name__ == '__main__':
     main()
