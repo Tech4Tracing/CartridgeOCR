@@ -12,6 +12,7 @@ from pipeline.dataset import SnakeModelDataset
 from torch.utils.data import DataLoader
 from mmocr.datasets.pipelines.textdet_targets import TextSnakeTargets
 import torch.optim as optim
+from tqdm import tqdm
 
 class DummyObj():
     def __init__(self):
@@ -171,7 +172,7 @@ def train(model, dataLoader, modelDumpPath, epochs = 10):
     print(f'Training on device {device}')
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     targetGenerator = TextSnakeTargets()
-    for e in range(epochs):
+    for e in tqdm(range(epochs)):
         epochLoss = 0
         for img, gt_masks, gt_mask_ignore in dataLoader:
             optimizer.zero_grad()
