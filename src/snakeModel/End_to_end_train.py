@@ -2,6 +2,7 @@ import os
 from argparse import ArgumentParser, Namespace
 from pipeline.data_convertor import *
 from training.train import *
+import torch
 
 
 def parse_args():
@@ -32,7 +33,17 @@ def main():
     if (os.path.exists(snakeFormatPath)):
         os.remove(snakeFormatPath)
     convertToSnakeFormat(args.inputPath, snakeFormatPath)
+    # print('pre load model')
+    # print(f'total GPU memory: {torch.cuda.get_device_properties(0).total_memory}')
+    # print(f'reserved mem: {torch.cuda.memory_reserved(0)}, allocated mem: {torch.cuda.memory_allocated(0)}')
+    # print(f'torch.cuda.mem_get_info: {torch.cuda.mem_get_info(0)}')
     model = loadModel(args.modelName)
+    print(model)
+    # # print('\n\npost load model')
+    # print(f'total GPU memory: {torch.cuda.get_device_properties(0).total_memory}')
+    # print(f'reserved mem: {torch.cuda.memory_reserved(0)}, allocated mem: {torch.cuda.memory_allocated(0)}')
+    # print(f'torch.cuda.mem_get_info: {torch.cuda.mem_get_info(0)}')
+    # exit()
     dataSet = loadDataLoader(snakeFormatPath, True)
     train(model, dataSet, args.outputPath)
 

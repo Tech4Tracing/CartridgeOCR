@@ -13,6 +13,8 @@ from torch.utils.data import DataLoader
 from mmocr.datasets.pipelines.textdet_targets import TextSnakeTargets
 import torch.optim as optim
 from tqdm import tqdm
+from utils import imageSize
+
 
 class DummyObj():
     def __init__(self):
@@ -175,6 +177,9 @@ def train(model, dataLoader, modelDumpPath, epochs = 10):
     for e in tqdm(range(epochs)):
         epochLoss = 0
         for img, gt_masks, gt_mask_ignore in dataLoader:
+            print(f'total GPU memory: {torch.cuda.get_device_properties(0).total_memory}')
+            print(f'reserved mem: {torch.cuda.memory_reserved(0)}, allocated mem: {torch.cuda.memory_allocated(0)}')
+            print(f'torch.cuda.mem_get_info: {torch.cuda.mem_get_info(0)}')
             img = img.to(device)
             optimizer.zero_grad()
             target = {}
@@ -182,7 +187,7 @@ def train(model, dataLoader, modelDumpPath, epochs = 10):
             target['gt_masks'].masks = gt_masks[0].tolist()
             target['gt_masks_ignore'] = DummyObj()
             target['gt_masks_ignore'].masks = gt_mask_ignore[0].tolist()
-            target['img_shape'] = (800,800,3)
+            target['img_shape'] = (imageSize,imageSize,3)
             target['mask_fields'] = []
             target = targetGenerator.generate_targets(target)
             output = model(img, img_metas, 

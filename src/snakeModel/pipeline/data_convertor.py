@@ -13,8 +13,8 @@ import cv2
 import pickle
 from argparse import ArgumentParser, Namespace
 from tqdm import tqdm
+from utils import imageSize
 
-imgSize = 800
 class Point():
     def __init__(self, point) -> None:
         self.x = point['x']
@@ -25,7 +25,7 @@ class Point():
 
 #x warp, then y warp
 def getWarp(image):
-    return (800 / image.shape[0], 800 / image.shape[1])
+    return (imageSize / image.shape[0], imageSize / image.shape[1])
 
 def displayRadialPolygon(center, nearPoint, farPoint, pointsList, image):
     mask = np.zeros((image.shape[0], image.shape[1], 3), dtype=np.uint8)
@@ -176,7 +176,7 @@ def convertToSnakeFormat(inputPath: str, outputPath: str):
                 resultDictionary = {}
 
                 resultDictionary['file_path'] = filePath
-                resultDictionary['img_shape'] = (imgSize, imgSize, 3)
+                resultDictionary['img_shape'] = (imageSize, imageSize, 3)
                 resultDictionary['mask_fields'] = []
                 resultDictionary['gt_masks'] = []
                 resultDictionary['gt_masks_ignore'] = []

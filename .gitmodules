@@ -3,4 +3,4 @@
 	url = git@github.com:Tech4Tracing/t4t-annotation-UI.git
 [submodule "mmocr"]
 	path = mmocr
-	url = https://github.com/Tech4Tracing/mmocr.git
+	url = git@github.com/Tech4Tracing/mmocr.git
