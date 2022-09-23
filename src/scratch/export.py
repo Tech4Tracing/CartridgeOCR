@@ -45,5 +45,6 @@ for i in images:
     if image.status_code != 200:
         raise Exception(f"Failed to get image {i}: {image.text}")
     else:
+        # TODO: we can't assume this will always be a jpg image.
         with open(args.output_folder + f"/{i}.jpg", "wb") as f:
             f.write(image.content)

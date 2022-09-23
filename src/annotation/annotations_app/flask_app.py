@@ -44,7 +44,8 @@ app.secret_key = Config.SECRET_KEY
 app.config["SQLALCHEMY_DATABASE_URI"] = Config.SQLALCHEMY_DATABASE_URI
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
-db = SQLAlchemy(app)
+# Uncomment the engine_options line below to enable SQL query logging
+db = SQLAlchemy(app) #, engine_options={"echo": True})
 
 # logging.info('Launching login manager')
 # User session management setup
