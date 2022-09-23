@@ -18,16 +18,20 @@ def parse_args():
         type=str,
         default='TextSnake',
         help='Input path for the data')
+    parser.add_argument(
+        '--outputPath',
+        type=str,
+        default='TextSnake',
+        help='Output path for model weights')
     args = parser.parse_args()
     return args    
 
 def main():
     args = parse_args()
     snakeFormatPath = os.path.join(args.inputPath, 'data.pkl')
-    # if (os.path.exists(snakeFormatPath)):
-    #     os.remove(snakeFormatPath)
-    # convertToSnakeFormat(args.inputPath, snakeFormatPath)
-    print('-' * 32 )
+    if (os.path.exists(snakeFormatPath)):
+        os.remove(snakeFormatPath)
+    convertToSnakeFormat(args.inputPath, snakeFormatPath)
     model = loadModel(args.modelName)
     dataSet = loadDataLoader(snakeFormatPath, True)
     train(model, dataSet)

@@ -134,6 +134,12 @@ def parseArgs():
         type=str,
         default='',
         help='Input path for the data')
+
+    parser.add_argument(
+        '--outputPath',
+        type=str,
+        default='',
+        help='Output path for model weights')
     args = parser.parse_args()
     return args    
 
@@ -159,13 +165,14 @@ def main():
     args = parseArgs()
     model = loadModel(**vars(args))
     dataLoader = loadDataLoader(args.inputPath, True)
-    train(model, dataLoader)
+    train(model, dataLoader, args.outputPath)
 
-def train(model, dataLoader, epochs = 10):
+def train(model, dataLoader, modelDumpPath, epochs = 10):
     print(f'Training on device {device}')
     optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
     targetGenerator = TextSnakeTargets()
     for e in range(epochs):
+        epochLoss = 0
         for img, gt_masks, gt_mask_ignore in dataLoader:
             optimizer.zero_grad()
             target = {}
@@ -184,8 +191,11 @@ def train(model, dataLoader, epochs = 10):
                 gt_sin_map = [target['gt_sin_map']],
                 gt_cos_map = [target['gt_cos_map']])
             loss = output['loss_text'] + output['loss_center'] + output['loss_radius'] + output['loss_sin'] + output['loss_cos'] 
+            epochLoss += loss.item()
             loss.backward()
             optimizer.step()
+        print(epochLoss)
+    torch.save(model, modelDumpPath)
 
 
 
