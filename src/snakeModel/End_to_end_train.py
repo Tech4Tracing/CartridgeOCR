@@ -28,9 +28,9 @@ def main():
     #     os.remove(snakeFormatPath)
     # convertToSnakeFormat(args.inputPath, snakeFormatPath)
     print('-' * 32 )
-    model, criterion = loadModel(args.modelName)
+    model = loadModel(args.modelName)
     dataSet = loadDataLoader(snakeFormatPath, True)
-    train(model, criterion, dataSet)
+    train(model, dataSet)
 
 if __name__ == '__main__':
     main()

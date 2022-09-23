@@ -10,6 +10,16 @@ from argparse import ArgumentParser, Namespace
 import pickle
 from pipeline.dataset import SnakeModelDataset
 from torch.utils.data import DataLoader
+from mmocr.datasets.pipelines.textdet_targets import TextSnakeTargets
+import torch.optim as optim
+
+class DummyObj():
+    def __init__(self):
+        self.masks = []
+
+    def __str__(self) -> str:
+        return str(self.masks)
+
 
 textdet_models = {
             'DB_r18': {
@@ -106,9 +116,7 @@ textdet_models = {
             },
             'Tesseract': {}
         }
-textdet_losses = {
-    'TextSnake': TextSnakeLoss
-}
+
 downloadUrlBase = 'https://download.openmmlab.com/mmocr/textdet/'
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 img_metas = [{'dummyMetaKey': 'dummyMetaValue'}]
@@ -135,7 +143,7 @@ def loadModel(modelName = 'TextSnake'):
         det_configPath = os.path.join(config_dir, textdet_models[modelName]['config'])
         det_ckpt = f'{downloadUrlBase}{textdet_models[modelName]["ckpt"]}'
         detect_model = init_detector(det_configPath, det_ckpt, device=device)
-        return revert_sync_batchnorm(detect_model), textdet_losses[modelName]
+        return revert_sync_batchnorm(detect_model)
     else:
         print('Unsupported model')
         exit()
@@ -144,30 +152,42 @@ def loadModel(modelName = 'TextSnake'):
 def loadDataLoader(filePath, isTrain):
         if os.path.exists(filePath):
             dataSet =  SnakeModelDataset(filePath, isTrain)
-            return DataLoader(dataSet, 2, shuffle=False)
-
+            #TODO Figure out a way to pad the masks in a way that lets them be uniform and still pass to textsnake loss properly
+            return DataLoader(dataSet, 1, shuffle=False)
 
 def main():
     args = parseArgs()
-    model, criterion = loadModel(**vars(args))
+    model = loadModel(**vars(args))
     dataLoader = loadDataLoader(args.inputPath, True)
-    train(model, criterion, dataLoader)
+    train(model, dataLoader)
 
-def train(model, criterion, dataLoader, epochs = 10):
+def train(model, dataLoader, epochs = 10):
+    print(f'Training on device {device}')
+    optimizer = optim.SGD(model.parameters(), lr=0.001, momentum=0.9)
+    targetGenerator = TextSnakeTargets()
     for e in range(epochs):
-        for img, bitmaps in dataLoader:
-            print(bitmaps)
-            print(type(bitmaps))
-            exit()
-            bitmaps = bitmaps[0]
+        for img, gt_masks, gt_mask_ignore in dataLoader:
+            optimizer.zero_grad()
+            target = {}
+            target['gt_masks'] = DummyObj()
+            target['gt_masks'].masks = gt_masks[0].tolist()
+            target['gt_masks_ignore'] = DummyObj()
+            target['gt_masks_ignore'].masks = gt_mask_ignore[0].tolist()
+            target['img_shape'] = (800,800,3)
+            target['mask_fields'] = []
+            target = targetGenerator.generate_targets(target)
             output = model(img, img_metas, 
-            gt_text_mask = bitmaps[0], 
-            gt_center_region_mask = bitmaps[1],
-            gt_mask = bitmaps[2],
-            gt_radius_map = bitmaps[3],  
-            gt_sin_map = bitmaps[4],
-            gt_cos_map = bitmaps[5])
-            print(f'output: {output}')
+                gt_text_mask = [target['gt_text_mask']], 
+                gt_center_region_mask = [target['gt_center_region_mask']],
+                gt_mask = [target['gt_mask']],
+                gt_radius_map = [target['gt_radius_map']],  
+                gt_sin_map = [target['gt_sin_map']],
+                gt_cos_map = [target['gt_cos_map']])
+            loss = output['loss_text'] + output['loss_center'] + output['loss_radius'] + output['loss_sin'] + output['loss_cos'] 
+            loss.backward()
+            optimizer.step()
+
+
 
 if __name__ == '__main__':
     main()

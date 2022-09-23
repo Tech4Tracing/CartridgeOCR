@@ -2,6 +2,7 @@ from ast import parse
 from math import sqrt
 from re import X
 from typing import final
+from unittest import result
 import torch
 import numpy as np
 import os
@@ -20,13 +21,6 @@ class Point():
     
     def getNumpy(self):
         return np.array([self.x, self.y])
-
-class DummyObj():
-    def __init__(self):
-        self.masks = []
-
-    def __str__(self) -> str:
-        return str(self.masks)
 
 #x warp, then y warp
 def getWarp(image):
@@ -50,19 +44,24 @@ def extractBoxBorder(geometry, image):
     geometry = json.loads(geometry)
     x1 = geometry[0]['x']
     y1 = geometry[0]['y']
+    x1_2 = geometry[0]['x']
+    y1_2 = int((geometry[0]['y'] + geometry[1]['y']) / 2)
     x2 = geometry[0]['x']
     y2 = geometry[1]['y']
+    x2_3 = int((geometry[0]['x'] + geometry[1]['x']) / 2)
+    y2_3 = geometry[1]['y']
     x3 = geometry[1]['x']
     y3 = geometry[1]['y']
     x4 = geometry[1]['x']
     y4 = geometry[0]['y']
-    pointsList = [x1, y1, x2, y2, x3, y3, x4, y4]
+    pointsList = [x1, y1, x1_2, y1_2, x2, y2, x2_3, y2_3, x3, y3, x4, y4]
     for idx, x in enumerate(pointsList):
         if idx == 0: #x
             x *= image.shape[0] * warpRate[0]
         else: #y
             x *= image.shape[1] * warpRate[1]
-    return np.array(pointsList)
+    return [pointsList]
+    # return np.array(pointsList)
 
 
 ##Todo fix order of border coords
@@ -116,8 +115,10 @@ def extractRadialBorder(geometry, image):
             pointsList[idx] *= image.shape[1]* warpRate[1]
 
     # print(f'radial returning: {np.array(pointsList)} ')
-    
-    return np.array(pointsList)
+    # print(f'size: {np.array(pointsList).shape}')
+    # exit()
+    # return pointsList
+    return [pointsList]
 
 def parseGeometries(annotation, npImage):
     geometryStr = annotation['geometry']
@@ -168,45 +169,35 @@ def convertToSnakeFormat(inputPath: str, outputPath: str):
                 continue
             if filePath != lastFilePath:
                 if not firstRun:
-                    targets = TextSnakeTargets()
-                    resultDictionary = targets.generate_targets(resultDictionary)
-
-                    finalResultToDump = {}
-                    finalResultToDump['mask_field_names'] = []
-                    finalResultToDump['file_path'] = filePath
-                    for key in resultDictionary['mask_fields']:
-                        finalResultToDump[key] = resultDictionary[key]
-                        finalResultToDump['mask_field_names'].append(key)
-                    finalResults.append(finalResultToDump)
+                    print('----------------------------------------------')
+                    print(resultDictionary['file_path'])
+                    print(resultDictionary['gt_masks'])
+                    x = np.array(resultDictionary['gt_masks'])
+                    finalResults.append(resultDictionary)
                 firstRun = False
                 resultDictionary = {}
 
+                resultDictionary['file_path'] = filePath
                 resultDictionary['img_shape'] = (imgSize, imgSize, 3)
                 resultDictionary['mask_fields'] = []
-                resultDictionary['gt_masks'] = DummyObj()
-                resultDictionary['gt_masks_ignore'] = DummyObj()
-                # resultDictionary['gt_masks_ignore'].masks = [[np.array([])]]
-                resultDictionary['gt_masks_ignore'].masks = []
+                resultDictionary['gt_masks'] = []
+                resultDictionary['gt_masks_ignore'] = []
+                # resultDictionary['gt_masks_ignore'].masks = []
             lastFilePath = filePath
 
             masks = parseGeometries(annotation, npImage)
-            if (len(resultDictionary['gt_masks'].masks) == 0):
-                resultDictionary['gt_masks'].masks = [[masks]]
+            if (len(resultDictionary['gt_masks']) == 0):
+                resultDictionary['gt_masks'] = [masks]
             else :
-                resultDictionary['gt_masks'].masks.append([masks])
+                resultDictionary['gt_masks'].append(masks)
             # resultDictionary['gt_masks_ignore'].masks.append(masks)#do not write to gt_masks_ignore, we aren't ignoring any sections of the screen, not masking
 
         #final annotation hasn't been dumped yet
-        targets = TextSnakeTargets()
-        resultDictionary = targets.generate_targets(resultDictionary)
-
-        finalResultToDump = {}
-        finalResultToDump['mask_field_names'] = []
-        finalResultToDump['file_path'] = filePath
-        for key in resultDictionary['mask_fields']:
-            finalResultToDump[key] = resultDictionary[key]
-            finalResultToDump['mask_field_names'].append(key)
-        finalResults.append(finalResultToDump)
+        print('----------------------------------------------')
+        print(resultDictionary['file_path'])
+        print(resultDictionary['gt_masks'])
+        x = np.array(resultDictionary['gt_masks'])
+        finalResults.append(resultDictionary)
     with open(outputPath, 'wb') as f:
         pickle.dump(finalResults, f)
                             

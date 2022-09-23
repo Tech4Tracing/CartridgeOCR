@@ -45,11 +45,10 @@ class SnakeModelDataset(Dataset):
         image = Image.open(imgPath)
         image = t(image)
         target_sz = (800,800)
-        masksToReturn = {}
-        for key in lossMaskNames:
-            masksToReturn[key] = annotation[key]
         # bitmasks = self.loss.bitmasks2tensor(masksToReturn, target_sz)
         # masksToReturn = [self.loss.bitmasks2tensor(bitmasks = annotation[key], target_sz = target_sz) for key in annotation['mask_field_names']]
         # gt_text_mask = annotation['gt_text_mask'] 'gt_center_region_mask', 'gt_mask', 'gt_radius_map', 'gt_sin_map', and 'gt_cos_map'
-        print(type(masksToReturn))
-        return [image, masksToReturn]
+        print('-' * 50 + 'gt_masks' + '-' * 50 ) 
+        print(np.array(annotation['gt_masks']))
+        print('-' * 50)
+        return [image, np.array(annotation['gt_masks']), np.array(annotation['gt_masks_ignore'])]
