@@ -65,7 +65,6 @@ def extractBoxBorder(geometry, image):
     # return np.array(pointsList)
 
 
-##Todo fix order of border coords
 def extractRadialBorder(geometry, image):
     """
     Input: list of 3 dictionaries of coordinates
@@ -115,10 +114,6 @@ def extractRadialBorder(geometry, image):
         else: #y
             pointsList[idx] *= image.shape[1]* warpRate[1]
 
-    # print(f'radial returning: {np.array(pointsList)} ')
-    # print(f'size: {np.array(pointsList).shape}')
-    # exit()
-    # return pointsList
     return [pointsList]
 
 def parseGeometries(annotation, npImage):
@@ -188,7 +183,6 @@ def convertToSnakeFormat(inputPath: str, outputPath: str):
                 resultDictionary['gt_masks'] = [masks]
             else :
                 resultDictionary['gt_masks'].append(masks)
-            # resultDictionary['gt_masks_ignore'].masks.append(masks)#do not write to gt_masks_ignore, we aren't ignoring any sections of the screen, not masking
 
         #final annotation hasn't been dumped yet
         x = np.array(resultDictionary['gt_masks'])
@@ -196,13 +190,6 @@ def convertToSnakeFormat(inputPath: str, outputPath: str):
     with open(outputPath, 'wb') as f:
         pickle.dump(finalResults, f)
                             
-    # gt_masks -> dictionary with a single field masks, 
-    #     masks is a (list[list[ndarray]]) where it's textSections x 1 x polygon border point list length
-    # gt_masks_ignore -> dictionary with single field masks,
-    #     masks is a list[[ndarray]] The list of ignored text polygons.
-    # img_shape -> 3d tensor of height, width, channels
-    # mask_fields -> an empty list 
-
 def parse_args():
     parser = ArgumentParser()
     parser.add_argument(
