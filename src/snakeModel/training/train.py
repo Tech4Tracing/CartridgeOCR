@@ -177,9 +177,6 @@ def train(model, dataLoader, modelDumpPath, epochs = 10):
     for e in tqdm(range(epochs)):
         epochLoss = 0
         for img, gt_masks, gt_mask_ignore in dataLoader:
-            print(f'total GPU memory: {torch.cuda.get_device_properties(0).total_memory}')
-            print(f'reserved mem: {torch.cuda.memory_reserved(0)}, allocated mem: {torch.cuda.memory_allocated(0)}')
-            print(f'torch.cuda.mem_get_info: {torch.cuda.mem_get_info(0)}')
             img = img.to(device)
             optimizer.zero_grad()
             target = {}
@@ -201,8 +198,8 @@ def train(model, dataLoader, modelDumpPath, epochs = 10):
             epochLoss += loss.item()
             loss.backward()
             optimizer.step()
-        print(epochLoss)
-    torch.save(model, modelDumpPath)
+        print(f'Epoch {e} loss: {epochLoss}')
+    torch.save(model, os.path.join(modelDumpPath, 'trainedSnakeModel.pth'))
 
 
 

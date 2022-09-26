@@ -7,7 +7,6 @@ import torch
 
 def parse_args():
     parser = ArgumentParser()
-
     parser.add_argument(
         '--inputPath',
         type=str,
@@ -33,21 +32,13 @@ def main():
     if (os.path.exists(snakeFormatPath)):
         os.remove(snakeFormatPath)
     convertToSnakeFormat(args.inputPath, snakeFormatPath)
-    # print('pre load model')
-    # print(f'total GPU memory: {torch.cuda.get_device_properties(0).total_memory}')
-    # print(f'reserved mem: {torch.cuda.memory_reserved(0)}, allocated mem: {torch.cuda.memory_allocated(0)}')
-    # print(f'torch.cuda.mem_get_info: {torch.cuda.mem_get_info(0)}')
     model = loadModel(args.modelName)
     print(model)
-    # # print('\n\npost load model')
-    # print(f'total GPU memory: {torch.cuda.get_device_properties(0).total_memory}')
-    # print(f'reserved mem: {torch.cuda.memory_reserved(0)}, allocated mem: {torch.cuda.memory_allocated(0)}')
-    # print(f'torch.cuda.mem_get_info: {torch.cuda.mem_get_info(0)}')
-    # exit()
     dataSet = loadDataLoader(snakeFormatPath, True)
     train(model, dataSet, args.outputPath)
 
 if __name__ == '__main__':
     main()
 
-# Example usage: python End_to_end_train.py --inputPath=C:\Users\ecarlson\Desktop\azDest\export_test
+# Example usage: 
+# python End_to_end_train.py --inputPath=C:\Users\ecarlson\Desktop\azDest\export_test --outputPath=C:\Users\ecarlson\Desktop\trainedWeights.pth
