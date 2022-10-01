@@ -57,7 +57,7 @@ def annotations_list():
             # filter by collection (including only collections visible to user if no collection is provided)
             Annotation.image_id == Image.id,
             Image.collection_id.in_(this_user_collections.with_entities(ImageCollection.id).distinct()),
-            ImageCollection.id == collection_id if collection_id else True,
+            Image.collection_id == collection_id if collection_id else True,
         )
     )
 
