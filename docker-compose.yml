@@ -63,10 +63,3 @@ services:
       - "10000:10000"  # so redirect urls for images work
     logging:
       driver: none
-
-  # this image depends on a custom prebuild script so we can't define the build context here
-  predict_api:
-    image: cartridgeocr/predict_api:latest
-    ports:
-      - "8081:8081"
-    stop_signal: sigkill
