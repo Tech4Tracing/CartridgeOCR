@@ -81,6 +81,7 @@ knack==0.8.0rc2
 matplotlib
 matplotlib-inline
 mistune==0.8.4
+mmocr
 msal==1.10.0
 msal-extensions==0.2.2
 msrest==0.6.21
