@@ -6,12 +6,12 @@ import json
 
 parser = argparse.ArgumentParser()
 
-# TODO: optional flag to export all images, even without annotations
 # TODO: import script to reload exported data
 
 parser.add_argument('--collection_id', type=str, default=None, required=False)
 parser.add_argument('output_folder', type=str)
 parser.add_argument('--overwrite', action='store_true', default=False, required=False)
+parser.add_argument('--include_unannotated', action='store_true', default=False)
 parser.add_argument('--cookie', type=str, required=True)
 
 args = parser.parse_args()
@@ -34,8 +34,20 @@ with open(args.output_folder + "/annotations.json", "w") as f:
     json.dump(o, f)
 
 images = set()
-for a in o["annotations"]:
-    images.add(a["image_id"])
+if not args.include_unannotated:
+    for a in o["annotations"]:
+        images.add(a["image_id"])
+else:
+    url = "http://127.0.0.1:8080/api/v0/images"
+    if args.collection_id:
+        url += f"?collection_id={args.collection_id}"
+
+    imagelist = requests.get(url, headers={"Cookie": f"{args.cookie}"})
+    if imagelist.status_code != 200:
+        raise Exception(f"Failed to get images: {annotations.text}")
+
+    for i in imagelist.json()["images"]:
+        images.add(i["id"])
 
 print(f"Found {len(o['annotations'])} annotations for {len(images)} images")
 
