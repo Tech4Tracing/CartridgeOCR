@@ -16,6 +16,7 @@ from flask_sqlalchemy import SQLAlchemy
 from oauthlib.oauth2 import WebApplicationClient
 
 from annotations_app.config import Config, logging
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 load_dotenv()
 
@@ -43,6 +44,7 @@ app = Flask(__name__)
 app.secret_key = Config.SECRET_KEY
 app.config["SQLALCHEMY_DATABASE_URI"] = Config.SQLALCHEMY_DATABASE_URI
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.wsgi_app = ProxyFix(app.wsgi_app)
 
 # Uncomment the engine_options line below to enable SQL query logging
 db = SQLAlchemy(app) #, engine_options={"echo": True})

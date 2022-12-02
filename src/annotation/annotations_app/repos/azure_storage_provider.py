@@ -81,11 +81,13 @@ class AzureStorageProvider:
             content_disposition="inline",
             content_type=content_type
         )
-        if self.connection_info['BlobEndpoint'] == "http://annotations_objstore:10000/devstoreaccount1":
+        if self.connection_info.get('BlobEndpoint', None) == "http://annotations_objstore:10000/devstoreaccount1":
             # local dev/demo scenario
             host = "http://localhost:10000/devstoreaccount1"
-        else:
+        elif self.connection_info.get('BlobEndpoint', None):
             host = self.connection_info['BlobEndpoint']
+        else:
+            host = f"https://{self.connection_info['AccountName']}.blob.{self.connection_info['EndpointSuffix']}" 
         # TODO: might think about allowing only Azure urls here, so our customers don't get
         # redirected to some bad place if someone changes env variables (host, container)
         # or manages to save bad storage key (we should generate it ourselves)
