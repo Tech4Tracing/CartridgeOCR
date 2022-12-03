@@ -119,7 +119,7 @@ def image_post():
     db.session.add(image_in_db)
     db.session.commit()
     db.session.refresh(image_in_db)
-    return schemas.ImageDisplaySchema().dump(image_in_db)
+    return schemas.ImageDisplaySchema().dump(image_in_db), 201
 
 
 @app.route("/api/v0/images", methods=["GET"])
@@ -132,7 +132,7 @@ def images_list():
         - in: query
           name: collection_id
           schema:
-            type: integer
+            type: string
           required: false
           description: the collection ID to filter upon
       responses:
