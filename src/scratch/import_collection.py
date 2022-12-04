@@ -8,6 +8,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--collection_name', required=True)
 parser.add_argument('--cookie', type=str, required=True)
 parser.add_argument('--delete-existing', action='store_true', default=False)
+parser.add_argument('--root-url', type=str, default="http://127.0.0.1:8080")
 parser.add_argument('collection_folder')
 
 args = parser.parse_args()
@@ -15,7 +16,7 @@ args = parser.parse_args()
 logging.basicConfig(level=logging.INFO)
 
 # Create the empty collection
-base_url = "http://127.0.0.1:8080/api/v0/"
+base_url = f"{args.root_url}/api/v0/"
 collections_url = base_url + "collections"
 image_url = base_url + "images"
 annotations_url = base_url + "annotations"
@@ -51,12 +52,13 @@ logging.info(f'Created collection: {collection_result.json()}')
 collection_id = collection_result.json()["id"]
 
 # upload the images
-images = filter(lambda x: x.lower().endswith(".jpg"), os.listdir(args.collection_folder))
+images = filter(lambda x: x.lower().split('.')[-1] in ['jpg','png'], os.listdir(args.collection_folder))
 image_map = {}
 for image in images:
     with open(os.path.join(args.collection_folder, image), "rb") as f:
         files = {"file":(image, f, 'application-type')}
-        payload = {"collection_id": collection_id, "mime_type": "image/jpeg"}
+        mime = 'image/jpeg' if image.lower().split('.')[-1] == 'jpg' else 'image/png'
+        payload = {"collection_id": collection_id, "mime_type": mime}
 
         image_result = requests.post(image_url, headers={"Cookie": f"{args.cookie}"}, 
                                      files = files, data = payload)                                      
@@ -66,7 +68,12 @@ for image in images:
         image_map[image] = image_result.json()['id']
 
 # upload the annotations
-with open(os.path.join(args.collection_folder,"annotations.json"), 'r', encoding='utf-8') as in_annot:
+annotations_path = os.path.join(args.collection_folder, "annotations.json")
+if not os.path.exists(annotations_path):
+    logging.warning("No annotations.json file found, skipping annotations")
+    exit(0)
+
+with open(annotations_path, 'r', encoding='utf-8') as in_annot:
     annotations = json.load(in_annot)
 logging.info(f'Annotations: {annotations.keys()}')
 for a in annotations['annotations']:

@@ -18,7 +18,6 @@ class BaseModel(db.Model, AllFeaturesMixin):
 BaseModel.set_session(db.session)
 
 
-# TODO: define a relationship?
 class Annotation(BaseModel):
     __tablename__ = 'annotations'
 

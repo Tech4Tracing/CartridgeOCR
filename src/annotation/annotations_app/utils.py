@@ -59,7 +59,7 @@ def db_session():
     if not os.environ.get("SQLALCHEMY_URL"):
         raise Exception("Please configure SQLALCHEMY_URL")
     # TODO: these 2 lines are per app, not per request
-    engine = sqldb.create_engine(os.environ.get("SQLALCHEMY_URL"))
+    engine = sqldb.create_engine(os.environ.get("SQLALCHEMY_URL"), pool_size=10, max_overflow=20)
     Session = sqldb.orm.sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
     # these per request
