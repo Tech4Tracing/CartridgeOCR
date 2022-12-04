@@ -1,7 +1,7 @@
 import json
 import logging
 
-from marshmallow import Schema, fields
+from marshmallow import Schema, fields, pre_load, post_load, pre_dump
 
 
 class DemoParameter(Schema):
@@ -65,10 +65,36 @@ class ImageDisplaySchema(Schema):
     collection_id = fields.Str()
     mimetype = fields.Str()
     size = fields.Int()
-    extra_data = fields.Dict()
+    extra_data = fields.Str()
     # Helpful but noisy
     annotations = fields.List(fields.Nested(AnnotationDisplaySchema))
 
+    #@post_load
+    #def deserialize_extra_data(self, data):
+    #    """This will alter the data passed to ``load()`` before Marshmallow
+    #    attempts deserialization.
+    #    """
+    #    print(f'deserialize_extra_data {dir(data)}')
+    #    extra_data = data.extra_data
+    #    data.extra_data = json.loads(extra_data)
+    #    return data
+
+    def dump(self, *args, **kwargs):
+        result = super().dump(*args, **kwargs)
+        print('dump', type(result))
+        if result.get("extra_data"):
+            result["extra_data"] = json.loads(result["extra_data"])
+        return result
+
+    #@pre_dump
+    #def serialize_extra_data(self, data, many):
+    #    """This will alter the data passed to ``dump()`` before Marshmallow
+    #    attempts serialization.
+    #    """
+    #    print(type(data), type(data.extra_data), data.extra_data)
+    #    extra_data = data.extra_data
+    #    data.extra_data = json.loads(extra_data)
+    #    return data
 
 class ImageListSchema(Schema):
     total = fields.Int()
