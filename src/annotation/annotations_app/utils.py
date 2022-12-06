@@ -32,6 +32,7 @@ class DBConnection:
 
 
 def get_db() -> DBConnection:
+    raise "get_db is a deprecated interface"
     if getattr(g, '_db', None) is None:
         if not os.environ.get("SQLALCHEMY_URL"):
             # Example: "mssql+pymssql://sa:Your_password123@compliance_mssql/master?charset=utf8"
@@ -56,6 +57,8 @@ def get_global(key):
 # TODO: replace it by using app.db everywhere because it's much simpler
 @contextmanager
 def db_session():
+    raise "db_session is a deprecated interface"
+    logging.info("requesting db session")
     if not os.environ.get("SQLALCHEMY_URL"):
         raise Exception("Please configure SQLALCHEMY_URL")
     # TODO: these 2 lines are per app, not per request
