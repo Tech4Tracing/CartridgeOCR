@@ -1,7 +1,7 @@
 from flask import abort, jsonify, request
 from marshmallow import ValidationError
 
-from annotations_app.flask_app import app
+from annotations_app.flask_app import app, db
 from annotations_app import schemas
 from annotations_app.models.base import User
 from annotations_app.utils import db_session, superuser_required
@@ -20,16 +20,15 @@ def users_list():
             application/json:
               schema: UserListSchema
     """
-    with db_session() as db:
-        queryset = db.query(User).order_by("id")
-        total = queryset.count()
+    queryset = db.session.query(User).order_by("id")
+    total = queryset.count()
 
-        return schemas.UserListSchema().dump(
-            {
-                "total": total,
-                "objects": queryset,
-            }
-        )
+    return schemas.UserListSchema().dump(
+        {
+            "total": total,
+            "objects": queryset,
+        }
+    )
 
 
 @app.route("/api/v0/users", methods=["POST"])
@@ -58,36 +57,35 @@ def user_create():
     if not req.get("email"):
         abort(400)
 
-    with db_session() as db:
-        existing_user_by_email = (
-            db.query(User).filter(User.email == req.get("email")).first()
+    existing_user_by_email = (
+        db.session.query(User).filter(User.email == req.get("email")).first()
+    )
+
+    if existing_user_by_email:
+        return (
+            schemas.Errors().dump(
+                {
+                    "errors": [
+                        {
+                            "title": "AlreadyExists",
+                            "detail": "Email is busy / user already created - use update instead",
+                        }
+                    ]
+                }
+            ),
+            400,
         )
 
-        if existing_user_by_email:
-            return (
-                schemas.Errors().dump(
-                    {
-                        "errors": [
-                            {
-                                "title": "AlreadyExists",
-                                "detail": "Email is busy / user already created - use update instead",
-                            }
-                        ]
-                    }
-                ),
-                400,
-            )
-
-        user_in_db = User(
-            email=req.get("email"),
-            name=req["name"],
-            is_active=req.get("is_active"),
-            is_superuser=req.get("is_superuser"),
-        )
-        db.add(user_in_db)
-        db.commit()
-        db.refresh(user_in_db)
-        return schemas.UserDisplaySchema().dump(user_in_db)
+    user_in_db = User(
+        email=req.get("email"),
+        name=req["name"],
+        is_active=req.get("is_active"),
+        is_superuser=req.get("is_superuser"),
+    )
+    db.session.add(user_in_db)
+    db.session.commit()
+    db.session.refresh(user_in_db)
+    return schemas.UserDisplaySchema().dump(user_in_db)
 
 
 @app.route("/api/v0/users/<string:user_id>", methods=["PATCH", "PUT"])
@@ -119,33 +117,32 @@ def user_update(user_id):
                 application/json:
                   schema: UserDisplaySchema
     """
-    with db_session() as db:
-        try:
-            validated_req = schemas.UserCreateSchema().load(request.get_json())
-        except ValidationError as err:
-            # TODO: convert marshmallow error to our error of known format
-            return jsonify(err.messages), 400
+    try:
+        validated_req = schemas.UserCreateSchema().load(request.get_json())
+    except ValidationError as err:
+        # TODO: convert marshmallow error to our error of known format
+        return jsonify(err.messages), 400
 
-        user_in_db = db.query(User).filter(User.id == user_id).first()
+    user_in_db = db.session.query(User).filter(User.id == user_id).first()
 
-        if not user_in_db:
-            return (
-                schemas.Errors().dump(
-                    {
-                        "errors": [
-                            {
-                                "title": "NotFound",
-                                "detail": "No user with given ID",
-                            }
-                        ]
-                    }
-                ),
-                404,
-            )
+    if not user_in_db:
+        return (
+            schemas.Errors().dump(
+                {
+                    "errors": [
+                        {
+                            "title": "NotFound",
+                            "detail": "No user with given ID",
+                        }
+                    ]
+                }
+            ),
+            404,
+        )
 
-        for key, value in validated_req.items():
-            setattr(user_in_db, key, value)
+    for key, value in validated_req.items():
+        setattr(user_in_db, key, value)
 
-        db.commit()
-        db.refresh(user_in_db)
-        return schemas.UserDisplaySchema().dump(user_in_db)
+    db.session.commit()
+    db.session.refresh(user_in_db)
+    return schemas.UserDisplaySchema().dump(user_in_db)

@@ -122,7 +122,7 @@ def annotation_post():
     new_db.session.add(annotation_in_db)
     new_db.session.commit()
     new_db.session.refresh(annotation_in_db)
-    return schemas.AnnotationDisplaySchema().dump(annotation_in_db)
+    return schemas.AnnotationDisplaySchema().dump(annotation_in_db), 201
 
 
 @app.route("/api/v0/annotations/<string:annotation_id>", methods=["PUT"])

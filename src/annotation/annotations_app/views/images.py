@@ -1,5 +1,6 @@
 import mimetypes
 from io import BytesIO
+import json
 
 from flask import request, send_file, redirect
 from flask_login import login_required, current_user
@@ -29,6 +30,8 @@ def image_post():
                     type: string
                   mimetype:
                     type: string
+                  extra_data:
+                    type: object
                   file:
                     type: string
                     format: binary
@@ -110,16 +113,22 @@ def image_post():
     )[0]
 
     mime = request.form.get("mimetype") or default_mimetype or "binary/octet-stream"
+    extra_data = request.form.get("extra_data")
+    extra_data = json.loads(extra_data) if extra_data else {}
+    if 'filename' not in extra_data:
+      extra_data['filename'] = request.files["file"].filename
     image_in_db = Image(
         mimetype=mime,
         size=size,
         storageKey=storage_file_key,
         collection_id=collection_in_db.id,
+        extra_data=json.dumps(extra_data)
     )
+    
     db.session.add(image_in_db)
     db.session.commit()
     db.session.refresh(image_in_db)
-    return schemas.ImageDisplaySchema().dump(image_in_db)
+    return schemas.ImageDisplaySchema().dump(image_in_db), 201
 
 
 @app.route("/api/v0/images", methods=["GET"])
@@ -132,7 +141,7 @@ def images_list():
         - in: query
           name: collection_id
           schema:
-            type: integer
+            type: string
           required: false
           description: the collection ID to filter upon
       responses:

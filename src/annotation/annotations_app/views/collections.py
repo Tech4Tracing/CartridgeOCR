@@ -62,7 +62,7 @@ def collection_create():
     db.session.commit()
     db.session.refresh(new_collection)
     db.session.expunge(new_collection)
-    return schemas.CollectionDisplaySchema().dump(new_collection)
+    return schemas.CollectionDisplaySchema().dump(new_collection), 201
 
 
 @app.route("/api/v0/collections/<string:collection_id>", methods=["DELETE"])

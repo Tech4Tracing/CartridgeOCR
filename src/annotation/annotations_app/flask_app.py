@@ -46,8 +46,8 @@ app.config["SQLALCHEMY_DATABASE_URI"] = Config.SQLALCHEMY_DATABASE_URI
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.wsgi_app = ProxyFix(app.wsgi_app)
 
-# Uncomment the engine_options line below to enable SQL query logging
-db = SQLAlchemy(app) #, engine_options={"echo": True})
+# Add the echo option below to enable SQL query logging
+db = SQLAlchemy(app, engine_options={'pool_size': 10, 'max_overflow': 20}) #, engine_options={"echo": True})
 
 # logging.info('Launching login manager')
 # User session management setup
