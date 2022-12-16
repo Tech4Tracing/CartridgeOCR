@@ -5,14 +5,14 @@ import json
 from flask import request, send_file, redirect
 from flask_login import login_required, current_user
 
-from annotations_app.flask_app import app, db
+from annotations_app.flask_app import app, db, celery
 from annotations_app import schemas
 from annotations_app.config import logging
 from annotations_app.models.base import ImageCollection, Image, Annotation
 from annotations_app.repos.azure_storage_provider import (
     AzureStorageProvider as StorageProvider,
 )
-
+from annotations_app.tasks.predict import Predict
 
 @app.route("/api/v0/images", methods=["POST"])
 @login_required
@@ -318,3 +318,21 @@ def image_annotations(image_id):
             "annotations": results,
         }
     )
+
+
+@app.route("/api/v0/predict/<string:image_id>", methods=["GET"])
+def image_predict(image_id):
+  # move this method to /api/v0/predictions/<image_id> and make it a POST
+  # the POST will return a 202 and the task id
+  # the task itself will run prediction and update the database
+  # the GET will return the status of the task
+  # First publish tech4tracing.headstamp_detection.
+  
+  result = Predict('http://').predict_image.delay(image_id)  
+  return json.dumps({'task':result.task_id}), 200
+
+@app.route("/api/v0/predict_status/<string:task_id>", methods=["GET"])
+def get_status(task_id):
+  result = celery.AsyncResult(task_id).state
+  return json.dumps({'result':result}), 200
+

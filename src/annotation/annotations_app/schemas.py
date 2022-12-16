@@ -65,7 +65,7 @@ class ImageDisplaySchema(Schema):
     collection_id = fields.Str()
     mimetype = fields.Str()
     size = fields.Int()
-    extra_data = fields.Dict()
+    extra_data = fields.Str()
     # Helpful but noisy
     annotations = fields.List(fields.Nested(AnnotationDisplaySchema))
 

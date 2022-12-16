@@ -17,6 +17,7 @@ from oauthlib.oauth2 import WebApplicationClient
 
 from annotations_app.config import Config, logging
 from werkzeug.middleware.proxy_fix import ProxyFix
+import annotations_app.tasks as tasks
 
 load_dotenv()
 
@@ -44,6 +45,12 @@ app = Flask(__name__)
 app.secret_key = Config.SECRET_KEY
 app.config["SQLALCHEMY_DATABASE_URI"] = Config.SQLALCHEMY_DATABASE_URI
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config.update(CELERY_CONFIG={
+    'broker_url': 'pyamqp://rabbitmq:5672',
+    'result_backend': 'db+'+Config.SQLALCHEMY_DATABASE_URI,
+})
+
+celery = tasks.make_celery(app)
 app.wsgi_app = ProxyFix(app.wsgi_app)
 
 # Add the echo option below to enable SQL query logging

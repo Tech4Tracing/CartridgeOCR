@@ -65,3 +65,11 @@ services:
       - "10000:10000"  # so redirect urls for images work
     logging:
       driver: none
+
+  rabbitmq:
+    image: rabbitmq:3.8.9-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: "guest"
