@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw
 import torch.utils.data
 import torchvision
 from azureml.core.model import Model
-from model.training.model_utils import rt, isEllipseOverlap, isContained, get_transform, load_snapshot
+from t4t_headstamp.training.model_utils import rt, isEllipseOverlap, isContained, get_transform, load_snapshot
 
 
 class Inference():

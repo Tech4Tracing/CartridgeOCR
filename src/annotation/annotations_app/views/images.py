@@ -1,6 +1,8 @@
 import mimetypes
 from io import BytesIO
 import json
+import os
+from base64 import b64encode
 
 from flask import request, send_file, redirect
 from flask_login import login_required, current_user
@@ -12,7 +14,10 @@ from annotations_app.models.base import ImageCollection, Image, Annotation
 from annotations_app.repos.azure_storage_provider import (
     AzureStorageProvider as StorageProvider,
 )
-from annotations_app.tasks.predict import Predict
+from annotations_app.tasks.predict import predict_headstamps
+
+assert 'PREDICTION_ENDPOINT' in os.environ
+prediction_endpoint_uri = os.environ['PREDICTION_ENDPOINT']+'/api/v0/headstamp_predict'            
 
 @app.route("/api/v0/images", methods=["POST"])
 @login_required
@@ -98,8 +103,9 @@ def image_post():
     # TODO: file format validation? file size validation? duplicates? etc
 
     # upload the file to storage
+    image_data = request.files["file"].read()
     readable_file = BytesIO(
-        request.files["file"].read()
+        image_data
     )  # all goes to memory, which is fine for images for most cases
     storage_provider = StorageProvider()
     storage_file_key, size = storage_provider.upload_file(
@@ -125,6 +131,11 @@ def image_post():
         extra_data=json.dumps(extra_data)
     )
     
+    # Trigger prediction task
+    # TODO: set ignore_result=True once db persistence is established.
+    result=predict_headstamps.delay(prediction_endpoint_uri, image_in_db.id, b64encode(image_data).decode('utf-8'))
+    logging.info(f'Prediction task: {result.task_id}')
+
     db.session.add(image_in_db)
     db.session.commit()
     db.session.refresh(image_in_db)
@@ -319,20 +330,4 @@ def image_annotations(image_id):
         }
     )
 
-
-@app.route("/api/v0/predict/<string:image_id>", methods=["GET"])
-def image_predict(image_id):
-  # move this method to /api/v0/predictions/<image_id> and make it a POST
-  # the POST will return a 202 and the task id
-  # the task itself will run prediction and update the database
-  # the GET will return the status of the task
-  # First publish tech4tracing.headstamp_detection.
-  
-  result = Predict('http://').predict_image.delay(image_id)  
-  return json.dumps({'task':result.task_id}), 200
-
-@app.route("/api/v0/predict_status/<string:task_id>", methods=["GET"])
-def get_status(task_id):
-  result = celery.AsyncResult(task_id).state
-  return json.dumps({'result':result}), 200
 

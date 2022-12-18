@@ -5,7 +5,7 @@ import torch.utils.data
 import torchvision
 from pycocotools import mask as coco_mask
 from pycocotools.coco import COCO
-import model.dataProcessing.transforms as T
+import t4t_headstamp.dataProcessing.transforms as T
 import logging
 
 

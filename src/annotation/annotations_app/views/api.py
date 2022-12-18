@@ -2,7 +2,7 @@ from flask import jsonify, render_template
 from flask_login import login_required
 
 from annotations_app.flask_app import app, spec
-from annotations_app.views import users, collections, images, annotations
+from annotations_app.views import users, collections, images, annotations, predictions
 
 
 @app.route("/api/v0/openapi.json", methods=["GET"])
@@ -36,3 +36,4 @@ with app.test_request_context():
     spec.path(view=users.users_list)
     spec.path(view=users.user_create)
     spec.path(view=users.user_update)
+    spec.path(view=predictions.get_status)
