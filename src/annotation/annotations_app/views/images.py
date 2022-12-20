@@ -123,19 +123,23 @@ def image_post():
     extra_data = json.loads(extra_data) if extra_data else {}
     if 'filename' not in extra_data:
       extra_data['filename'] = request.files["file"].filename
+    
+    # Trigger prediction task
+    # TODO: set ignore_result=True once db persistence is established.
+    result=predict_headstamps.delay(prediction_endpoint_uri, current_user, image_in_db.id, b64encode(image_data).decode('utf-8'))
+    logging.info(f'Prediction task: {result.task_id}')
+    prediction_status = {'task_id': result.task_id, 'status': 'pending', 'result': 'None'}
+
     image_in_db = Image(
         mimetype=mime,
         size=size,
         storageKey=storage_file_key,
         collection_id=collection_in_db.id,
-        extra_data=json.dumps(extra_data)
+        extra_data=json.dumps(extra_data),
+        prediction_status=json.dumps(prediction_status)
     )
     
-    # Trigger prediction task
-    # TODO: set ignore_result=True once db persistence is established.
-    result=predict_headstamps.delay(prediction_endpoint_uri, image_in_db.id, b64encode(image_data).decode('utf-8'))
-    logging.info(f'Prediction task: {result.task_id}')
-
+    
     db.session.add(image_in_db)
     db.session.commit()
     db.session.refresh(image_in_db)

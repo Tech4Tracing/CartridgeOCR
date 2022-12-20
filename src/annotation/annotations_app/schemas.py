@@ -66,6 +66,7 @@ class ImageDisplaySchema(Schema):
     mimetype = fields.Str()
     size = fields.Int()
     extra_data = fields.Str()
+    prediction_status = fields.Str()
     # Helpful but noisy
     annotations = fields.List(fields.Nested(AnnotationDisplaySchema))
 
@@ -84,6 +85,8 @@ class ImageDisplaySchema(Schema):
         print('dump', type(result))
         if result.get("extra_data"):
             result["extra_data"] = json.loads(result["extra_data"])
+        if result.get("prediction_status"):
+            result["prediction_status"] = json.loads(result["prediction_status"])
         return result
 
     #@pre_dump
@@ -137,3 +140,26 @@ class ErrorSchema(Schema):
 
 class Errors(Schema):
     errors = fields.List(fields.Nested(ErrorSchema))
+
+
+class HeadstampPredictionDisplaySchema(Schema):
+    id = fields.Str()
+    created_at = fields.Str()
+    image_id = fields.Str()
+    casing_box = fields.Str()
+    casing_confidence = fields.Float()
+    primer_box = fields.Str()
+    primer_confidence = fields.Float()
+    
+    def dump(self, *args, **kwargs):
+        result = super().dump(*args, **kwargs)
+        if result.get("created_at"):
+            if isinstance(result["created_at"], str) and result["created_at"].endswith(" +00:00"):
+                # strip that space
+                result["created_at"] = result["created_at"].rstrip(" +00:00") + "Z"
+        return result
+
+
+class HeadstampPredictionListSchema(Schema):
+    total = fields.Int()
+    predictions = fields.List(fields.Nested(HeadstampPredictionDisplaySchema))

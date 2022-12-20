@@ -4,7 +4,7 @@ import uuid
 
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy_mixins import AllFeaturesMixin
-from sqlalchemy import Boolean, ForeignKey, Integer, Text, String, DateTime
+from sqlalchemy import Boolean, ForeignKey, Integer, Text, String, DateTime, Float
 from sqlalchemy.orm import relationship
 
 db = SQLAlchemy()
@@ -177,3 +177,22 @@ class Image(BaseModel):
         if not image_in_db:
             abort(404, description="Image not found")
         return image_in_db
+
+
+
+
+class HeadstampPrediction(BaseModel):
+    __tablename__ = 'predictions'
+
+    id = db.Column(String(36), primary_key=True, default=uuid.uuid4)
+    created_at = db.Column(DateTime(timezone=True), default=datetime.datetime.utcnow)
+
+    image_id = db.Column(String(36), ForeignKey("images.id"))
+    image = relationship("Image", back_populates="predictions")
+    casing_box = db.Column(Text)
+    casing_confidence = db.Column(Float)
+    headstamp_box = db.Column(Text)
+    headstamp_confidence = db.Column(Float)
+    
+    def __str__(self):
+        return self.id

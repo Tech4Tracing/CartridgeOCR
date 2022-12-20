@@ -3,7 +3,7 @@ import json
 from flask import request, abort
 from flask_login import login_required, current_user
 
-from annotations_app.flask_app import app, db as new_db
+from annotations_app.flask_app import app, db
 from annotations_app import schemas
 from annotations_app.config import logging
 from annotations_app.models.base import ImageCollection, Image, Annotation
@@ -50,7 +50,7 @@ def annotations_list():
 
     this_user_collections = ImageCollection.get_collections_for_user(current_user)
 
-    queryset = new_db.session.query(Annotation).filter(
+    queryset = db.session.query(Annotation).filter(
         and_(
             # filter by image
             Annotation.image_id == image_id if image_id else True,
@@ -119,9 +119,9 @@ def annotation_post():
         annotation=req["annotation"],
         metadata_=json.dumps(req["metadata_"]),
     )
-    new_db.session.add(annotation_in_db)
-    new_db.session.commit()
-    new_db.session.refresh(annotation_in_db)
+    db.session.add(annotation_in_db)
+    db.session.commit()
+    db.session.refresh(annotation_in_db)
     return schemas.AnnotationDisplaySchema().dump(annotation_in_db), 201
 
 
@@ -174,7 +174,7 @@ def annotation_replace(annotation_id):
     # retrieve existing annotation object
     # TODO: test/sanity check
     annotation_in_db = (
-        new_db.session.query(Annotation)
+        db.session.query(Annotation)
         .filter(
             Annotation.id == annotation_id,
             Image.id == image_id,
@@ -188,8 +188,8 @@ def annotation_replace(annotation_id):
     annotation_in_db.geometry = json.dumps(req["geometry"])
     annotation_in_db.annotation = req["annotation"]
     annotation_in_db.metadata_ = json.dumps(req["metadata_"])
-    new_db.session.commit()
-    new_db.session.refresh(annotation_in_db)
+    db.session.commit()
+    db.session.refresh(annotation_in_db)
     return schemas.AnnotationDisplaySchema().dump(annotation_in_db)
 
 
@@ -215,7 +215,7 @@ def annotation_delete(annotation_id):
     this_user_collections = ImageCollection.get_collections_for_user(current_user)
 
     annotation_in_db = (
-        new_db.session.query(Annotation)
+        db.session.query(Annotation)
         .filter(
             Annotation.id == annotation_id,
             Image.id == Annotation.image_id,
@@ -227,6 +227,6 @@ def annotation_delete(annotation_id):
     if not annotation_in_db:
         abort(404)
 
-    new_db.session.delete(annotation_in_db)
-    new_db.session.commit()
+    db.session.delete(annotation_in_db)
+    db.session.commit()
     return ("", 204)
