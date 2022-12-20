@@ -99,15 +99,15 @@ class ImageCollection(BaseModel):
             print(e)
 
     @staticmethod
-    def get_collections_for_user(current_user):
+    def get_collections_for_user(current_user_id):
         from annotations_app.flask_app import db
 
         return db.session.query(ImageCollection).filter(
-            ImageCollection.user_id == current_user.id,
+            ImageCollection.user_id == current_user_id,
         )
 
     @staticmethod
-    def get_collection_or_abort(collection_id, current_user):
+    def get_collection_or_abort(collection_id, current_user_id):
         """
         Either return first(single) collection or raise 404 exception
         """
@@ -118,7 +118,7 @@ class ImageCollection(BaseModel):
             db.session.query(ImageCollection)
             .filter(
                 ImageCollection.id == collection_id,
-                ImageCollection.user_id == current_user.id,
+                ImageCollection.user_id == current_user_id,
             )
             .first()
         )
@@ -139,9 +139,11 @@ class Image(BaseModel):
     file_hash = db.Column(String(255), default="")
     storageKey = db.Column(String(1024))
     extra_data = db.Column(Text)
+    prediction_status = db.Column(Text)
 
     collection = relationship("ImageCollection", back_populates="images")
     annotations = relationship("Annotation", back_populates="image")
+    predictions = relationship("HeadstampPrediction", back_populates="image")
 
     def __str__(self):
         return self.id
@@ -155,14 +157,14 @@ class Image(BaseModel):
             return "file.bin"
 
     @staticmethod
-    def get_image_or_abort(image_id, current_user):
+    def get_image_or_abort(image_id, current_user_id):
         """
         Either return first(single) image or raises an 404 exception which is handled elsewhere
         """
         from flask import abort
         from annotations_app.flask_app import db
 
-        this_user_collections = ImageCollection.get_collections_for_user(current_user)
+        this_user_collections = ImageCollection.get_collections_for_user(current_user_id)
 
         image_in_db = (
             db.session.query(Image)
@@ -191,8 +193,8 @@ class HeadstampPrediction(BaseModel):
     image = relationship("Image", back_populates="predictions")
     casing_box = db.Column(Text)
     casing_confidence = db.Column(Float)
-    headstamp_box = db.Column(Text)
-    headstamp_confidence = db.Column(Float)
+    primer_box = db.Column(Text)
+    primer_confidence = db.Column(Float)
     
     def __str__(self):
         return self.id

@@ -59,6 +59,24 @@ class AnnotationDisplaySchema(Schema):
         return result
 
 
+class HeadstampPredictionDisplaySchema(Schema):
+    id = fields.Str()
+    created_at = fields.Str()
+    image_id = fields.Str()
+    casing_box = fields.Str()
+    casing_confidence = fields.Float()
+    primer_box = fields.Str()
+    primer_confidence = fields.Float()
+    
+    def dump(self, *args, **kwargs):
+        result = super().dump(*args, **kwargs)
+        if result.get("created_at"):
+            if isinstance(result["created_at"], str) and result["created_at"].endswith(" +00:00"):
+                # strip that space
+                result["created_at"] = result["created_at"].rstrip(" +00:00") + "Z"
+        return result
+
+
 class ImageDisplaySchema(Schema):
     id = fields.Str()
     created_at = fields.Str()
@@ -69,6 +87,7 @@ class ImageDisplaySchema(Schema):
     prediction_status = fields.Str()
     # Helpful but noisy
     annotations = fields.List(fields.Nested(AnnotationDisplaySchema))
+    predictions = fields.List(fields.Nested(HeadstampPredictionDisplaySchema))
 
     #@post_load
     #def deserialize_extra_data(self, data):
@@ -108,6 +127,9 @@ class AnnotationListSchema(Schema):
     total = fields.Int()
     annotations = fields.List(fields.Nested(AnnotationDisplaySchema))
 
+class HeadstampPredictionListSchema(Schema):
+    total = fields.Int()
+    predictions = fields.List(fields.Nested(HeadstampPredictionDisplaySchema))
 
 class UserDisplaySchema(Schema):
     id = fields.Str()
@@ -141,25 +163,3 @@ class ErrorSchema(Schema):
 class Errors(Schema):
     errors = fields.List(fields.Nested(ErrorSchema))
 
-
-class HeadstampPredictionDisplaySchema(Schema):
-    id = fields.Str()
-    created_at = fields.Str()
-    image_id = fields.Str()
-    casing_box = fields.Str()
-    casing_confidence = fields.Float()
-    primer_box = fields.Str()
-    primer_confidence = fields.Float()
-    
-    def dump(self, *args, **kwargs):
-        result = super().dump(*args, **kwargs)
-        if result.get("created_at"):
-            if isinstance(result["created_at"], str) and result["created_at"].endswith(" +00:00"):
-                # strip that space
-                result["created_at"] = result["created_at"].rstrip(" +00:00") + "Z"
-        return result
-
-
-class HeadstampPredictionListSchema(Schema):
-    total = fields.Int()
-    predictions = fields.List(fields.Nested(HeadstampPredictionDisplaySchema))

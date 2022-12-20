@@ -1,8 +1,10 @@
 from annotations_app.flask_app import celery, db
 import requests
 import os
+import datetime
 from base64 import b64encode
 import json
+import logging
 from annotations_app.models.base import ImageCollection, Image, HeadstampPrediction
 
 
@@ -35,6 +37,7 @@ def predict_headstamps(endpoint, user_id, image_id, image_base64):
                 
     image_in_db = Image.get_image_or_abort(image_id, user_id)  # ensure exists and available
 
+    logging.info(f"Prediction response: {response.text}")
     try:
         if 'detections' in result:
             for detection in result['detections']:
@@ -47,13 +50,14 @@ def predict_headstamps(endpoint, user_id, image_id, image_base64):
                 )
                 db.session.add(prediction_in_db)
             #'task_id': result.task_id, 'status': 'pending', 'result': 'None'
-        image_in_db.prediction_status = {
+        image_in_db.prediction_status = json.dumps({
             'status': 'success', 
+            'updated': str(datetime.datetime.utcnow()), 
             'detections': len(result['detections']), 
             'inference_version': result['inference_version']
-        }
+        })
     
-        db.session.add(image_in_db)
+        #db.session.add(image_in_db)
         db.session.commit()
     except:
         db.session.rollback()

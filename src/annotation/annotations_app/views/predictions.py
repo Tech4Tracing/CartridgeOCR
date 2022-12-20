@@ -99,11 +99,11 @@ def predictions_list():
 
     # retrieve image and collection (if requested) just to ensure they exist and visible
     if image_id:
-        Image.get_image_or_abort(image_id, current_user)
+        Image.get_image_or_abort(image_id, current_user.id)
     if collection_id:
-        ImageCollection.get_collection_or_abort(collection_id, current_user)
+        ImageCollection.get_collection_or_abort(collection_id, current_user.id)
 
-    this_user_collections = ImageCollection.get_collections_for_user(current_user)
+    this_user_collections = ImageCollection.get_collections_for_user(current_user.id)
 
     queryset = db.session.query(HeadstampPrediction).filter(
         and_(
@@ -111,8 +111,8 @@ def predictions_list():
             HeadstampPrediction.image_id == image_id if image_id else True,
             # filter by collection (including only collections visible to user if no collection is provided)
             HeadstampPrediction.image_id == Image.id,
-            HeadstampPrediction.collection_id.in_(this_user_collections.with_entities(ImageCollection.id).distinct()),
-            HeadstampPrediction.collection_id == collection_id if collection_id else True,
+            Image.collection_id.in_(this_user_collections.with_entities(ImageCollection.id).distinct()),
+            Image.collection_id == collection_id if collection_id else True,
         )
     )
 
@@ -167,7 +167,7 @@ def prediction_post():
     if not image_id:
         abort(400, description="image_id parameter is required")
 
-    Image.get_image_or_abort(image_id, current_user)  # ensure exists and available
+    Image.get_image_or_abort(image_id, current_user.id)  # ensure exists and available
 
     # create database object if succesfull
     prediction_in_db = HeadstampPrediction(
@@ -230,7 +230,7 @@ def prediction_replace(prediction_id):
     if not image_id:
         abort(400, description="image_id parameter is required")
 
-    Image.get_image_or_abort(image_id, current_user)  # ensure exists and available
+    Image.get_image_or_abort(image_id, current_user.id)  # ensure exists and available
 
     # retrieve existing prediction object
     # TODO: test/sanity check
@@ -274,7 +274,7 @@ def prediction_delete(prediction_id):
     """
     logging.info("DELETE prediction request for user %s", current_user.id)
     # TODO: test/sanity check
-    this_user_collections = ImageCollection.get_collections_for_user(current_user)
+    this_user_collections = ImageCollection.get_collections_for_user(current_user.id)
 
     prediction_in_db = (
         db.session.query(HeadstampPrediction)

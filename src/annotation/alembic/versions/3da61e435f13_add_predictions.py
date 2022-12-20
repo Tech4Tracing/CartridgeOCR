@@ -17,16 +17,18 @@ depends_on = None
 
 
 def upgrade():
-    if False:  # this code is handled by models/base.py
-        op.create_table('predictions',
-        sa.Column('id', sa.String(length=36), nullable=False),
-        sa.Column('created_at', sa.DateTime(timezone=True), nullable=True),
-        sa.Column('image_id', sa.String(length=36), nullable=True),
-        sa.Column('casing_box', sa.Text(), nullable=True),
-        sa.Column('casing_confidence', sa.Float(), nullable=True),
-        sa.Column('primer_box', sa.Text(), nullable=True),
-        sa.Column('primer_confidence', sa.Float(), nullable=True),
-        sa.PrimaryKeyConstraint('id'))
+    # TODO: when creating from scratch this code errors out since the table is created from models/base.py
+    # On the other hand when upgrading from an existing database this code is needed
+    #if False:  # this code is handled by models/base.py
+    op.create_table('predictions',
+    sa.Column('id', sa.String(length=36), nullable=False),
+    sa.Column('created_at', sa.DateTime(timezone=True), nullable=True),
+    sa.Column('image_id', sa.String(length=36), nullable=True),
+    sa.Column('casing_box', sa.Text(), nullable=True),
+    sa.Column('casing_confidence', sa.Float(), nullable=True),
+    sa.Column('primer_box', sa.Text(), nullable=True),
+    sa.Column('primer_confidence', sa.Float(), nullable=True),
+    sa.PrimaryKeyConstraint('id'))
 
     with op.batch_alter_table("predictions") as batch_op:
         batch_op.create_foreign_key('fk_predictions_images', 'images', ['image_id'], ['id'])
