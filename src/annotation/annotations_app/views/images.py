@@ -5,7 +5,7 @@ import os
 from base64 import b64encode
 import datetime
 
-from flask import request, send_file, redirect
+from flask import request, send_file, redirect, abort
 from flask_login import login_required, current_user
 
 from annotations_app.flask_app import app, db, celery
@@ -387,5 +387,53 @@ def image_predictions(image_id):
         }
     )
 
+
+@app.route("/api/v0/images/<string:image_id>", methods=["PUT"])
+@login_required
+def image_update(image_id: str):
+    """Update image properties. The only field that can be updated is the extra_data field.
+    ---
+    put:
+      parameters:
+        - in: path
+          name: image_id
+          schema:
+            type: string
+          required: true
+          description: Unique image ID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                extra_data: string
+
+      responses:
+        201:
+          description: JSON with the image info
+          content:
+            application/json:
+              schema: ImageDisplaySchema
+    """
+    image_in_db = Image.get_image_or_abort(image_id, current_user.id)
+
+    logging.info("PUT annotation request for user %s", current_user.id)
+
+    # TODO: validate the payload.
+    # TODO: escape quotes and other dangerous chars
+    extra_data = request.form.get("extra_data")
+    extra_data = json.loads(extra_data) if extra_data else {}
+    
+    if not image_id:
+        abort(400, description="image_id parameter is required")
+
+    image_in_db = Image.get_image_or_abort(image_id, current_user.id)  # ensure exists and available
+
+    image_in_db.extra_data = json.dumps(extra_data)
+
+    db.session.commit()
+    db.session.refresh(image_in_db)
+    return schemas.ImageDisplaySchema().dump(image_in_db)
 
 

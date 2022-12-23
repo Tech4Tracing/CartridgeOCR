@@ -93,8 +93,11 @@ def annotation_post():
                     type: object
                   annotation:
                     type: string
+                  prediction_id:
+                    type: string
                   metadata_:
                     type: object
+                  
         responses:
             201:
               description: Details about the created annotation
@@ -117,6 +120,7 @@ def annotation_post():
         image_id=image_id,
         geometry=json.dumps(req["geometry"]),
         annotation=req["annotation"],
+        prediction_id = req["prediction_id"] if "prediction_id" in req else None,
         metadata_=json.dumps(req["metadata_"]),
     )
     db.session.add(annotation_in_db)
@@ -149,6 +153,8 @@ def annotation_replace(annotation_id):
                   geometry:
                     type: object
                   annotation:
+                    type: string
+                  prediction_id:
                     type: string
                   metadata_:
                     type: object
@@ -187,6 +193,7 @@ def annotation_replace(annotation_id):
 
     annotation_in_db.geometry = json.dumps(req["geometry"])
     annotation_in_db.annotation = req["annotation"]
+    annotation_in_db.prediction_id = req["prediction_id"] if "prediction_id" in req else None
     annotation_in_db.metadata_ = json.dumps(req["metadata_"])
     db.session.commit()
     db.session.refresh(annotation_in_db)

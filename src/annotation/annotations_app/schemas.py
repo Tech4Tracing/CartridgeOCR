@@ -39,6 +39,7 @@ class AnnotationDisplaySchema(Schema):
     image_id = fields.Str()
     geometry = fields.Str()
     annotation = fields.Str()
+    prediction_id = fields.Str()
     metadata_ = fields.Str()
 
     def dump(self, *args, **kwargs):
