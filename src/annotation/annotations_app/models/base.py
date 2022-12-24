@@ -28,6 +28,7 @@ class Annotation(BaseModel):
     image = relationship("Image", back_populates="annotations")
     geometry = db.Column(Text)
     annotation = db.Column(Text)
+    prediction_id = db.Column(String(36), nullable=True) #, ForeignKey("predictions.id"), nullable=True)
     metadata_ = db.Column('metadata', Text)
 
     def __str__(self):
