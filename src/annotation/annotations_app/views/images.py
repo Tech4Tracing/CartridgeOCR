@@ -416,15 +416,17 @@ def image_update(image_id: str):
             application/json:
               schema: ImageDisplaySchema
     """
+    logging.debug(f"put image {image_id}")
     image_in_db = Image.get_image_or_abort(image_id, current_user.id)
 
-    logging.info("PUT annotation request for user %s", current_user.id)
+    logging.info(f"PUT image request for user {current_user.id}")
 
     # TODO: validate the payload.
     # TODO: escape quotes and other dangerous chars
-    extra_data = request.form.get("extra_data")
-    extra_data = json.loads(extra_data) if extra_data else {}
-    
+    payload = request.get_json()
+    logging.debug(f"extra_data: {payload}")
+    extra_data = payload['extra_data'] if 'extra_data' in payload else {}
+    logging.debug(f"extra_data loaded: {extra_data}")
     if not image_id:
         abort(400, description="image_id parameter is required")
 

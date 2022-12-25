@@ -102,7 +102,7 @@ class ImageDisplaySchema(Schema):
 
     def dump(self, *args, **kwargs):
         result = super().dump(*args, **kwargs)
-        print('dump', type(result))
+        #print('dump', type(result))
         if result.get("extra_data"):
             result["extra_data"] = json.loads(result["extra_data"])
         if result.get("prediction_status"):
