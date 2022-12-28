@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <title>Headstamp Prediction API</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.6.1/swagger-ui.min.css" integrity="sha512-5Qqi9k+ey4yJCfC/8NemvXAcL9PMUE2ROvmIZ1TXd2sO0KXXZyykItptL710pH2qURIhzeqeidjZIDVtt3sHDA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+      html
+      {
+        box-sizing: border-box;
+        overflow: -moz-scrollbars-vertical;
+        overflow-y: scroll;
+      }
+
+      *,
+      *:before,
+      *:after
+      {
+        box-sizing: inherit;
+      }
+
+      body
+      {
+        margin:0;
+        background: #fafafa;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="swagger-ui"></div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.6.1/swagger-ui-bundle.min.js" integrity="sha512-Z4DtRP4n+cWLJHh/IrnIZ1HAR6ofoPxpTNjpmvVRjWdhtN66WsHzOq7CGsbBWyBbDhc7TsJYWg1zzyBiMrJjVQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.6.1/swagger-ui-standalone-preset.min.js" integrity="sha512-BKoXV89/RcJgBAEA4pzR5yE6uGOdvDrTZ7rbLSeMDHHKmnG9aZg0Bd9hS4FHqkCbLz+T3pl38+eLqwKTxHGu5g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script>
+    window.onload = function() {
+      // Begin Swagger UI call region
+      const ui = SwaggerUIBundle({
+        url: "/api/v0/openapi.json",
+        dom_id: '#swagger-ui',
+        deepLinking: true,
+        presets: [
+          SwaggerUIBundle.presets.apis,
+          SwaggerUIStandalonePreset
+        ],
+        plugins: [
+          SwaggerUIBundle.plugins.DownloadUrl
+        ],
+        layout: "StandaloneLayout"
+      });
+      // End Swagger UI call region
+      window.ui = ui;
+    };
+  </script>
+  </body>
+</html>
