@@ -2,7 +2,8 @@ export COCR_ROOT=$1
 cd ${COCR_ROOT}/src/model
 python setup.py sdist bdist_wheel
 cd ${COCR_ROOT}/src/
-export MODEL_FOLDER=/mnt/c/GitHub/CartridgeOCR/data/models/khaki_pear_9fpn66rg/
+#export MODEL_FOLDER=/mnt/c/GitHub/CartridgeOCR/data/models/khaki_pear_9fpn66rg/
+export MODEL_FOLDER=$2
 
 rm -rf docker_context
 mkdir docker_context

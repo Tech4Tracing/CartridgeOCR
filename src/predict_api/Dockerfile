@@ -1,4 +1,4 @@
-FROM pytorch/pytorch:1.8.0-cuda11.1-cudnn8-devel
+FROM pytorch/pytorch:1.8.0-cuda11.1-cudnn8-runtime
 
 # Ensure terminal output is sent directly to logs
 ENV PYTHONUNBUFFERED=1
@@ -8,6 +8,7 @@ ARG T4T_WHL=t4t_headstamp-0.0.1-py3-none-any.whl
 
 # uvicorn/uvloop/pymssql and other requirements
 #RUN apk add gcc g++ musl-dev python3-dev libffi-dev openssl-dev make freetds-dev
+RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get -y install gnupg2
 RUN apt-key del 7fa2af80
 RUN apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub
 RUN apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub
