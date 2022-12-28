@@ -24,6 +24,7 @@ class Config:
 
     SECRET_KEY = os.environ.get("SECRET_KEY") or os.urandom(24)
 
+    CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL") or "pyamqp://rabbitmq:5672"
 
 LOGGING_CONFIG = {
     'version': 1,
