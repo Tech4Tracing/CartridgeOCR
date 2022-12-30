@@ -6,6 +6,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy_mixins import AllFeaturesMixin
 from sqlalchemy import Boolean, ForeignKey, Integer, Text, String, DateTime, Float
 from sqlalchemy.orm import relationship
+from sqlalchemy import and_, or_
 
 db = SQLAlchemy()
 
@@ -79,6 +80,7 @@ class ImageCollection(BaseModel):
 
     user_id = db.Column(String(255))
     name = db.Column(String(255))
+    guest_users = db.column(Text) # comma-separated list of (user id, write-access) tuples
 
     images = relationship("Image", back_populates="collection")
 
@@ -99,16 +101,37 @@ class ImageCollection(BaseModel):
         except Exception as e:
             print(e)
 
+    @staticmethod 
+    def guest_users_to_dict(guest_users):
+        return dict([tuple(guest_user.split(':')) for guest_user in guest_users.split(';')])
+
     @staticmethod
-    def get_collections_for_user(current_user_id):
+    def validate_guest_users(guest_users_dict):
+        """Always call before saving to DB"""
+        for u in guest_users_dict:
+            if not User.where(id=u).first():
+                raise ValueError(f'User {u} does not exist')
+            if guest_users_dict[u] not in ['read', 'write']:
+                raise ValueError(f'Invalid access level {guest_users_dict[u]} for user {u}')
+
+    @staticmethod
+    def dict_to_guest_users(guest_users):
+        return ';'.join([f'{user_id}:{write_access}' for user_id, write_access in guest_users.items()])
+
+    @staticmethod
+    def get_collections_for_user(current_user_id, include_guest_access=False, include_readonly=False):
         from annotations_app.flask_app import db
 
         return db.session.query(ImageCollection).filter(
-            ImageCollection.user_id == current_user_id,
+            or_(ImageCollection.user_id == current_user_id,
+                and_(include_guest_access, 
+                     current_user_id in ImageCollection.guest_users_to_dict(ImageCollection.guest_users).keys()),
+                     or_(include_readonly, 
+                         ImageCollection.guest_users_to_dict(ImageCollection.guest_users)[current_user_id]=='write')),
         )
 
     @staticmethod
-    def get_collection_or_abort(collection_id, current_user_id):
+    def get_collection_or_abort(collection_id, current_user_id, include_guest_access=False, include_readonly=False):
         """
         Either return first(single) collection or raise 404 exception
         """
@@ -116,11 +139,8 @@ class ImageCollection(BaseModel):
         from annotations_app.flask_app import db
 
         collection = (
-            db.session.query(ImageCollection)
-            .filter(
-                ImageCollection.id == collection_id,
-                ImageCollection.user_id == current_user_id,
-            )
+            ImageCollection.get_collections_for_user(current_user_id, include_guest_access, include_readonly)
+            .filter(ImageCollection.id == collection_id)
             .first()
         )
         if not collection:
@@ -158,14 +178,17 @@ class Image(BaseModel):
             return "file.bin"
 
     @staticmethod
-    def get_image_or_abort(image_id, current_user_id):
+    def get_image_or_abort(image_id, current_user_id, include_guest_access=False, include_readonly=False):
         """
         Either return first(single) image or raises an 404 exception which is handled elsewhere
         """
         from flask import abort
         from annotations_app.flask_app import db
 
-        this_user_collections = ImageCollection.get_collections_for_user(current_user_id)
+        this_user_collections = ImageCollection.get_collections_for_user(
+            current_user_id, 
+            include_guest_access, 
+            include_readonly)
 
         image_in_db = (
             db.session.query(Image)

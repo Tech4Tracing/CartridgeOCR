@@ -19,9 +19,8 @@ def collections_list():
             application/json:
               schema: CollectionsListSchema
     """
-    queryset = db.session.query(ImageCollection).filter(
-        ImageCollection.user_id == current_user.id,
-    )
+    queryset = ImageCollection.get_collections_for_user(
+      current_user.id, include_guest_access=True, include_readonly=True)
     total = queryset.count()
     results = queryset.order_by("id")
 
