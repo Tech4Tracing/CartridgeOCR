@@ -61,6 +61,14 @@ class User(BaseModel):
     is_active = db.Column(Boolean, default=True, nullable=False)
     is_superuser = db.Column(Boolean, default=False, nullable=False)
 
+    @staticmethod
+    def get_user_by_email(email):
+        return db.session.query(User).filter(User.email == email).first()
+    
+    @staticmethod
+    def get_user_by_id(id):
+        return db.session.query(User).filter(User.id == id).first()
+
 
 def generate_short_id(len: int = 15):
     """
@@ -101,6 +109,7 @@ class ImageCollection(BaseModel):
         except Exception as e:
             print(e)
 
+    # TODO: separate class?
     @staticmethod 
     def guest_users_to_dict(guest_users):
         return dict([tuple(guest_user.split(':')) for guest_user in guest_users.split(';')])
@@ -117,6 +126,10 @@ class ImageCollection(BaseModel):
     @staticmethod
     def dict_to_guest_users(guest_users):
         return ';'.join([f'{user_id}:{write_access}' for user_id, write_access in guest_users.items()])
+
+    @staticmethod
+    def dict_guests_to_human_readable(guest_users_dict):
+        return dict([(User.where(id=user_id).first().email, write_access) for user_id, write_access in guest_users_dict.items()])
 
     @staticmethod
     def get_collections_for_user(current_user_id, include_guest_access=False, include_readonly=False):

@@ -32,6 +32,12 @@ class CollectionsListSchema(Schema):
     total = fields.Int()
     collections = fields.List(fields.Nested(CollectionDisplaySchema))
 
+class CollectionGuestsSchema(Schema):    
+    guests = fields.Dict(keys=fields.Str(), values=fields.Str())
+
+class CollectionGuestsRequestSchema(Schema):
+    user = fields.Str() # email address
+    scope = fields.Str() # read or write
 
 class AnnotationDisplaySchema(Schema):
     id = fields.Str()
