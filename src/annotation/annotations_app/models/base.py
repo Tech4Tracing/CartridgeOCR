@@ -61,6 +61,8 @@ class User(BaseModel):
     is_active = db.Column(Boolean, default=True, nullable=False)
     is_superuser = db.Column(Boolean, default=False, nullable=False)
 
+    userscopes = relationship("UserScope", back_populates="user")
+
     @staticmethod
     def get_user_by_email(email):
         return db.session.query(User).filter(User.email == email).first()
@@ -79,6 +81,18 @@ def generate_short_id(len: int = 15):
         for i in range(0, len)
     )
 
+class UserScope(BaseModel):
+    __tablename__ = 'userscopes'
+    id = db.Column(String(36), primary_key=True, default=generate_short_id)
+    user_id = db.Column(String(36), ForeignKey("users.id"), nullable=False)
+    imagecollection_id = db.Column(String(36), ForeignKey("imagecollections.id"), nullable=False)
+    access_level = db.Column(String(8), nullable=False)
+
+    collection = relationship("ImageCollection", back_populates="userscopes")
+    user = relationship("User", back_populates="userscopes")
+
+    def __str__(self):
+        return str({'id':self.id, 'user_id':self.user_id, 'imagecollection_id':self.imagecollection_id, 'access_level':self.access_level})
 
 class ImageCollection(BaseModel):
     __tablename__ = 'imagecollections'
@@ -88,8 +102,8 @@ class ImageCollection(BaseModel):
 
     user_id = db.Column(String(255))
     name = db.Column(String(255))
-    guest_users = db.column(Text) # comma-separated list of (user id, write-access) tuples
-
+    
+    userscopes = relationship("UserScope", back_populates="collection")
     images = relationship("Image", back_populates="collection")
 
     def __str__(self):
@@ -108,28 +122,7 @@ class ImageCollection(BaseModel):
             return Annotation.where(image_id__in=image_ids).count()
         except Exception as e:
             print(e)
-
-    # TODO: separate class?
-    @staticmethod 
-    def guest_users_to_dict(guest_users):
-        return dict([tuple(guest_user.split(':')) for guest_user in guest_users.split(';')])
-
-    @staticmethod
-    def validate_guest_users(guest_users_dict):
-        """Always call before saving to DB"""
-        for u in guest_users_dict:
-            if not User.where(id=u).first():
-                raise ValueError(f'User {u} does not exist')
-            if guest_users_dict[u] not in ['read', 'write']:
-                raise ValueError(f'Invalid access level {guest_users_dict[u]} for user {u}')
-
-    @staticmethod
-    def dict_to_guest_users(guest_users):
-        return ';'.join([f'{user_id}:{write_access}' for user_id, write_access in guest_users.items()])
-
-    @staticmethod
-    def dict_guests_to_human_readable(guest_users_dict):
-        return dict([(User.where(id=user_id).first().email, write_access) for user_id, write_access in guest_users_dict.items()])
+            raise
 
     @staticmethod
     def get_collections_for_user(current_user_id, include_guest_access=False, include_readonly=False):
@@ -138,9 +131,14 @@ class ImageCollection(BaseModel):
         return db.session.query(ImageCollection).filter(
             or_(ImageCollection.user_id == current_user_id,
                 and_(include_guest_access, 
-                     current_user_id in ImageCollection.guest_users_to_dict(ImageCollection.guest_users).keys()),
-                     or_(include_readonly, 
-                         ImageCollection.guest_users_to_dict(ImageCollection.guest_users)[current_user_id]=='write')),
+                     ImageCollection.userscopes.any(
+                        and_(UserScope.user_id==current_user_id,
+                            or_(include_readonly, 
+                                UserScope.access_level == 'write')
+                            )
+                     )
+                    )
+               ),
         )
 
     @staticmethod

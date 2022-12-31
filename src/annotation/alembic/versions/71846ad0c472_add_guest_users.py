@@ -17,10 +17,10 @@ depends_on = None
 
 
 def upgrade():
-    with op.batch_alter_table("collections") as batch_op:
+    with op.batch_alter_table("imagecollections") as batch_op:
         batch_op.add_column(sa.Column('guest_users', sa.Text(), nullable=True))
 
 
 def downgrade():
-    with op.batch_alter_table("collections") as batch_op:
+    with op.batch_alter_table("imagecollections") as batch_op:
         batch_op.drop_column('guest_users')
