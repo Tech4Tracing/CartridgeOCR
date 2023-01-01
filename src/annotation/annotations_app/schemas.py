@@ -25,8 +25,9 @@ class CollectionDisplaySchema(Schema):
     name = fields.Str()
     images_count = fields.Int()
     annotations_count = fields.Int()
+    current_user_scope = fields.Str()
 
-    userscopes = CollectionUserScopeListSchema()
+    # userscopes = CollectionUserScopeListSchema()
 
     def dump(self, *args, **kwargs):
         result = super().dump(*args, **kwargs)

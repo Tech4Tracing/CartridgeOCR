@@ -124,6 +124,18 @@ class ImageCollection(BaseModel):
             print(e)
             raise
 
+    @property 
+    def current_user_scope(self):
+        from flask_login import current_user        
+        if self.user_id == current_user.id:
+            return 'owner'
+        else:
+            access_levels = [c.access_level for c in self.user_scopes if c.user_id == current_user.id]
+            if len(access_levels) == 0:
+                return 'none'
+            else:
+                return access_levels[0]
+
     @staticmethod
     def get_collections_for_user(current_user_id, include_guest_access=False, include_readonly=False):
         from annotations_app.flask_app import db
