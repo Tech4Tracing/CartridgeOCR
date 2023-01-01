@@ -1,6 +1,7 @@
 import datetime
 import random
 import uuid
+import logging
 
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy_mixins import AllFeaturesMixin
@@ -130,7 +131,8 @@ class ImageCollection(BaseModel):
         if self.user_id == current_user.id:
             return 'owner'
         else:
-            access_levels = [c.access_level for c in self.user_scopes if c.user_id == current_user.id]
+            logging.info(f'scopes: {self.userscopes}')
+            access_levels = [c.access_level for c in self.userscopes if c.user_id == current_user.id]
             if len(access_levels) == 0:
                 return 'none'
             else:

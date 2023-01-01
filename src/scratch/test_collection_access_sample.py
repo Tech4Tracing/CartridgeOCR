@@ -38,3 +38,63 @@ def collections_test_access():
             "collections": queryset,
         }
     )
+
+
+
+
+@app.route("/api/v0/collections/test_access", methods=["GET"])
+@login_required
+def collections_test_access():
+  """Test collections access
+     ---
+      get:
+
+      responses:
+        200:
+          description: List all collections visible to user
+          content:
+            application/json:
+              schema: CollectionsListSchema"""
+  
+  # create two collections ownedby test_user@tech4tracing.org
+  # grant access to robert.sim@gmail.com, one with readonly access and one without
+  # return the image collections for robert.sim@gmail.com
+  c1 = ImageCollection(
+        user_id=User.get_user_by_email("test_user@tech4tracing.org").id,
+        name="test_collection_1_readonly",
+  )
+  db.session.add(c1)
+  db.session.commit()
+  db.session.refresh(c1)
+  scope1 = UserScope(
+        user_id=current_user.id,
+        imagecollection_id=c1.id,
+        access_level = "read"
+  )
+  db.session.add(scope1)
+  db.session.commit()
+  c2 = ImageCollection(
+        user_id=User.get_user_by_email("test_user@tech4tracing.org").id,
+        name="test_collection_1_readwrite",
+  )
+  db.session.add(c2)
+  db.session.commit()
+  db.session.refresh(c2)
+  scope2 = UserScope(
+        user_id=current_user.id,
+        imagecollection_id=c2.id,
+        access_level = "write"
+  )
+  db.session.add(scope2)
+  db.session.commit()
+  
+  queryset = ImageCollection.get_collections_for_user(
+      current_user.id, include_guest_access=True, include_readonly=True)
+  total = queryset.count()
+  return schemas.CollectionsListSchema().dump(
+        {
+            "total": total,
+            "collections": queryset,
+        }
+    )
+
