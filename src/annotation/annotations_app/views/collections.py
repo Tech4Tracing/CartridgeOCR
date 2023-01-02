@@ -4,6 +4,7 @@ from flask_login import login_required, current_user
 from annotations_app.flask_app import app, db
 from annotations_app import schemas
 from annotations_app.models.base import ImageCollection, Image, User, UserScope
+import logging
 
 
 @app.route("/api/v0/collections", methods=["GET"])
@@ -174,6 +175,7 @@ def collections_guests_add(collection_id):
     collection_in_db = ImageCollection.get_collection_or_abort(collection_id, current_user.id)
     
     req = request.json
+    logging.info(f'Adding userscope to collection {collection_id}: {req}')
     user_email = req['user_email']
     user_scope = req['access_level']
     user = User.get_user_by_email(user_email)
@@ -201,10 +203,16 @@ def collections_guests_add(collection_id):
             imagecollection_id=collection_in_db.id,            
             access_level=user_scope,
         )
-        db.session.add(userscope_in_db)
+    db.session.add(userscope_in_db)
     db.session.commit()
-    db.session.refresh(collection_in_db)
-    result = [s for s in collection_in_db.userscopes if s.user_id==user.id][0]
+    # TODO: this got messy while debugging. While the result is valid it could be cleaned up.
+    db.session.refresh(userscope_in_db)
+    # db.session.refresh(collection_in_db)
+    #collection_in_db = ImageCollection.get_collection_or_abort(collection_id, current_user.id)
+    #result = [s for s in collection_in_db.userscopes if s.user_id==user.id]
+    #assert(len(result)==1)
+    #result = result[0]
+    result = userscope_in_db
     return schemas.CollectionUserScopeSchema().dump(
       {'user_email':user.email, 'access_level': result.access_level}
     ), 201
