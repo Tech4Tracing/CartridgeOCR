@@ -8,6 +8,13 @@ class DemoParameter(Schema):
     gist_id = fields.Int()
 
 
+class CollectionUserScopeSchema(Schema):
+    user_email = fields.Str() # email address
+    access_level = fields.Str() # read or write
+
+class CollectionUserScopeListSchema(Schema):    
+    userscopes = fields.List(fields.Nested(CollectionUserScopeSchema))
+
 class CollectionCreateSchema(Schema):
     name = fields.Str()
 
@@ -18,6 +25,9 @@ class CollectionDisplaySchema(Schema):
     name = fields.Str()
     images_count = fields.Int()
     annotations_count = fields.Int()
+    current_user_scope = fields.Str()
+
+    # userscopes = CollectionUserScopeListSchema()
 
     def dump(self, *args, **kwargs):
         result = super().dump(*args, **kwargs)

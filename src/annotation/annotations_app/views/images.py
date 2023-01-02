@@ -81,14 +81,9 @@ def image_post():
             db.session.refresh(collection_in_db)
 
     if collection_in_db is None:
-        collection_in_db = (
-            db.session.query(ImageCollection)
-            .filter(
-                ImageCollection.user_id == current_user.id,
-                ImageCollection.id == request.form["collection_id"],
-            )
-            .first()
-        )
+        collection_in_db = ImageCollection.get_collection_or_abort(
+          request.form["collection_id"], current_user.id, include_guest_access=True)
+        
         if not collection_in_db:
             return schemas.Errors().dump(
                 {
@@ -187,7 +182,8 @@ def images_list():
     # TODO: ensure that the collection ID is visible to the given user
     # it won't return anything if the ID is incorrect but it's better to raise 404
 
-    this_user_collections = ImageCollection.get_collections_for_user(current_user.id)
+    this_user_collections = ImageCollection.get_collections_for_user(
+        current_user.id, include_guest_access=True, include_readonly=True)
 
     queryset = db.session.query(Image).filter(
         Image.collection_id.in_(this_user_collections.with_entities(ImageCollection.id).distinct()),
@@ -226,7 +222,7 @@ def image_detail(image_id: str):
             application/json:
               schema: ImageDisplaySchema
     """
-    image_in_db = Image.get_image_or_abort(image_id, current_user.id)
+    image_in_db = Image.get_image_or_abort(image_id, current_user.id, include_guest_access=True, include_readonly=True)
     return schemas.ImageDisplaySchema().dump(image_in_db)
 
 
@@ -248,7 +244,7 @@ def image_delete(image_id: str):
           description: Success
     """
     # TODO: clean up any orphaned annotations
-    image_in_db = Image.get_image_or_abort(image_id, current_user.id)
+    image_in_db = Image.get_image_or_abort(image_id, current_user.id, include_guest_access=True)
     storage_provider = StorageProvider()
     storage_provider.delete_file(image_in_db.storageKey)
     db.session.delete(image_in_db)
@@ -273,7 +269,7 @@ def image_retrieve(image_id: str):
         200:
           description: Binary image content
     """
-    image_in_db = Image.get_image_or_abort(image_id, current_user.id)
+    image_in_db = Image.get_image_or_abort(image_id, current_user.id, include_guest_access=True, include_readonly=True)
 
     storage_provider = StorageProvider()
     stored_file_buffer = storage_provider.retrieve_file_buffer(
@@ -304,7 +300,7 @@ def image_link(image_id: str):
         302:
           description: Redirect user to the real image location
     """
-    image_in_db = Image.get_image_or_abort(image_id, current_user.id)
+    image_in_db = Image.get_image_or_abort(image_id, current_user.id, include_guest_access=True, include_readonly=True)
 
     storage_provider = StorageProvider()
 
@@ -336,7 +332,7 @@ def image_annotations(image_id):
             application/json:
               schema: AnnotationListSchema
     """
-    Image.get_image_or_abort(image_id, current_user.id)  # just to ensure the image exists
+    Image.get_image_or_abort(image_id, current_user.id, include_guest_access=True, include_readonly=True)  # just to ensure the image exists
 
     queryset = db.session.query(Annotation).filter(Annotation.image_id == image_id)
     total = queryset.count()
@@ -372,7 +368,7 @@ def image_predictions(image_id):
             application/json:
               schema: HeadstampPredictionListSchema
     """
-    Image.get_image_or_abort(image_id, current_user.id)  # just to ensure the image exists
+    Image.get_image_or_abort(image_id, current_user.id, include_guest_access=True, include_readonly=True)  # just to ensure the image exists
 
     queryset = db.session.query(HeadstampPrediction).filter(HeadstampPrediction.image_id == image_id)
     total = queryset.count()
@@ -416,17 +412,15 @@ def image_update(image_id: str):
             application/json:
               schema: ImageDisplaySchema
     """
-    logging.debug(f"put image {image_id}")
-    image_in_db = Image.get_image_or_abort(image_id, current_user.id)
+    logging.info(f"put image {image_id}")
+    image_in_db = Image.get_image_or_abort(image_id, current_user.id, include_guest_access=True)
 
-    logging.info(f"PUT image request for user {current_user.id}")
+    logging.info("PUT image request for user %s", current_user.id)
 
     # TODO: validate the payload.
     # TODO: escape quotes and other dangerous chars
     payload = request.get_json()
-    logging.debug(f"extra_data: {payload}")
     extra_data = payload['extra_data'] if 'extra_data' in payload else {}
-    logging.debug(f"extra_data loaded: {extra_data}")
     if not image_id:
         abort(400, description="image_id parameter is required")
 

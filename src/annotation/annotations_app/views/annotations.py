@@ -44,11 +44,11 @@ def annotations_list():
 
     # retrieve image and collection (if requested) just to ensure they exist and visible
     if image_id:
-        Image.get_image_or_abort(image_id, current_user.id)
+        Image.get_image_or_abort(image_id, current_user.id, include_guest_access=True, include_readonly=True)
     if collection_id:
-        ImageCollection.get_collection_or_abort(collection_id, current_user.id)
+        ImageCollection.get_collection_or_abort(collection_id, current_user.id, include_guest_access=True, include_readonly=True)
 
-    this_user_collections = ImageCollection.get_collections_for_user(current_user.id)
+    this_user_collections = ImageCollection.get_collections_for_user(current_user.id, include_guest_access=True, include_readonly=True)
 
     queryset = db.session.query(Annotation).filter(
         and_(
@@ -113,7 +113,7 @@ def annotation_post():
     if not image_id:
         abort(400, description="image_id parameter is required")
 
-    Image.get_image_or_abort(image_id, current_user.id)  # ensure exists and available
+    Image.get_image_or_abort(image_id, current_user.id, include_guest_access=True)  # ensure exists and available
 
     # create database object if succesfull
     annotation_in_db = Annotation(
@@ -175,7 +175,7 @@ def annotation_replace(annotation_id):
     if not image_id:
         abort(400, description="image_id parameter is required")
 
-    Image.get_image_or_abort(image_id, current_user.id)  # ensure exists and available
+    Image.get_image_or_abort(image_id, current_user.id, include_guest_access=True)  # ensure exists and available
 
     # retrieve existing annotation object
     # TODO: test/sanity check
@@ -219,7 +219,7 @@ def annotation_delete(annotation_id):
     """
     logging.info("DELETE annotation request for user %s", current_user.id)
     # TODO: test/sanity check
-    this_user_collections = ImageCollection.get_collections_for_user(current_user.id)
+    this_user_collections = ImageCollection.get_collections_for_user(current_user.id, include_guest_access=True)
 
     annotation_in_db = (
         db.session.query(Annotation)

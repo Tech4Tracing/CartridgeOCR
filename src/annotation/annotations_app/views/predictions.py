@@ -99,11 +99,11 @@ def predictions_list():
 
     # retrieve image and collection (if requested) just to ensure they exist and visible
     if image_id:
-        Image.get_image_or_abort(image_id, current_user.id)
+        Image.get_image_or_abort(image_id, current_user.id, include_guest_access=True, include_readonly=True)
     if collection_id:
-        ImageCollection.get_collection_or_abort(collection_id, current_user.id)
+        ImageCollection.get_collection_or_abort(collection_id, current_user.id, include_guest_access=True, include_readonly=True)
 
-    this_user_collections = ImageCollection.get_collections_for_user(current_user.id)
+    this_user_collections = ImageCollection.get_collections_for_user(current_user.id, include_guest_access=True, include_readonly=True)
 
     queryset = db.session.query(HeadstampPrediction).filter(
         and_(
@@ -167,7 +167,7 @@ def prediction_post():
     if not image_id:
         abort(400, description="image_id parameter is required")
 
-    Image.get_image_or_abort(image_id, current_user.id)  # ensure exists and available
+    Image.get_image_or_abort(image_id, current_user.id, include_guest_access=True)  # ensure exists and available
 
     # create database object if succesfull
     prediction_in_db = HeadstampPrediction(
@@ -230,7 +230,7 @@ def prediction_replace(prediction_id):
     if not image_id:
         abort(400, description="image_id parameter is required")
 
-    Image.get_image_or_abort(image_id, current_user.id)  # ensure exists and available
+    Image.get_image_or_abort(image_id, current_user.id, include_guest_access=True)  # ensure exists and available
 
     # retrieve existing prediction object
     # TODO: test/sanity check
@@ -274,7 +274,7 @@ def prediction_delete(prediction_id):
     """
     logging.info("DELETE prediction request for user %s", current_user.id)
     # TODO: test/sanity check
-    this_user_collections = ImageCollection.get_collections_for_user(current_user.id)
+    this_user_collections = ImageCollection.get_collections_for_user(current_user.id, include_guest_access=True)
 
     prediction_in_db = (
         db.session.query(HeadstampPrediction)
