@@ -1,17 +1,24 @@
 import mimetypes
 from io import BytesIO
+import json
+import os
+from base64 import b64encode
+import datetime
 
-from flask import request, send_file, redirect
+from flask import request, send_file, redirect, abort
 from flask_login import login_required, current_user
 
-from annotations_app.flask_app import app, db
+from annotations_app.flask_app import app, db, celery
 from annotations_app import schemas
 from annotations_app.config import logging
-from annotations_app.models.base import ImageCollection, Image, Annotation
+from annotations_app.models.base import ImageCollection, Image, Annotation, HeadstampPrediction
 from annotations_app.repos.azure_storage_provider import (
     AzureStorageProvider as StorageProvider,
 )
+from annotations_app.tasks.predict import predict_headstamps
 
+assert 'PREDICTION_ENDPOINT' in os.environ
+prediction_endpoint_uri = os.environ['PREDICTION_ENDPOINT']+'/api/v0/headstamp_predict'            
 
 @app.route("/api/v0/images", methods=["POST"])
 @login_required
@@ -29,6 +36,8 @@ def image_post():
                     type: string
                   mimetype:
                     type: string
+                  extra_data:
+                    type: object
                   file:
                     type: string
                     format: binary
@@ -72,14 +81,9 @@ def image_post():
             db.session.refresh(collection_in_db)
 
     if collection_in_db is None:
-        collection_in_db = (
-            db.session.query(ImageCollection)
-            .filter(
-                ImageCollection.user_id == current_user.id,
-                ImageCollection.id == request.form["collection_id"],
-            )
-            .first()
-        )
+        collection_in_db = ImageCollection.get_collection_or_abort(
+          request.form["collection_id"], current_user.id, include_guest_access=True)
+        
         if not collection_in_db:
             return schemas.Errors().dump(
                 {
@@ -95,8 +99,9 @@ def image_post():
     # TODO: file format validation? file size validation? duplicates? etc
 
     # upload the file to storage
+    image_data = request.files["file"].read()
     readable_file = BytesIO(
-        request.files["file"].read()
+        image_data
     )  # all goes to memory, which is fine for images for most cases
     storage_provider = StorageProvider()
     storage_file_key, size = storage_provider.upload_file(
@@ -110,15 +115,46 @@ def image_post():
     )[0]
 
     mime = request.form.get("mimetype") or default_mimetype or "binary/octet-stream"
+    extra_data = request.form.get("extra_data")
+    extra_data = json.loads(extra_data) if extra_data else {}
+    if 'filename' not in extra_data:
+      extra_data['filename'] = request.files["file"].filename
+    
+    # Trigger prediction task
+    # TODO: set ignore_result=True once db persistence is established.
+    
     image_in_db = Image(
         mimetype=mime,
         size=size,
         storageKey=storage_file_key,
         collection_id=collection_in_db.id,
+        extra_data=json.dumps(extra_data),
+        prediction_status=json.dumps({'status':'staging'}),
     )
+    
+    
     db.session.add(image_in_db)
     db.session.commit()
     db.session.refresh(image_in_db)
+    logging.info(image_in_db.prediction_status)
+    # we need an image id before we can kick off the prediction task
+    # and we want a task id for future reference. Maybe we could do without it?
+    # for unfortunately we have to run a second transaction
+    result=predict_headstamps.delay(prediction_endpoint_uri, current_user.id, image_in_db.id, b64encode(image_data).decode('utf-8'))
+    logging.info(f'Prediction task: {result.task_id}')
+    
+    prediction_status = {
+      'task_id': result.task_id,
+      'status': 'pending', 
+      'updated': str(datetime.datetime.utcnow()), 
+      'result': 'None'
+    }
+    image_in_db.prediction_status = json.dumps(prediction_status)
+    #db.session.add(image_in_db)
+    db.session.commit()
+    db.session.refresh(image_in_db)
+    logging.info(image_in_db.prediction_status)
+
     return schemas.ImageDisplaySchema().dump(image_in_db), 201
 
 
@@ -146,7 +182,8 @@ def images_list():
     # TODO: ensure that the collection ID is visible to the given user
     # it won't return anything if the ID is incorrect but it's better to raise 404
 
-    this_user_collections = ImageCollection.get_collections_for_user(current_user)
+    this_user_collections = ImageCollection.get_collections_for_user(
+        current_user.id, include_guest_access=True, include_readonly=True)
 
     queryset = db.session.query(Image).filter(
         Image.collection_id.in_(this_user_collections.with_entities(ImageCollection.id).distinct()),
@@ -185,7 +222,7 @@ def image_detail(image_id: str):
             application/json:
               schema: ImageDisplaySchema
     """
-    image_in_db = Image.get_image_or_abort(image_id, current_user)
+    image_in_db = Image.get_image_or_abort(image_id, current_user.id, include_guest_access=True, include_readonly=True)
     return schemas.ImageDisplaySchema().dump(image_in_db)
 
 
@@ -207,7 +244,7 @@ def image_delete(image_id: str):
           description: Success
     """
     # TODO: clean up any orphaned annotations
-    image_in_db = Image.get_image_or_abort(image_id, current_user)
+    image_in_db = Image.get_image_or_abort(image_id, current_user.id, include_guest_access=True)
     storage_provider = StorageProvider()
     storage_provider.delete_file(image_in_db.storageKey)
     db.session.delete(image_in_db)
@@ -232,7 +269,7 @@ def image_retrieve(image_id: str):
         200:
           description: Binary image content
     """
-    image_in_db = Image.get_image_or_abort(image_id, current_user)
+    image_in_db = Image.get_image_or_abort(image_id, current_user.id, include_guest_access=True, include_readonly=True)
 
     storage_provider = StorageProvider()
     stored_file_buffer = storage_provider.retrieve_file_buffer(
@@ -263,7 +300,7 @@ def image_link(image_id: str):
         302:
           description: Redirect user to the real image location
     """
-    image_in_db = Image.get_image_or_abort(image_id, current_user)
+    image_in_db = Image.get_image_or_abort(image_id, current_user.id, include_guest_access=True, include_readonly=True)
 
     storage_provider = StorageProvider()
 
@@ -295,7 +332,7 @@ def image_annotations(image_id):
             application/json:
               schema: AnnotationListSchema
     """
-    Image.get_image_or_abort(image_id, current_user)  # just to ensure the image exists
+    Image.get_image_or_abort(image_id, current_user.id, include_guest_access=True, include_readonly=True)  # just to ensure the image exists
 
     queryset = db.session.query(Annotation).filter(Annotation.image_id == image_id)
     total = queryset.count()
@@ -309,3 +346,90 @@ def image_annotations(image_id):
             "annotations": results,
         }
     )
+
+
+@app.route("/api/v0/images/<string:image_id>/predictions", methods=["GET"])
+@login_required
+def image_predictions(image_id):
+    """List of predictions for a given image
+    ---
+    get:
+      parameters:
+        - in: path
+          name: image_id
+          schema:
+            type: string
+          required: true
+          description: Unique image ID
+      responses:
+        200:
+          description: List of all predictions for the given image
+          content:
+            application/json:
+              schema: HeadstampPredictionListSchema
+    """
+    Image.get_image_or_abort(image_id, current_user.id, include_guest_access=True, include_readonly=True)  # just to ensure the image exists
+
+    queryset = db.session.query(HeadstampPrediction).filter(HeadstampPrediction.image_id == image_id)
+    total = queryset.count()
+    results = queryset.order_by(
+        "created_at", "id"
+    )  # TODO: this will re-order the display order of the annotations (use created_at datetime?)
+
+    return schemas.HeadstampPredictionListSchema().dump(
+        {
+            "total": total,
+            "predictions": results,
+        }
+    )
+
+
+@app.route("/api/v0/images/<string:image_id>", methods=["PUT"])
+@login_required
+def image_update(image_id: str):
+    """Update image properties. The only field that can be updated is the extra_data field.
+    ---
+    put:
+      parameters:
+        - in: path
+          name: image_id
+          schema:
+            type: string
+          required: true
+          description: Unique image ID
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                extra_data: string
+
+      responses:
+        201:
+          description: JSON with the image info
+          content:
+            application/json:
+              schema: ImageDisplaySchema
+    """
+    logging.info(f"put image {image_id}")
+    image_in_db = Image.get_image_or_abort(image_id, current_user.id, include_guest_access=True)
+
+    logging.info("PUT image request for user %s", current_user.id)
+
+    # TODO: validate the payload.
+    # TODO: escape quotes and other dangerous chars
+    payload = request.get_json()
+    extra_data = payload['extra_data'] if 'extra_data' in payload else {}
+    if not image_id:
+        abort(400, description="image_id parameter is required")
+
+    image_in_db = Image.get_image_or_abort(image_id, current_user.id)  # ensure exists and available
+
+    image_in_db.extra_data = json.dumps(extra_data)
+
+    db.session.commit()
+    db.session.refresh(image_in_db)
+    return schemas.ImageDisplaySchema().dump(image_in_db)
+
+

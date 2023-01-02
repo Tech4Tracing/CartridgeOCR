@@ -3,7 +3,8 @@ from flask_login import login_required, current_user
 
 from annotations_app.flask_app import app, db
 from annotations_app import schemas
-from annotations_app.models.base import ImageCollection, Image
+from annotations_app.models.base import ImageCollection, Image, User, UserScope
+import logging
 
 
 @app.route("/api/v0/collections", methods=["GET"])
@@ -19,9 +20,8 @@ def collections_list():
             application/json:
               schema: CollectionsListSchema
     """
-    queryset = db.session.query(ImageCollection).filter(
-        ImageCollection.user_id == current_user.id,
-    )
+    queryset = ImageCollection.get_collections_for_user(
+      current_user.id, include_guest_access=True, include_readonly=True)
     total = queryset.count()
     results = queryset.order_by("id")
 
@@ -112,3 +112,153 @@ def collection_delete(collection_id: str):
     db.session.delete(collection_in_db)
     db.session.commit()
     return ("", 204)
+
+
+@app.route("/api/v0/collections/<string:collection_id>/userscopes", methods=["GET"])
+@login_required
+def collections_guests_list(collection_id):
+    """List all user scopes associated with a collection
+    ---
+    get:
+      parameters:
+        - in: path
+          name: collection_id
+          schema:
+            type: string
+          required: true
+          description: Unique collection ID
+      responses:
+        200:
+          description: List all user scopes associated with a collection
+          content:
+            application/json:
+              schema: CollectionUserScopeListSchema
+    """
+    collection_in_db = ImageCollection.get_collection_or_abort(collection_id, current_user.id)
+    return schemas.CollectionUserScopeListSchema().dump(
+        {
+            "userscopes": [ 
+              {'user_email': User.get_user_by_id(s.user_id).email, 'access_level': s.access_level } \
+                for s in collection_in_db.userscopes
+            ]
+        }
+    )
+
+
+@app.route("/api/v0/collections/<string:collection_id>/userscopes", methods=["PATCH"])
+@login_required
+def collections_guests_add(collection_id):
+    """Add a user scope to a collection
+    ---
+    patch:
+      parameters:
+        - in: path
+          name: collection_id
+          schema:
+            type: string
+          required: true
+          description: Unique collection ID
+      requestBody:
+        content:
+          application/json:
+            schema: CollectionUserScopeSchema
+            example:
+              user_email: someone@example.com
+              access_level: read
+      responses:
+        201:
+          description: List all guest users associated with a collection
+          content:
+            application/json:
+              schema: CollectionUserScopeSchema
+    """
+    collection_in_db = ImageCollection.get_collection_or_abort(collection_id, current_user.id)
+    
+    req = request.json
+    logging.info(f'Adding userscope to collection {collection_id}: {req}')
+    user_email = req['user_email']
+    user_scope = req['access_level']
+    user = User.get_user_by_email(user_email)
+    
+    if user is None or user.id==current_user.id:
+        abort(400, description="Invalid user email")
+        
+    if user_scope not in ['read', 'write']:
+        abort(400, description="Invalid access_level: must be read or write")
+
+    userscope_in_db = (
+        db.session.query(UserScope)
+        .filter(
+            UserScope.imagecollection_id == collection_in_db.id,
+            UserScope.user_id == user.id,            
+        )
+        .first()
+    )
+
+    if userscope_in_db:
+        userscope_in_db.access_level = user_scope
+    else:
+        userscope_in_db = UserScope(
+            user_id=user.id,
+            imagecollection_id=collection_in_db.id,            
+            access_level=user_scope,
+        )
+    db.session.add(userscope_in_db)
+    db.session.commit()
+    # TODO: this got messy while debugging. While the result is valid it could be cleaned up.
+    db.session.refresh(userscope_in_db)
+    # db.session.refresh(collection_in_db)
+    #collection_in_db = ImageCollection.get_collection_or_abort(collection_id, current_user.id)
+    #result = [s for s in collection_in_db.userscopes if s.user_id==user.id]
+    #assert(len(result)==1)
+    #result = result[0]
+    result = userscope_in_db
+    return schemas.CollectionUserScopeSchema().dump(
+      {'user_email':user.email, 'access_level': result.access_level}
+    ), 201
+
+
+@app.route("/api/v0/collections/<string:collection_id>/userscopes", methods=["DELETE"])
+@login_required
+def collections_guests_delete(collection_id):
+    """Delete a guest user associated with a collection
+    ---
+    delete:
+      parameters:
+        - in: path
+          name: collection_id
+          schema:
+            type: string
+          required: true
+          description: Unique collection ID
+      requestBody:
+        content:
+          application/json:
+            schema: CollectionUserScopeSchema
+            example:
+              user_email: someone@example.com
+              access_level: read  # ignored
+      responses:
+        204:
+          description: Success
+    """
+    collection_in_db = ImageCollection.get_collection_or_abort(collection_id, current_user.id)
+    
+    req = request.json
+    user_email = req['user_email']
+    user = User.get_user_by_email(user_email)
+    
+    if user is None:
+        abort(400, description="Invalid user email")
+
+    scope_in_db = (
+        db.session.query(UserScope).filter(
+          UserScope.imagecollection_id == collection_in_db.id, 
+          UserScope.user_id == user.id
+        ).first()
+    )
+    assert scope_in_db is not None
+    db.session.delete(scope_in_db)
+    db.session.commit()
+    return ("", 204)
+    

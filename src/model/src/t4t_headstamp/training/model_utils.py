@@ -1,7 +1,7 @@
 import os
-import model.dataProcessing.utils as utils
-import model.dataProcessing.transforms as T
-from model.dataProcessing.coco_utils import ConvertCocoPolysToMask
+import t4t_headstamp.dataProcessing.utils as utils
+import t4t_headstamp.dataProcessing.transforms as T
+from t4t_headstamp.dataProcessing.coco_utils import ConvertCocoPolysToMask
 from torchvision.models.detection.faster_rcnn import FastRCNNPredictor
 from torchvision.models.detection.mask_rcnn import MaskRCNNPredictor
 import torchvision

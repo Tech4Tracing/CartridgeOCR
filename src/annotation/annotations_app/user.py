@@ -3,7 +3,7 @@ from flask_login import UserMixin
 from annotations_app.config import logging, Config
 from annotations_app.models.base import User as UserModel
 from annotations_app.utils import db_session
-
+from annotations_app.flask_app import db
 
 class User(UserMixin):
 
@@ -53,77 +53,76 @@ class User(UserMixin):
         """
         if default_fields is None:
             default_fields = dict()
-        with db_session() as db:
-            user_from_db = db.query(UserModel)
 
-            if user_id:
-                user_from_db = user_from_db.filter(UserModel.id == user_id)
-            elif provider_id:
-                user_from_db = user_from_db.filter(
-                    UserModel.provider_id == provider_id
-                )
-            elif email:
-                # logic warning: if we use multiple auth providers it might be unsafe
-                user_from_db = user_from_db.filter(
-                    UserModel.email == email
-                )
-            else:
-                raise Exception("Please provide a way to retrieve the user")
-            user_from_db = user_from_db.first()
-            if not user_from_db:
-                if email and User.is_superuser_email(email):
-                    # special case - first login by superuser on fresh setup/database
-                    superuser = User.create(
-                        provider_id=default_fields.get("provider_id"),
-                        name=default_fields.get("name"),
-                        email=default_fields.get("email"),
-                        profile_pic=default_fields.get("profile_pic"),
-                        is_active=True,
-                        is_superuser=True
-                    )
-                    logging.info("Superuser %s (%s) first login", superuser.email, superuser.provider_id)
-                    return superuser
-                return None
+        user_from_db = db.session.query(UserModel)
 
-            # update user's data on each login
-            for field, value in default_fields.items():
-                if getattr(user_from_db, field, None) != value:
-                    setattr(user_from_db, field, value)
-                    logging.info("User %s field updated to %s", user_from_db, value)
-
-            return User(
-                id=user_from_db.id,
-                provider_id=user_from_db.provider_id,
-                name=user_from_db.name,
-                email=user_from_db.email,
-                profile_pic=user_from_db.profile_pic,
-                is_active=user_from_db.is_active,
-                is_superuser=user_from_db.is_superuser,
+        if user_id:
+            user_from_db = user_from_db.filter(UserModel.id == user_id)
+        elif provider_id:
+            user_from_db = user_from_db.filter(
+                UserModel.provider_id == provider_id
             )
+        elif email:
+            # logic warning: if we use multiple auth providers it might be unsafe
+            user_from_db = user_from_db.filter(
+                UserModel.email == email
+            )
+        else:
+            raise Exception("Please provide a way to retrieve the user")
+        user_from_db = user_from_db.first()
+        if not user_from_db:
+            if email and User.is_superuser_email(email):
+                # special case - first login by superuser on fresh setup/database
+                superuser = User.create(
+                    provider_id=default_fields.get("provider_id"),
+                    name=default_fields.get("name"),
+                    email=default_fields.get("email"),
+                    profile_pic=default_fields.get("profile_pic"),
+                    is_active=True,
+                    is_superuser=True
+                )
+                logging.info("Superuser %s (%s) first login", superuser.email, superuser.provider_id)
+                return superuser
+            return None
+
+        # update user's data on each login
+        for field, value in default_fields.items():
+            if getattr(user_from_db, field, None) != value:
+                setattr(user_from_db, field, value)
+                logging.info("User %s field updated to %s", user_from_db, value)
+
+        return User(
+            id=user_from_db.id,
+            provider_id=user_from_db.provider_id,
+            name=user_from_db.name,
+            email=user_from_db.email,
+            profile_pic=user_from_db.profile_pic,
+            is_active=user_from_db.is_active,
+            is_superuser=user_from_db.is_superuser,
+        )
 
     @staticmethod
     def create(*, provider_id, name, email, profile_pic, is_active=False, is_superuser=False):
-        with db_session() as db:
-            user = UserModel(
-                provider_id=provider_id,
-                name=name,
-                email=email,
-                profile_pic=profile_pic,
-                is_active=is_active,
-                is_superuser=is_superuser,
-            )
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-            return User(
-                id=user.id,
-                provider_id=user.provider_id,
-                name=user.name,
-                email=user.email,
-                profile_pic=user.profile_pic,
-                is_active=user.is_active,
-                is_superuser=user.is_superuser,
-            )
+        user = UserModel(
+            provider_id=provider_id,
+            name=name,
+            email=email,
+            profile_pic=profile_pic,
+            is_active=is_active,
+            is_superuser=is_superuser,
+        )
+        db.session.add(user)
+        db.session.commit()
+        db.session.refresh(user)
+        return User(
+            id=user.id,
+            provider_id=user.provider_id,
+            name=user.name,
+            email=user.email,
+            profile_pic=user.profile_pic,
+            is_active=user.is_active,
+            is_superuser=user.is_superuser,
+        )
 
     def __str__(self):
         return f"User {self.email}"

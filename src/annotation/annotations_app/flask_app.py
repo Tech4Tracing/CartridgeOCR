@@ -17,6 +17,7 @@ from oauthlib.oauth2 import WebApplicationClient
 
 from annotations_app.config import Config, logging
 from werkzeug.middleware.proxy_fix import ProxyFix
+import annotations_app.tasks as tasks
 
 load_dotenv()
 
@@ -44,10 +45,16 @@ app = Flask(__name__)
 app.secret_key = Config.SECRET_KEY
 app.config["SQLALCHEMY_DATABASE_URI"] = Config.SQLALCHEMY_DATABASE_URI
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+app.config.update(CELERY_CONFIG={
+    'broker_url': Config.CELERY_BROKER_URL,
+    'result_backend': 'db+'+Config.SQLALCHEMY_DATABASE_URI,
+})
+
+celery = tasks.make_celery(app)
 app.wsgi_app = ProxyFix(app.wsgi_app)
 
-# Uncomment the engine_options line below to enable SQL query logging
-db = SQLAlchemy(app) #, engine_options={"echo": True})
+# Add the echo option below to enable SQL query logging
+db = SQLAlchemy(app, engine_options={'pool_size': 10, 'max_overflow': 20}) #, engine_options={"echo": True})
 
 # logging.info('Launching login manager')
 # User session management setup

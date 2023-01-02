@@ -1,12 +1,14 @@
-FROM pytorch/pytorch:1.8.0-cuda11.1-cudnn8-devel
+FROM pytorch/pytorch:1.8.0-cuda11.1-cudnn8-runtime
 
 # Ensure terminal output is sent directly to logs
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONPATH=/app
+ARG T4T_WHL=t4t_headstamp-0.0.1-py3-none-any.whl
 
 # uvicorn/uvloop/pymssql and other requirements
 #RUN apk add gcc g++ musl-dev python3-dev libffi-dev openssl-dev make freetds-dev
+RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get -y install gnupg2
 RUN apt-key del 7fa2af80
 RUN apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/3bf863cc.pub
 RUN apt-key adv --fetch-keys http://developer.download.nvidia.com/compute/cuda/repos/ubuntu1804/x86_64/7fa2af80.pub
@@ -55,9 +57,11 @@ RUN apt-get -qq update && DEBIAN_FRONTEND=noninteractive apt-get -y install \
 # TODO: separate development from production requirements (and Dockerfiles)
 COPY ./predict_api/requirements.txt /requirements.txt
 RUN pip install --upgrade pip
+ADD ./${T4T_WHL} /${T4T_WHL}
 RUN pip install -r /requirements.txt
+RUN pip install /${T4T_WHL}
 
-ADD ./model /model
+# ADD ./model /model
 ADD ./model_snapshot /model_snapshot
 ADD ./predict_api /app
 
