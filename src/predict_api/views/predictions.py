@@ -4,7 +4,7 @@ import base64
 import schemas
 from config import Config, logging
 sys.path.append('..')
-from model.predictions.inference import Inference
+from t4t_headstamp.predictions.inference import Inference
 from flask import request
 from flask_app import app
 

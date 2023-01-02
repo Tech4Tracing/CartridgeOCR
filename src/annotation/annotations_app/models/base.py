@@ -4,7 +4,7 @@ import uuid
 
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy_mixins import AllFeaturesMixin
-from sqlalchemy import Boolean, ForeignKey, Integer, Text, String, DateTime
+from sqlalchemy import Boolean, ForeignKey, Integer, Text, String, DateTime, Float
 from sqlalchemy.orm import relationship
 
 db = SQLAlchemy()
@@ -28,6 +28,7 @@ class Annotation(BaseModel):
     image = relationship("Image", back_populates="annotations")
     geometry = db.Column(Text)
     annotation = db.Column(Text)
+    prediction_id = db.Column(String(36), nullable=True) #, ForeignKey("predictions.id"), nullable=True)
     metadata_ = db.Column('metadata', Text)
 
     def __str__(self):
@@ -99,15 +100,15 @@ class ImageCollection(BaseModel):
             print(e)
 
     @staticmethod
-    def get_collections_for_user(current_user):
+    def get_collections_for_user(current_user_id):
         from annotations_app.flask_app import db
 
         return db.session.query(ImageCollection).filter(
-            ImageCollection.user_id == current_user.id,
+            ImageCollection.user_id == current_user_id,
         )
 
     @staticmethod
-    def get_collection_or_abort(collection_id, current_user):
+    def get_collection_or_abort(collection_id, current_user_id):
         """
         Either return first(single) collection or raise 404 exception
         """
@@ -118,7 +119,7 @@ class ImageCollection(BaseModel):
             db.session.query(ImageCollection)
             .filter(
                 ImageCollection.id == collection_id,
-                ImageCollection.user_id == current_user.id,
+                ImageCollection.user_id == current_user_id,
             )
             .first()
         )
@@ -139,9 +140,11 @@ class Image(BaseModel):
     file_hash = db.Column(String(255), default="")
     storageKey = db.Column(String(1024))
     extra_data = db.Column(Text)
+    prediction_status = db.Column(Text)
 
     collection = relationship("ImageCollection", back_populates="images")
     annotations = relationship("Annotation", back_populates="image")
+    predictions = relationship("HeadstampPrediction", back_populates="image")
 
     def __str__(self):
         return self.id
@@ -155,14 +158,14 @@ class Image(BaseModel):
             return "file.bin"
 
     @staticmethod
-    def get_image_or_abort(image_id, current_user):
+    def get_image_or_abort(image_id, current_user_id):
         """
         Either return first(single) image or raises an 404 exception which is handled elsewhere
         """
         from flask import abort
         from annotations_app.flask_app import db
 
-        this_user_collections = ImageCollection.get_collections_for_user(current_user)
+        this_user_collections = ImageCollection.get_collections_for_user(current_user_id)
 
         image_in_db = (
             db.session.query(Image)
@@ -177,3 +180,22 @@ class Image(BaseModel):
         if not image_in_db:
             abort(404, description="Image not found")
         return image_in_db
+
+
+
+
+class HeadstampPrediction(BaseModel):
+    __tablename__ = 'predictions'
+
+    id = db.Column(String(36), primary_key=True, default=uuid.uuid4)
+    created_at = db.Column(DateTime(timezone=True), default=datetime.datetime.utcnow)
+
+    image_id = db.Column(String(36), ForeignKey("images.id"))
+    image = relationship("Image", back_populates="predictions")
+    casing_box = db.Column(Text)
+    casing_confidence = db.Column(Float)
+    primer_box = db.Column(Text)
+    primer_confidence = db.Column(Float)
+    
+    def __str__(self):
+        return self.id

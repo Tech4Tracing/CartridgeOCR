@@ -20,3 +20,6 @@ apispec-webframeworks==0.5.2
 
 # Azure file storage
 azure-storage-blob==12.9.0  # for Azure Blob storage
+
+# Celery
+celery==5.2.7

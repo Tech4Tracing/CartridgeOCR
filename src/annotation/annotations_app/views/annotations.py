@@ -3,7 +3,7 @@ import json
 from flask import request, abort
 from flask_login import login_required, current_user
 
-from annotations_app.flask_app import app, db as new_db
+from annotations_app.flask_app import app, db
 from annotations_app import schemas
 from annotations_app.config import logging
 from annotations_app.models.base import ImageCollection, Image, Annotation
@@ -44,13 +44,13 @@ def annotations_list():
 
     # retrieve image and collection (if requested) just to ensure they exist and visible
     if image_id:
-        Image.get_image_or_abort(image_id, current_user)
+        Image.get_image_or_abort(image_id, current_user.id)
     if collection_id:
-        ImageCollection.get_collection_or_abort(collection_id, current_user)
+        ImageCollection.get_collection_or_abort(collection_id, current_user.id)
 
-    this_user_collections = ImageCollection.get_collections_for_user(current_user)
+    this_user_collections = ImageCollection.get_collections_for_user(current_user.id)
 
-    queryset = new_db.session.query(Annotation).filter(
+    queryset = db.session.query(Annotation).filter(
         and_(
             # filter by image
             Annotation.image_id == image_id if image_id else True,
@@ -93,8 +93,11 @@ def annotation_post():
                     type: object
                   annotation:
                     type: string
+                  prediction_id:
+                    type: string
                   metadata_:
                     type: object
+                  
         responses:
             201:
               description: Details about the created annotation
@@ -110,18 +113,19 @@ def annotation_post():
     if not image_id:
         abort(400, description="image_id parameter is required")
 
-    Image.get_image_or_abort(image_id, current_user)  # ensure exists and available
+    Image.get_image_or_abort(image_id, current_user.id)  # ensure exists and available
 
     # create database object if succesfull
     annotation_in_db = Annotation(
         image_id=image_id,
         geometry=json.dumps(req["geometry"]),
         annotation=req["annotation"],
+        prediction_id = req["prediction_id"] if "prediction_id" in req else None,
         metadata_=json.dumps(req["metadata_"]),
     )
-    new_db.session.add(annotation_in_db)
-    new_db.session.commit()
-    new_db.session.refresh(annotation_in_db)
+    db.session.add(annotation_in_db)
+    db.session.commit()
+    db.session.refresh(annotation_in_db)
     return schemas.AnnotationDisplaySchema().dump(annotation_in_db), 201
 
 
@@ -150,6 +154,8 @@ def annotation_replace(annotation_id):
                     type: object
                   annotation:
                     type: string
+                  prediction_id:
+                    type: string
                   metadata_:
                     type: object
         responses:
@@ -169,12 +175,12 @@ def annotation_replace(annotation_id):
     if not image_id:
         abort(400, description="image_id parameter is required")
 
-    Image.get_image_or_abort(image_id, current_user)  # ensure exists and available
+    Image.get_image_or_abort(image_id, current_user.id)  # ensure exists and available
 
     # retrieve existing annotation object
     # TODO: test/sanity check
     annotation_in_db = (
-        new_db.session.query(Annotation)
+        db.session.query(Annotation)
         .filter(
             Annotation.id == annotation_id,
             Image.id == image_id,
@@ -187,9 +193,10 @@ def annotation_replace(annotation_id):
 
     annotation_in_db.geometry = json.dumps(req["geometry"])
     annotation_in_db.annotation = req["annotation"]
+    annotation_in_db.prediction_id = req["prediction_id"] if "prediction_id" in req else None
     annotation_in_db.metadata_ = json.dumps(req["metadata_"])
-    new_db.session.commit()
-    new_db.session.refresh(annotation_in_db)
+    db.session.commit()
+    db.session.refresh(annotation_in_db)
     return schemas.AnnotationDisplaySchema().dump(annotation_in_db)
 
 
@@ -212,10 +219,10 @@ def annotation_delete(annotation_id):
     """
     logging.info("DELETE annotation request for user %s", current_user.id)
     # TODO: test/sanity check
-    this_user_collections = ImageCollection.get_collections_for_user(current_user)
+    this_user_collections = ImageCollection.get_collections_for_user(current_user.id)
 
     annotation_in_db = (
-        new_db.session.query(Annotation)
+        db.session.query(Annotation)
         .filter(
             Annotation.id == annotation_id,
             Image.id == Annotation.image_id,
@@ -227,6 +234,6 @@ def annotation_delete(annotation_id):
     if not annotation_in_db:
         abort(404)
 
-    new_db.session.delete(annotation_in_db)
-    new_db.session.commit()
+    db.session.delete(annotation_in_db)
+    db.session.commit()
     return ("", 204)
