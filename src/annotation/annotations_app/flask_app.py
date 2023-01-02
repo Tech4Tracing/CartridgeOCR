@@ -46,7 +46,7 @@ app.secret_key = Config.SECRET_KEY
 app.config["SQLALCHEMY_DATABASE_URI"] = Config.SQLALCHEMY_DATABASE_URI
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config.update(CELERY_CONFIG={
-    'broker_url': 'pyamqp://rabbitmq:5672',
+    'broker_url': Config.CELERY_BROKER_URL,
     'result_backend': 'db+'+Config.SQLALCHEMY_DATABASE_URI,
 })
 
