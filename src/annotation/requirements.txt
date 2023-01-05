@@ -23,4 +23,4 @@ azure-storage-blob==12.9.0  # for Azure Blob storage
 
 # Celery
 celery==5.2.7
-celery[redis]==5.2.7
+celery[redis]==5.2.7  # for Redis support

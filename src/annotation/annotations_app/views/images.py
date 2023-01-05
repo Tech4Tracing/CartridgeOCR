@@ -193,7 +193,9 @@ def images_list():
             Image.collection_id == collection_id
         )
     total = queryset.count()
-    results = queryset.order_by("id")
+    # sort by the order they were uploaded.
+    # TODO: alternate sort orders in the UI
+    results = queryset.order_by("created_at")
     return schemas.ImageListSchema().dump(
         {
             "total": total,

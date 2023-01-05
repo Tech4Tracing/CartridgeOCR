@@ -31,6 +31,7 @@ services:
       STORAGE_AZURE_CONNECTIONSTRING: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://annotations_objstore:10000/devstoreaccount1;"
       STORAGE_AZURE_CONTAINERNAME: "peremages"
       PREDICTION_ENDPOINT: "http://predict_api:8081"
+      CELERY_BROKER_URL: "redis://redis:6379/0"
     volumes:
       - ./src/annotation:/app
       - ./data/:/data
@@ -67,14 +68,21 @@ services:
     logging:
       driver: none
 
-  rabbitmq:
-    image: rabbitmq:3.8.9-management
+  #rabbitmq:
+  #  #image: rabbitmq:3.8.9-management
+  #  image: rabbitmq:latest
+  #  ports:
+  #    - "5672:5672"
+  #    - "15672:15672"
+  #  environment:
+  #    RABBITMQ_DEFAULT_USER: "guest"
+  redis:
+    image: redis:latest
     ports:
-      - "5672:5672"
-      - "15672:15672"
-    environment:
-      RABBITMQ_DEFAULT_USER: "guest"
-  
+      - "6379:6379"
+    #environment:
+      #REDIS_PASSWORD: "Your_password123"
+
   predict_api:
     image: cartridgeocr/predict_api:latest
     ports:
