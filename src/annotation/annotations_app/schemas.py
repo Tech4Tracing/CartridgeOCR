@@ -140,6 +140,7 @@ class AnnotationListSchema(Schema):
 
 class HeadstampPredictionListSchema(Schema):
     total = fields.Int()
+    status = fields.Str()
     predictions = fields.List(fields.Nested(HeadstampPredictionDisplaySchema))
 
 class UserDisplaySchema(Schema):
@@ -174,3 +175,6 @@ class ErrorSchema(Schema):
 class Errors(Schema):
     errors = fields.List(fields.Nested(ErrorSchema))
 
+class ImageNavigationSchema(Schema):
+    prev = fields.Str()
+    next = fields.Str()

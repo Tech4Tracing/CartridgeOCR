@@ -16,6 +16,7 @@ from annotations_app.repos.azure_storage_provider import (
     AzureStorageProvider as StorageProvider,
 )
 from annotations_app.tasks.predict import predict_headstamps
+from sqlalchemy import and_, desc
 
 assert 'PREDICTION_ENDPOINT' in os.environ
 prediction_endpoint_uri = os.environ['PREDICTION_ENDPOINT']+'/api/v0/headstamp_predict'            
@@ -370,7 +371,7 @@ def image_predictions(image_id):
             application/json:
               schema: HeadstampPredictionListSchema
     """
-    Image.get_image_or_abort(image_id, current_user.id, include_guest_access=True, include_readonly=True)  # just to ensure the image exists
+    image = Image.get_image_or_abort(image_id, current_user.id, include_guest_access=True, include_readonly=True)  # just to ensure the image exists
 
     queryset = db.session.query(HeadstampPrediction).filter(HeadstampPrediction.image_id == image_id)
     total = queryset.count()
@@ -381,6 +382,7 @@ def image_predictions(image_id):
     return schemas.HeadstampPredictionListSchema().dump(
         {
             "total": total,
+            "status": image.prediction_status,
             "predictions": results,
         }
     )
@@ -435,3 +437,54 @@ def image_update(image_id: str):
     return schemas.ImageDisplaySchema().dump(image_in_db)
 
 
+
+@app.route("/api/v0/images/<string:image_id>/navigation", methods=["GET"])
+@login_required
+def image_navigation(image_id):
+    """Get adjacent images in the database, for navigation
+    ---
+    get:
+      parameters:
+        - in: path
+          name: image_id
+          schema:
+            type: string
+          required: true
+          description: Unique image ID
+        - in: query
+          name: sort_by
+          schema:
+            type: string
+          required: false
+          description: Sort by field (created_at, id)
+      responses:
+        200:
+          description: Previous and next image in the database
+          content:
+            application/json:
+              schema: ImageNavigationSchema
+    """
+    image=Image.get_image_or_abort(image_id, current_user.id, include_guest_access=True, include_readonly=True)  # just to ensure the image exists
+
+    sort_by = request.args.get("sort_by", "created_at")
+    if sort_by not in ["created_at", "id"]:
+        abort(400, description="Invalid sort_by parameter")
+
+    if sort_by == "created_at":
+        next_id = db.session.query(Image.id).filter(
+            and_(Image.collection_id == image.collection_id, Image.created_at > image.created_at)
+        ).order_by(Image.created_at).limit(1).scalar()
+        prev_id = db.session.query(Image.id).filter(
+            and_(Image.collection_id == image.collection_id, Image.created_at < image.created_at)
+        ).order_by(desc(Image.created_at)).limit(1).scalar()
+    else: # sort_by == "id"
+        next_id = db.session.query(Image.id).filter(
+          and_(Image.collection_id==image.collection_id, Image.id > image_id)
+        ).order_by(Image.created_at).limit(1).scalar()
+        prev_id = db.session.query(Image.id).filter(
+          and_(Image.collection_id==image.collection_id, Image.id < image_id)
+        ).order_by(desc(Image.created_at)).limit(1).scalar()
+    return schemas.ImageNavigationSchema().dump({
+        "next": next_id,
+        "prev": prev_id,
+    }), 200
