@@ -470,6 +470,7 @@ def image_navigation(image_id):
     if sort_by not in ["created_at", "id"]:
         abort(400, description="Invalid sort_by parameter")
 
+    # TODO: is there a cleaner way?
     if sort_by == "created_at":
         next_id = db.session.query(Image.id).filter(
             and_(Image.collection_id == image.collection_id, Image.created_at > image.created_at)
