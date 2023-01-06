@@ -4,6 +4,11 @@ from flask_login import login_required, current_user
 from annotations_app.flask_app import app, db
 from annotations_app import schemas
 from annotations_app.models.base import ImageCollection, Image, User, UserScope
+from annotations_app.repos.azure_storage_provider import (
+    AzureStorageProvider as StorageProvider,
+)
+from annotations_app.utils import parse_boolean
+
 import logging
 
 
@@ -78,37 +83,56 @@ def collection_delete(collection_id: str):
             type: string
           required: true
           description: Unique collection ID
+        - in: query
+          name: force
+          schema:
+            type: boolean
+          required: false
       responses:
         204:
           description: Success
     """
+    logging.info(f"collection delete {collection_id}")
+    # Only owner can delete a collection
     collection_in_db = db.session.query(ImageCollection).filter(
         ImageCollection.id == collection_id,
         ImageCollection.user_id == current_user.id,
     ).first()
     if not collection_in_db:
+        logging.info(f'Collection {collection_id} not found or not owned by user {current_user.id}')
         abort(404)
 
-    first_existing_image = (
-        db.session.query(Image).filter(
-            Image.collection_id == collection_in_db.id,
-        ).first()
-    )
+    # TODO: should we force the client to confirm deletion of an empty collection?
+    if not parse_boolean(request.args.get("force")):
+      first_existing_image = (
+          db.session.query(Image).filter(
+              Image.collection_id == collection_in_db.id,
+          ).first()
+      )
 
-    if first_existing_image:
-        return (
-            schemas.Errors().dump(
-                {
-                    "errors": [
-                        {
-                            "title": "ValidationError",
-                            "detail": "The collection has images - delete them first",
-                        }
-                    ]
-                }
-            ),
-            400,
-        )
+      if first_existing_image:
+          return (
+              schemas.Errors().dump(
+                  {
+                      "errors": [
+                          {
+                              "title": "ValidationError",
+                              "detail": "The collection has images - delete them first",
+                          }
+                      ]
+                  }
+              ),
+              400,
+          )
+    else:
+      logging.info(f'Force deleting collection {collection_id}')
+      images_in_db = db.session.query(Image).filter(
+          Image.collection_id == collection_in_db.id,
+      ).all()
+      for image_in_db in images_in_db:
+        storage_provider = StorageProvider()
+        storage_provider.delete_file(image_in_db.storageKey)
+        db.session.delete(image_in_db)
     db.session.delete(collection_in_db)
     db.session.commit()
     return ("", 204)
