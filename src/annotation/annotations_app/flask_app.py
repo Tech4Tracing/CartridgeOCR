@@ -208,8 +208,10 @@ def google_callback():
 
     user_from_db = User.get(provider_id=provider_id, default_fields=default_fields)
     if not user_from_db:
+        # retry with email and provider- this will stub out a new user for admin approval.
         user_from_db = User.get(
             email=users_email,
+            provider_id=provider_id,
             default_fields=default_fields
         )
         if not user_from_db:
