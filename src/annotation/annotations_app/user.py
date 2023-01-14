@@ -71,6 +71,11 @@ class User(UserMixin):
             raise Exception("Please provide a way to retrieve the user")
         user_from_db = user_from_db.first()
         if not user_from_db:
+            logging.info(f"User {email,provider_id} not found in the database. Trying other options.")
+            # Plan for a new user queue
+            # 1. superusers always get created
+            # 2. Non-superusers get stubbed out with is_active=false
+            # 3. Create a new user queue that gets processed by admins
             if email and User.is_superuser_email(email):
                 # special case - first login by superuser on fresh setup/database
                 superuser = User.create(
@@ -83,6 +88,19 @@ class User(UserMixin):
                 )
                 logging.info("Superuser %s (%s) first login", superuser.email, superuser.provider_id)
                 return superuser
+            # to stub out a user, require that they have a provider_id and email
+            elif email and provider_id:
+                logging.info("Stubbing out new user %s (%s)", email, provider_id)
+                newuser = User.create(
+                    provider_id=default_fields.get("provider_id"),
+                    name=default_fields.get("name"),
+                    email=default_fields.get("email"),
+                    profile_pic=default_fields.get("profile_pic"),
+                    is_active=False,
+                    is_superuser=False
+                )
+                return newuser
+            logging.info("No valid user found")
             return None
 
         # update user's data on each login
