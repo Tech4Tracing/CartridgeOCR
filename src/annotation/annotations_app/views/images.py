@@ -6,7 +6,7 @@ from base64 import b64encode
 import datetime
 
 from flask import request, send_file, redirect, abort
-from flask_login import login_required, current_user
+from flask_login import current_user
 
 from annotations_app.flask_app import app, db, celery
 from annotations_app import schemas
@@ -16,13 +16,15 @@ from annotations_app.repos.azure_storage_provider import (
     AzureStorageProvider as StorageProvider,
 )
 from annotations_app.tasks.predict import predict_headstamps
+from annotations_app.utils import t4t_login_required
+
 from sqlalchemy import and_, desc
 
 assert 'PREDICTION_ENDPOINT' in os.environ
 prediction_endpoint_uri = os.environ['PREDICTION_ENDPOINT']+'/api/v0/headstamp_predict'            
 
 @app.route("/api/v0/images", methods=["POST"])
-@login_required
+@t4t_login_required
 def image_post():
     """Upload image to collection (or without one)
     ---
@@ -160,7 +162,7 @@ def image_post():
 
 
 @app.route("/api/v0/images", methods=["GET"])
-@login_required
+@t4t_login_required
 def images_list():
     """List of images, optionally (TODO) filtered by collection
     ---
@@ -206,7 +208,7 @@ def images_list():
 
 
 @app.route("/api/v0/images/<string:image_id>", methods=["GET"])
-@login_required
+@t4t_login_required
 def image_detail(image_id: str):
     """Return requested image information as JSON
     ---
@@ -230,7 +232,7 @@ def image_detail(image_id: str):
 
 
 @app.route("/api/v0/images/<string:image_id>", methods=["DELETE"])
-@login_required
+@t4t_login_required
 def image_delete(image_id: str):
     """Remove the image both from database and storage
     ---
@@ -256,7 +258,7 @@ def image_delete(image_id: str):
 
 
 @app.route("/api/v0/images/<string:image_id>/binary", methods=["GET"])
-@login_required
+@t4t_login_required
 def image_retrieve(image_id: str):
     """Return binary image content
     ---
@@ -287,7 +289,7 @@ def image_retrieve(image_id: str):
 
 
 @app.route("/api/v0/images/<string:image_id>/link", methods=["GET"])
-@login_required
+@t4t_login_required
 def image_link(image_id: str):
     """Return pre-signed short-lived link to the image
     ---
@@ -316,7 +318,7 @@ def image_link(image_id: str):
 
 
 @app.route("/api/v0/images/<string:image_id>/annotations", methods=["GET"])
-@login_required
+@t4t_login_required
 def image_annotations(image_id):
     """List of annotations for a given image
     ---
@@ -352,7 +354,7 @@ def image_annotations(image_id):
 
 
 @app.route("/api/v0/images/<string:image_id>/predictions", methods=["GET"])
-@login_required
+@t4t_login_required
 def image_predictions(image_id):
     """List of predictions for a given image
     ---
@@ -389,7 +391,7 @@ def image_predictions(image_id):
 
 
 @app.route("/api/v0/images/<string:image_id>", methods=["PUT"])
-@login_required
+@t4t_login_required
 def image_update(image_id: str):
     """Update image properties. The only field that can be updated is the extra_data field.
     ---
@@ -439,7 +441,7 @@ def image_update(image_id: str):
 
 
 @app.route("/api/v0/images/<string:image_id>/navigation", methods=["GET"])
-@login_required
+@t4t_login_required
 def image_navigation(image_id):
     """Get adjacent images in the database, for navigation
     ---

@@ -4,7 +4,7 @@ import json
 import logging
 
 from flask import request, abort
-from flask_login import login_required, current_user
+from flask_login import current_user
 
 from annotations_app.flask_app import app, db, celery
 from annotations_app import schemas
@@ -13,6 +13,7 @@ from annotations_app.models.base import ImageCollection, Image, HeadstampPredict
 from annotations_app.repos.azure_storage_provider import (
     AzureStorageProvider as StorageProvider,
 )
+from annotations_app.utils import t4t_login_required
 from annotations_app.tasks.predict import Predict
 from sqlalchemy import and_
 
@@ -23,7 +24,7 @@ from sqlalchemy import and_
 # This file should just be the API for accessing the predictions from the DB.
 
 @app.route("/api/v0/predict/<string:image_id>", methods=["GET"])
-@login_required
+@t4t_login_required
 def image_predict(image_id):
   # move this method to /api/v0/predictions/<image_id> and make it a POST
   # the POST will return a 202 and the task id
@@ -35,7 +36,7 @@ def image_predict(image_id):
     return json.dumps({'task':result.task_id}), 202
 
 @app.route("/api/v0/predict_status", methods=["GET"])
-@login_required
+@t4t_login_required
 def get_status():
     """Get task status
     ---
@@ -66,7 +67,7 @@ def get_status():
 ####
 
 @app.route("/api/v0/predictions", methods=["GET"])
-@login_required
+@t4t_login_required
 def predictions_list():
     """List of headstamp predictions for a given user/collection/image. This endpoint is not paginated,
     caller is supposed to filter it by collection or image first (or both) to avoid too much
@@ -131,7 +132,7 @@ def predictions_list():
 
 # TODO: geometry and metadata types
 @app.route("/api/v0/predictions", methods=["POST"])
-@login_required
+@t4t_login_required
 def prediction_post():
     """Create headstamp prediction for image
     ---
@@ -184,7 +185,7 @@ def prediction_post():
 
 
 @app.route("/api/v0/predictions/<string:prediction_id>", methods=["PUT"])
-@login_required
+@t4t_login_required
 def prediction_replace(prediction_id):
     """Replace/update annotation
     ---
@@ -256,7 +257,7 @@ def prediction_replace(prediction_id):
 
 
 @app.route("/api/v0/predictions/<string:prediction_id>", methods=["DELETE"])
-@login_required
+@t4t_login_required
 def prediction_delete(prediction_id):
     """Remove the prediction
     ---
