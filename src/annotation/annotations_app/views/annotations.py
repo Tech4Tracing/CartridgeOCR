@@ -1,17 +1,18 @@
 import json
 
 from flask import request, abort
-from flask_login import login_required, current_user
+from flask_login import current_user
 
 from annotations_app.flask_app import app, db
 from annotations_app import schemas
 from annotations_app.config import logging
 from annotations_app.models.base import ImageCollection, Image, Annotation
+from annotations_app.utils import t4t_login_required
 from sqlalchemy import and_
 
 
 @app.route("/api/v0/annotations", methods=["GET"])
-@login_required
+@t4t_login_required
 def annotations_list():
     """List of annotations for a given user/collection/image. This endpoint is not paginated,
     caller is supposed to filter it by collection or image first (or both) to avoid too much
@@ -76,7 +77,7 @@ def annotations_list():
 
 # TODO: geometry and metadata types
 @app.route("/api/v0/annotations", methods=["POST"])
-@login_required
+@t4t_login_required
 def annotation_post():
     """Create annotation for image
     ---
@@ -130,7 +131,7 @@ def annotation_post():
 
 
 @app.route("/api/v0/annotations/<string:annotation_id>", methods=["PUT"])
-@login_required
+@t4t_login_required
 def annotation_replace(annotation_id):
     """Replace/update annotation
     ---
@@ -201,7 +202,7 @@ def annotation_replace(annotation_id):
 
 
 @app.route("/api/v0/annotations/<string:annotation_id>", methods=["DELETE"])
-@login_required
+@t4t_login_required
 def annotation_delete(annotation_id):
     """Remove the annotation
     ---

@@ -53,28 +53,6 @@ def get_global(key):
     return result['value']
 
 
-# TODO: replace it by using app.db everywhere because it's much simpler
-@contextmanager
-def db_session():
-    if not os.environ.get("SQLALCHEMY_URL"):
-        raise Exception("Please configure SQLALCHEMY_URL")
-    # TODO: these 2 lines are per app, not per request
-    engine = sqldb.create_engine(os.environ.get("SQLALCHEMY_URL"))
-    Session = sqldb.orm.sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-    # these per request
-    session = Session()
-    try:
-        yield session
-        session.commit()
-    except Exception as e:
-        logging.exception(e)
-        session.rollback()
-        raise
-    finally:
-        session.close()
-
-
 def superuser_required(func):
     """
     A copy of flask-login login_required decorator but reques is_superuser flag to be set

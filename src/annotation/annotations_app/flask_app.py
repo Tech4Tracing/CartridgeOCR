@@ -108,8 +108,9 @@ def internal_server_error(e):
 def load_user(user_id):
     from annotations_app.user import User
     u = User.get(user_id)
-    if not u or not u.is_active:
-        return None  # returning None means that user won't be allowed to login
+
+    # we return the user whether or not they are active. 
+    # t4t_require_login can verify if they are actually active.
     return u
 
 
@@ -218,12 +219,12 @@ def google_callback():
             return "This email is not in whitelist for private beta, please ask staff to add you", 403
 
     logging.info("User %s login (%s)", user_from_db.email, user_from_db.provider_id)
-    login_user(user_from_db)  # begin the session
+    login_user(user_from_db, force=True)  # begin the session. Forcing the login enables us to handle inactive users.
     return redirect(url_for("index"))
 
 
 @app.route("/logout")
-@login_required
+@login_required  # not t4t_login_required because inactive account can navigate here.
 def logout():
     logout_user()
     return redirect(url_for("index"))

@@ -4,7 +4,7 @@ from marshmallow import ValidationError
 from annotations_app.flask_app import app, db
 from annotations_app import schemas
 from annotations_app.models.base import User
-from annotations_app.utils import db_session, superuser_required
+from annotations_app.utils import superuser_required
 
 
 @app.route("/api/v0/users", methods=["GET"])
