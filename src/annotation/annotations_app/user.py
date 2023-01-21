@@ -2,7 +2,6 @@ from flask_login import UserMixin
 
 from annotations_app.config import logging, Config
 from annotations_app.models.base import User as UserModel
-from annotations_app.utils import db_session
 from annotations_app.flask_app import db
 
 class User(UserMixin):

@@ -1,5 +1,5 @@
 from flask import request, abort
-from flask_login import login_required, current_user
+from flask_login import current_user
 
 from annotations_app.flask_app import app, db
 from annotations_app import schemas
@@ -7,13 +7,13 @@ from annotations_app.models.base import ImageCollection, Image, User, UserScope
 from annotations_app.repos.azure_storage_provider import (
     AzureStorageProvider as StorageProvider,
 )
-from annotations_app.utils import parse_boolean
+from annotations_app.utils import parse_boolean, t4t_login_required
 
 import logging
 
 
 @app.route("/api/v0/collections", methods=["GET"])
-@login_required
+@t4t_login_required
 def collections_list():
     """List all collections visible to user
     ---
@@ -39,7 +39,7 @@ def collections_list():
 
 
 @app.route("/api/v0/collections", methods=["POST"])
-@login_required
+@t4t_login_required
 def collection_create():
     """Create new collection
     ---
@@ -71,7 +71,7 @@ def collection_create():
 
 
 @app.route("/api/v0/collections/<string:collection_id>", methods=["DELETE"])
-@login_required
+@t4t_login_required
 def collection_delete(collection_id: str):
     """Remove empty collection
     ---
@@ -139,7 +139,7 @@ def collection_delete(collection_id: str):
 
 
 @app.route("/api/v0/collections/<string:collection_id>/userscopes", methods=["GET"])
-@login_required
+@t4t_login_required
 def collections_guests_list(collection_id):
     """List all user scopes associated with a collection
     ---
@@ -170,7 +170,7 @@ def collections_guests_list(collection_id):
 
 
 @app.route("/api/v0/collections/<string:collection_id>/userscopes", methods=["PATCH"])
-@login_required
+@t4t_login_required
 def collections_guests_add(collection_id):
     """Add a user scope to a collection
     ---
@@ -243,7 +243,7 @@ def collections_guests_add(collection_id):
 
 
 @app.route("/api/v0/collections/<string:collection_id>/userscopes", methods=["DELETE"])
-@login_required
+@t4t_login_required
 def collections_guests_delete(collection_id):
     """Delete a guest user associated with a collection
     ---

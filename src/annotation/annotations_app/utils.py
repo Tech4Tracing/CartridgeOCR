@@ -4,7 +4,7 @@ from functools import wraps
 from contextlib import contextmanager
 
 import sqlalchemy as sqldb
-from flask import g, request, current_app
+from flask import g, request, current_app, abort
 from flask_login import current_user
 from flask_login.config import EXEMPT_METHODS
 from sqlalchemy.pool import SingletonThreadPool
@@ -53,34 +53,9 @@ def get_global(key):
     result = db.connection.execute(query).one()
     return result['value']
 
-
-# TODO: replace it by using app.db everywhere because it's much simpler
-@contextmanager
-def db_session():
-    raise "db_session is a deprecated interface"
-    logging.info("requesting db session")
-    if not os.environ.get("SQLALCHEMY_URL"):
-        raise Exception("Please configure SQLALCHEMY_URL")
-    # TODO: these 2 lines are per app, not per request
-    engine = sqldb.create_engine(os.environ.get("SQLALCHEMY_URL"), pool_size=10, max_overflow=20)
-    Session = sqldb.orm.sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-    # these per request
-    session = Session()
-    try:
-        yield session
-        session.commit()
-    except Exception as e:
-        logging.exception(e)
-        session.rollback()
-        raise
-    finally:
-        session.close()
-
-
 def superuser_required(func):
     """
-    A copy of flask-login login_required decorator but reques is_superuser flag to be set
+    A copy of flask-login login_required decorator but requires is_superuser flag to be set
     """
 
     @wraps(func)
@@ -89,6 +64,27 @@ def superuser_required(func):
             pass
         elif not current_user.is_authenticated or not current_user.is_superuser:
             return current_app.login_manager.unauthorized()
+        try:
+            # current_app.ensure_sync available in Flask >= 2.0
+            return current_app.ensure_sync(func)(*args, **kwargs)
+        except AttributeError:  # pragma: no cover
+            return func(*args, **kwargs)
+
+    return decorated_view
+
+def t4t_login_required(func):
+    """
+    A copy of flask-login login_required decorator but requires is_active flag to be set
+    """
+
+    @wraps(func)
+    def decorated_view(*args, **kwargs):
+        if request.method in EXEMPT_METHODS or current_app.config.get("LOGIN_DISABLED"):
+            pass
+        elif not current_user.is_authenticated:
+            return current_app.login_manager.unauthorized()
+        elif not current_user.is_active:
+            abort(401)
         try:
             # current_app.ensure_sync available in Flask >= 2.0
             return current_app.ensure_sync(func)(*args, **kwargs)

@@ -1,18 +1,17 @@
 from flask import jsonify, render_template
-from flask_login import login_required
 
 from annotations_app.flask_app import app, spec
 from annotations_app.views import users, collections, images, annotations, predictions
-
+from annotations_app.utils import t4t_login_required
 
 @app.route("/api/v0/openapi.json", methods=["GET"])
-@login_required
+@t4t_login_required
 def openapi_json():
     return jsonify(spec.to_dict())
 
 
 @app.route("/api/v0/", methods=["GET"])
-@login_required
+@t4t_login_required
 def openapi_ui():
     return render_template("swagger-ui.html")
 
