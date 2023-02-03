@@ -45,12 +45,12 @@ def get_db() -> DBConnection:
     return g._db
 
 
-def get_global(key):
-    db = get_db()
-    globals = db.metadata.tables['globals']
-    query = sqldb.select([globals]).where(globals.columns.key == key)
-    result = db.connection.execute(query).one()
-    return result['value']
+#def get_global(key):
+#    db = get_db()
+#    globals = db.metadata.tables['globals']
+#    query = sqldb.select([globals]).where(globals.columns.key == key)
+#    result = db.connection.execute(query).one()
+#    return result['value']
 
 
 def superuser_required(func):

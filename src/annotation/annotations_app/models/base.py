@@ -38,11 +38,11 @@ class Annotation(BaseModel):
 
 
 # TODO: deprecate
-class Global(db.Model):
-    __tablename__ = 'globals'
-
-    key = db.Column(String(8000), primary_key=True)
-    value = db.Column(Text)
+#class Global(db.Model):
+#    __tablename__ = 'globals'
+#
+#    key = db.Column(String(8000), primary_key=True)
+#    value = db.Column(Text)
 
 
 class User(BaseModel):

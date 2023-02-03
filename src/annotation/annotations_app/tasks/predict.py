@@ -65,3 +65,37 @@ def predict_headstamps(endpoint, user_id, image_id, image_base64):
         db.session.add(image_in_db)
         db.session.commit()    
     #return response.text
+
+
+# https://learn.microsoft.com/en-us/samples/azure-samples/azure-samples-python-management/appservice/
+# necessary environment variables:
+# export AZURE_TENANT_ID="xxx"
+# export AZURE_CLIENT_ID="xxx"
+# export AZURE_CLIENT_SECRET="xxx"
+# export SUBSCRIPTION_ID="xxx"
+
+
+def service_manage(service_name):
+    """
+        Scheduled task to manage the prediction service.
+        If no request has come in within the last 1 hour, spin down the service.
+    """
+    # Authenticate service principal
+
+    # Check last request time
+
+    # stop the service
+    # https://learn.microsoft.com/en-us/rest/api/appservice/web-apps/stop
+
+
+def service_start(service_name):
+    """
+        Trigger to launch the service if it isn't running.
+    """
+    # authenticate service principal
+
+    # check service state
+
+    # start the service
+    # https://learn.microsoft.com/en-us/rest/api/appservice/web-apps/start
+
