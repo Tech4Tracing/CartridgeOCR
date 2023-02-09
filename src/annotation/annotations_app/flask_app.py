@@ -55,7 +55,6 @@ app.wsgi_app = ProxyFix(app.wsgi_app)
 
 # Add the echo option below to enable SQL query logging
 db = SQLAlchemy(app, engine_options={'pool_size': 10, 'max_overflow': 20}) #, engine_options={"echo": True})
-db.init_app(app)
 
 # logging.info('Launching login manager')
 # User session management setup

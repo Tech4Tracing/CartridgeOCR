@@ -11,6 +11,9 @@ from sqlalchemy import and_, or_
 
 db = SQLAlchemy()
 
+# hack to support postgres without too much pain
+def generate_uuid():
+    return str(uuid.uuid4())
 
 class BaseModel(db.Model, AllFeaturesMixin):
     __abstract__ = True
@@ -23,7 +26,7 @@ BaseModel.set_session(db.session)
 class Annotation(BaseModel):
     __tablename__ = 'annotations'
 
-    id = db.Column(String(36), primary_key=True, default=uuid.uuid4)
+    id = db.Column(String(36), primary_key=True, default=generate_uuid)
     created_at = db.Column(DateTime(timezone=True), default=datetime.datetime.utcnow)
 
     image_id = db.Column(String(36), ForeignKey("images.id"))
@@ -49,7 +52,7 @@ class User(BaseModel):
     __tablename__ = 'users'
 
     # ID in our system
-    id = db.Column(String(36), primary_key=True, default=uuid.uuid4)
+    id = db.Column(String(36), primary_key=True, default=generate_uuid)
 
     # for 3rd party identity providers credentials
     # something like google56789098767890 or awsiam4377437437
@@ -176,7 +179,7 @@ class ImageCollection(BaseModel):
 class Image(BaseModel):
     __tablename__ = 'images'
 
-    id = db.Column(String(36), primary_key=True, default=uuid.uuid4)
+    id = db.Column(String(36), primary_key=True, default=generate_uuid)
 
     collection_id = db.Column(String(36), ForeignKey("imagecollections.id"), nullable=False)
     created_at = db.Column(DateTime(timezone=True), default=datetime.datetime.utcnow)
@@ -235,7 +238,7 @@ class Image(BaseModel):
 class HeadstampPrediction(BaseModel):
     __tablename__ = 'predictions'
 
-    id = db.Column(String(36), primary_key=True, default=uuid.uuid4)
+    id = db.Column(String(36), primary_key=True, default=generate_uuid)
     created_at = db.Column(DateTime(timezone=True), default=datetime.datetime.utcnow)
 
     image_id = db.Column(String(36), ForeignKey("images.id"))
