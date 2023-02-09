@@ -9,7 +9,7 @@ from sqlalchemy import Boolean, ForeignKey, Integer, Text, String, DateTime, Flo
 from sqlalchemy.orm import relationship
 from sqlalchemy import and_, or_
 
-db = SQLAlchemy()
+db = SQLAlchemy(engine_options={'pool_size': 10, 'max_overflow': 20}) #, engine_options={"echo": True})
 
 # hack to support postgres without too much pain
 def generate_uuid():
@@ -115,6 +115,7 @@ class ImageCollection(BaseModel):
 
     @property
     def images_count(self):
+        #print('images_count: ', self.id)
         return db.session.query(Image).filter(
             Image.collection_id == self.id,
         ).count()
@@ -123,6 +124,7 @@ class ImageCollection(BaseModel):
     def annotations_count(self):
         try:
             image_ids = Image.where(collection_id=self.id).with_entities(Image.id).distinct()
+            #print(image_ids)
             return Annotation.where(image_id__in=image_ids).count()
         except Exception as e:
             print(e)
