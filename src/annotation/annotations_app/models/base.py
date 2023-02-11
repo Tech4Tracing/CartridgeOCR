@@ -41,14 +41,6 @@ class Annotation(BaseModel):
         return self.id
 
 
-# TODO: deprecate
-#class Global(db.Model):
-#    __tablename__ = 'globals'
-#
-#    key = db.Column(String(8000), primary_key=True)
-#    value = db.Column(Text)
-
-
 class User(BaseModel):
     __tablename__ = 'users'
 
@@ -116,7 +108,6 @@ class ImageCollection(BaseModel):
 
     @property
     def images_count(self):
-        #print('images_count: ', self.id)
         return db.session.query(Image).filter(
             Image.collection_id == self.id,
         ).count()
@@ -125,7 +116,6 @@ class ImageCollection(BaseModel):
     def annotations_count(self):
         try:
             image_ids = Image.where(collection_id=self.id).with_entities(Image.id).distinct()
-            #print(image_ids)
             return Annotation.where(image_id__in=image_ids).count()
         except Exception as e:
             print(e)
