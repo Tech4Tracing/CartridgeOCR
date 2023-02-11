@@ -9,6 +9,7 @@ from sqlalchemy import Boolean, ForeignKey, Integer, Text, String, DateTime, Flo
 from sqlalchemy.orm import relationship
 from sqlalchemy import and_, or_
 
+# Add the echo option below to enable SQL query logging
 db = SQLAlchemy(engine_options={'pool_size': 10, 'max_overflow': 20}) #, engine_options={"echo": True})
 
 # hack to support postgres without too much pain

@@ -1,16 +1,12 @@
-#werkzeug==2.0.3
 werkzeug==2.2.2
-#flask==2.0.3
 flask==2.2.2
 python-dotenv==0.19.2
 
 # Auth using Google
-#flask_login==0.5.0
 flask_login==0.6.2
 oauthlib==3.2.0
 
 # Database access
-#Flask-SQLAlchemy==2.5.1
 Flask-SQLAlchemy==3.0.3
 alembic==1.7.5  # migrations
 pymssql==2.2.5  # for MsSQL support
@@ -21,7 +17,6 @@ sqlalchemy-mixins==1.5.3  # make SA readable
 requests==2.27.1
 
 # OpenAPI generator
-#apispec[marshmallow]==5.1.1
 apispec[marshmallow]==6.0.2
 apispec-webframeworks==0.5.2
 

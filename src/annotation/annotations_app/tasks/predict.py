@@ -67,6 +67,8 @@ def predict_headstamps(endpoint, user_id, image_id, image_base64):
     #return response.text
 
 
+# Stub-outs below to support auto-launching the prediction service. [TODO]
+
 # https://learn.microsoft.com/en-us/samples/azure-samples/azure-samples-python-management/appservice/
 # necessary environment variables:
 # export AZURE_TENANT_ID="xxx"
