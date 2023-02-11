@@ -31,28 +31,6 @@ class DBConnection:
         self.metadata = _metadata
 
 
-def get_db() -> DBConnection:
-    raise "get_db is a deprecated interface"
-    if getattr(g, '_db', None) is None:
-        if not os.environ.get("SQLALCHEMY_URL"):
-            # Example: "mssql+pymssql://sa:Your_password123@compliance_mssql/master?charset=utf8"
-            # or "postgresql://complianceuser:compliancepassword@compliance_postgres/compliancedb"
-            raise Exception("Please configure SQLALCHEMY_URL")
-        _engine = sqldb.create_engine(os.environ.get("SQLALCHEMY_URL"), poolclass=SingletonThreadPool)
-        _connection = _engine.connect()
-        _metadata = sqldb.MetaData(_engine)
-        _metadata.reflect()
-        g._db = DBConnection(_engine, _connection, _metadata)
-    return g._db
-
-
-def get_global(key):
-    db = get_db()
-    globals = db.metadata.tables['globals']
-    query = sqldb.select([globals]).where(globals.columns.key == key)
-    result = db.connection.execute(query).one()
-    return result['value']
-
 def superuser_required(func):
     """
     A copy of flask-login login_required decorator but requires is_superuser flag to be set
