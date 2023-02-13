@@ -1,0 +1,123 @@
+# This docker compose file is specific to running the annotations app.
+version: "3.2"
+
+volumes:
+  annotations_storage: {}
+  annotations_mysql_db: {}
+  annotations_postgres_db: {}
+
+services:
+  widgetbuild:
+    image: "node:18-alpine"
+    volumes:
+      - ${PWD}/src:/app
+      - type: bind
+        source: ./scripts/build-ui-widget.sh
+        target: /etc/build-ui-widget.sh
+    command: /bin/sh /etc/build-ui-widget.sh
+    stop_signal: sigkill
+
+  annotations:
+    build:
+      context: ./src/annotation/
+      dockerfile: Dockerfile
+    image: annotations
+    environment:
+      AZURE_STORAGE_CONNECTION_STRING: ""
+      IS_READONLY: "false"
+      #DATABASE_URL: "sa:Your_password123@annotations_mssql/master?charset=utf8"
+      # we need tds_version because of pymssql and datetimes parsing issues
+      # pyodbc is even worse
+      #SQLALCHEMY_URL: "mysql+mysqldb://user:password@annotations_mysql/db"
+      SQLALCHEMY_URL: "postgresql+psycopg2://username:password@annotations_postgres/default_database"
+      STORAGE_AZURE_CONNECTIONSTRING: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://annotations_objstore:10000/devstoreaccount1;"
+      STORAGE_AZURE_CONTAINERNAME: "peremages"
+      PREDICTION_ENDPOINT: "http://predict_api:8081"
+      CELERY_BROKER_URL: "redis://redis:6379/0"
+    volumes:
+      - ./src/annotation:/app
+      - ./data/:/data
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./src/annotation/.env
+    command: /app/devops/run-annotation-api-local.sh
+    depends_on:
+      - annotations_postgres
+      - annotations_objstore
+    stop_signal: sigkill
+
+  annotations_postgres:
+    # Official Postgres image from DockerHub (we use the last version)
+    image: 'postgres:latest'
+
+    # By default, a Postgres database is running on the 5432 port.
+    # If we want to access the database from our computer (outside the container),
+    # we must share the port with our computer's port.
+    # The syntax is [port we want on our machine]:[port we want to retrieve in the container]
+    # Note: You are free to change your computer's port,
+    # but take into consideration that it will change the way
+    # you are connecting to your database.
+    ports:
+      - 5432:5432
+
+    environment:
+      POSTGRES_USER: username # The PostgreSQL user (useful to connect to the database)
+      POSTGRES_PASSWORD: password # The PostgreSQL password (useful to connect to the database)
+      POSTGRES_DB: default_database # The PostgreSQL default database (automatically created at first launch)
+
+    volumes:
+      - annotations_postgres_db:/var/lib/postgresql/data/
+
+  #annotations_mysql:
+  #  image: "mysql:latest"
+  #  restart: always
+  #  environment:
+  #    MYSQL_DATABASE: 'db'
+  #    # So you don't have to use root, but you can if you like
+  #    MYSQL_USER: 'user'
+  #    # You can use whatever password you like
+  #    MYSQL_PASSWORD: 'password'
+  #    # Password for root access
+  #    MYSQL_ROOT_PASSWORD: 'password'
+  #  ports:
+  #    # <Port exposed> : < MySQL Port running inside container>
+  #    - '3306:3306'
+  #  expose:
+  #    # Opens port 3306 on the container
+  #    - '3306'
+  #    # Where our data will be persisted
+  #  volumes:
+  #    - annotations_mysql_db:/var/lib/mysql
+
+  annotations_objstore:
+    # https://docs.microsoft.com/en-us/azure/storage/common/storage-use-azurite?tabs=docker-hub
+    image: mcr.microsoft.com/azure-storage/azurite
+    command: azurite-blob --blobHost 0.0.0.0 --blobPort 10000 -l /workspace -d /workspace/debug.log
+    volumes:
+      - "annotations_storage:/workspace"
+    ports:
+      - "10000:10000"  # so redirect urls for images work
+    logging:
+      driver: none
+
+  #rabbitmq:
+  #  #image: rabbitmq:3.8.9-management
+  #  image: rabbitmq:latest
+  #  ports:
+  #    - "5672:5672"
+  #    - "15672:15672"
+  #  environment:
+  #    RABBITMQ_DEFAULT_USER: "guest"
+  redis:
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    #environment:
+      #REDIS_PASSWORD: "Your_password123"
+
+  predict_api:
+    image: cartridgeocr/predict_api:latest
+    ports:
+      - "8081:8081"
+    stop_signal: sigkill

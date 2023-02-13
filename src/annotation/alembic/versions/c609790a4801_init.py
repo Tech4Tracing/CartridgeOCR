@@ -27,11 +27,6 @@ def upgrade():
     sa.Column('metadata', sa.Text(), nullable=True),
     sa.PrimaryKeyConstraint('id')
     )
-    op.create_table('globals',
-    sa.Column('key', sa.String(length=8000), nullable=False),
-    sa.Column('value', sa.Text(), nullable=True),
-    sa.PrimaryKeyConstraint('key')
-    )
     op.create_table('imagecollections',
     sa.Column('id', sa.String(length=36), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), nullable=True),
