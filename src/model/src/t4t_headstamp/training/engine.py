@@ -5,9 +5,9 @@ import torch
 from azureml.core import Run
 
 import torchvision.models.detection.mask_rcnn
-from dataProcessing.coco_utils import CocoDetection
-from training.coco_eval import CocoEvaluator
-import dataProcessing.utils as utils
+from t4t_headstamp.dataProcessing.coco_utils import CocoDetection
+from t4t_headstamp.training.coco_eval import CocoEvaluator
+import t4t_headstamp.dataProcessing.utils as utils
 
 
 def train_one_epoch(model, optimizer, data_loader, device, epoch, print_freq, outLog):

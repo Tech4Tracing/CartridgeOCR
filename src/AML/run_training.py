@@ -29,13 +29,14 @@ experiment = Experiment(workspace=ws, name=experiment_name)
 copy('./config.json', 'model/config.json')
 
 myenv = Environment.from_pip_requirements(name="myenv",
-                                          file_path="requirements.txt")
+                                          #file_path="requirements.txt"
+                                          file_path="model/src/t4t_headstamp.egg-info/requires.txt")
 
-myenv.environment_variables['PYTHONPATH'] = './model'
+myenv.environment_variables['PYTHONPATH'] = './model/src/t4t_headstamp'
 myenv.environment_variables['RUNINAZURE'] = 'true'
 
 config = ScriptRunConfig(source_directory=src_dir,
-                         script="./training/train.py",
+                         script="./src/t4t_headstamp/training/train.py",
                          arguments=sys.argv[1:] if len(sys.argv) > 1 else None,
                          compute_target=cpu_cluster_name, environment=myenv)
 

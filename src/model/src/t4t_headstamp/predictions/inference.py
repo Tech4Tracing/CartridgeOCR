@@ -82,14 +82,12 @@ class Inference():
                     dst = Image.alpha_composite(i1.convert("RGBA"), dst)
                 
             return dst, detectionsOut
-            
-
     def init(self, modelfolder=None, checkpoint='checkpoint.pth'):
         global model, rt, isRectangleOverlap, isContained, get_transform, load_snapshot
         if modelfolder is None:
-            print('AZURE_MODEL_DIR', os.getenv('AZUREML_MODEL_DIR'))
+            print('AZUREML_MODEL_DIR', os.getenv('AZUREML_MODEL_DIR'))
             model_name = os.getenv("AZUREML_MODEL_DIR").split('/')[-2]
-            model_path = Model.get_model_path(model_name)
+            model_path = os.path.join(os.getenv('AZUREML_MODEL_DIR'), 'outputData')
             sys.path.append('model')
             sys.path.append('model/training')
             sys.path.append('model/dataProcessing')
@@ -102,6 +100,7 @@ class Inference():
         print('model_path', model_path)
 
         self.model = load_snapshot(os.path.join(model_path, checkpoint))
+        assert self.model
 
     def run_inference(self, img):
         device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')

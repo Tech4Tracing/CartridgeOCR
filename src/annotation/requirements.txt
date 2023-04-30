@@ -26,3 +26,15 @@ azure-storage-blob==12.9.0  # for Azure Blob storage
 # Celery
 celery==5.2.7
 celery[redis]==5.2.7  # for Redis support
+
+# TODO: freeze versions
+Pillow
+numpy
+azureml-core
+torch
+torchvision
+pycocotools
+azureml-sdk
+azure-storage-blob
+azureml-contrib-services
+scipy
