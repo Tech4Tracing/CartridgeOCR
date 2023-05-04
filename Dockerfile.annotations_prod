@@ -1,0 +1,2 @@
+FROM annotations:latest AS annotations
+ADD data/models/khaki_pear_9fpn66rg_lite /model
