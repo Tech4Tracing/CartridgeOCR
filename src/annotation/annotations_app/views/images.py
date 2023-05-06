@@ -173,7 +173,6 @@ def image_post():
           'result': 'None'
         }
     image_in_db.prediction_status = json.dumps(prediction_status)
-    #db.session.add(image_in_db)
     db.session.commit()
     db.session.refresh(image_in_db)
     logging.info(image_in_db.prediction_status)
