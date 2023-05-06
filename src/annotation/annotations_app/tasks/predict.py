@@ -4,41 +4,39 @@ import os
 import datetime
 from base64 import b64encode
 import json
-import logging
+#import logging
 from annotations_app.models.base import ImageCollection, Image, HeadstampPrediction
+from annotations_app.config import Config
+from celery.utils.log import get_task_logger
+
+logger = get_task_logger(__name__)
 
 
-
-# TODO: remove or figure out subclassing
-class Predict():
-    """
-        Worker task: receives an image id
-        fetches the image from storage, and sends it to the prediction endpoint
-        pushes the result to the database
-    """
-    def __init__(self, endpoint_uri=None):
-        if endpoint_uri is None and 'PREDICTION_ENDPOINT' in os.environ:
-            self.endpoint_uri = os.environ['PREDICTION_ENDPOINT']            
-        else:
-            self.endpoint_uri = endpoint_uri
-
-
-# TODO: ignore_result=True
 @celery.task(ignore_result=True) #bind=True, name="predict_image", max_retries=3, default_retry_delay=10)
-def predict_headstamps(endpoint, user_id, image_id, image_base64):
-    payload = {'image': image_base64, 'render':False}
-    headers = {
-    'x-api-key': 'xxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxx',
-    'Content-Type': 'application/json'
-    }
-    response = requests.post(endpoint, headers=headers, json=payload)
-    result = json.loads(response.text)
-    # TODO: failure cases
-                
-    image_in_db = Image.get_image_or_abort(image_id, user_id)  # ensure exists and available
+def predict_headstamps(#endpoint, 
+    user_id, image_id, image_base64):
+    logger = get_task_logger(__name__)
+    try: 
+        logger.info(f"predict_headstamps {user_id} {image_id} image_len: {len(image_base64)}")
+        from annotations_app.tasks.celery import inf
+        logger.info("imported inference model")
+        # remote prediction
+        # payload = {'image': image_base64, 'render':False}
+        # headers = {
+        # 'x-api-key': 'xxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxx',
+        # 'Content-Type': 'application/json'
+        # }
+        # response = requests.post(endpoint, headers=headers, json=payload)
+        # result = json.loads(response.text)
+        # TODO: failure cases
 
-    logging.info(f"Prediction response: {response.text}")
-    try:
+        # local prediction        
+        logger.info('starting prediction task')
+        result = inf.run(json.dumps({'image': image_base64, 'render': False}))
+        logger.info(f"Prediction response: {result}")
+
+        image_in_db = Image.get_image_or_abort(image_id, user_id)  # ensure exists and available
+
         if 'detections' in result:
             for detection in result['detections']:
                 prediction_in_db = HeadstampPrediction(
@@ -59,11 +57,13 @@ def predict_headstamps(endpoint, user_id, image_id, image_base64):
     
         #db.session.add(image_in_db)
         db.session.commit()
-    except:
+    except Exception as e:
+        logger.exception(f"Prediction task failed {e}") 
         db.session.rollback()
-        image_in_db.prediction_status = {'status': 'error', 'result': response.text}
+        # TODO: logging the exception here may be a security concern.
+        image_in_db.prediction_status = {'status': 'error', 'result': e}
         db.session.add(image_in_db)
-        db.session.commit()    
+        db.session.commit()
     #return response.text
 
 

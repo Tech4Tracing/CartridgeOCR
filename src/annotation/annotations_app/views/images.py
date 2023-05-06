@@ -16,12 +16,12 @@ from annotations_app.repos.azure_storage_provider import (
     AzureStorageProvider as StorageProvider,
 )
 from annotations_app.tasks.predict import predict_headstamps
-from annotations_app.utils import t4t_login_required
+from annotations_app.utils import t4t_login_required, parse_boolean
 
 from sqlalchemy import and_, desc
 
-assert 'PREDICTION_ENDPOINT' in os.environ
-prediction_endpoint_uri = os.environ['PREDICTION_ENDPOINT']+'/api/v0/headstamp_predict'            
+#assert 'PREDICTION_ENDPOINT' in os.environ
+#prediction_endpoint_uri = os.environ['PREDICTION_ENDPOINT']+'/api/v0/headstamp_predict'            
 
 @app.route("/api/v0/images", methods=["POST"])
 @t4t_login_required
@@ -39,11 +39,18 @@ def image_post():
                     type: string
                   mimetype:
                     type: string
+                  predict:
+                    type: boolean
+                    required: false
                   extra_data:
                     type: object
+                  prediction_status:
+                    type: object
+                    required: false
                   file:
                     type: string
                     format: binary
+                  
         responses:
             201:
               description: Details about the created image
@@ -143,17 +150,29 @@ def image_post():
     # we need an image id before we can kick off the prediction task
     # and we want a task id for future reference. Maybe we could do without it?
     # for unfortunately we have to run a second transaction
-    result=predict_headstamps.delay(prediction_endpoint_uri, current_user.id, image_in_db.id, b64encode(image_data).decode('utf-8'))
-    logging.info(f'Prediction task: {result.task_id}')
-    
-    prediction_status = {
-      'task_id': result.task_id,
-      'status': 'pending', 
-      'updated': str(datetime.datetime.utcnow()), 
-      'result': 'None'
-    }
+    prediction_status = None
+    do_prediction = parse_boolean(request.form.get('predict', 'true'))    
+    logging.info(f"image upload do_prediction: {do_prediction} {type(do_prediction)}")
+    if do_prediction:
+        result=predict_headstamps.delay(current_user.id, image_in_db.id, b64encode(image_data).decode('utf-8'))
+        logging.info(f'Prediction task: {result.task_id}')
+        
+        prediction_status = {
+          'task_id': result.task_id,
+          'status': 'pending', 
+          'updated': str(datetime.datetime.utcnow()), 
+          'result': 'None'
+        }
+    elif request.form.get('prediction_status'):
+        prediction_status = json.loads(request.form.get('prediction_status'))
+    else:
+        prediction_status = {
+          'task_id': None,
+          'status': 'skipped',
+          'updated': str(datetime.datetime.utcnow()),
+          'result': 'None'
+        }
     image_in_db.prediction_status = json.dumps(prediction_status)
-    #db.session.add(image_in_db)
     db.session.commit()
     db.session.refresh(image_in_db)
     logging.info(image_in_db.prediction_status)
@@ -282,7 +301,7 @@ def image_retrieve(image_id: str):
     )
     return send_file(
         BytesIO(stored_file_buffer),
-        attachment_filename=image_in_db.filename,
+        download_name=image_in_db.filename,
         mimetype=image_in_db.mimetype,
         as_attachment=False,
     )

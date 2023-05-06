@@ -2,16 +2,16 @@
 from azureml.core import Run
 import os
 import sys
-sys.path += ['.']
+sys.path += ['src']
 import logging
 from shutil import copy
 import numpy as np
 import torch
 import torch.utils.data
-from training.engine import train_one_epoch, evaluate
-import dataProcessing.utils as utils
-from dataProcessing.coco_utils import CocoDetection
-from training.model_utils import rt, get_transform, get_instance_segmentation_model, save_snapshot
+from t4t_headstamp.training.engine import train_one_epoch, evaluate
+import t4t_headstamp.dataProcessing.utils as utils
+from t4t_headstamp.dataProcessing.coco_utils import CocoDetection
+from t4t_headstamp.training.model_utils import rt, get_transform, get_instance_segmentation_model, save_snapshot
 import argparse
 from torch.optim import SGD, Adam
 from sklearn.model_selection import KFold
@@ -175,11 +175,21 @@ if __name__ == '__main__':
 
     if "RUNINAZURE" in os.environ:
         folder = outputpath
-        copy('training/model_utils.py', folder)
-        copy('training/engine.py', folder)
-        copy('dataProcessing/coco_utils.py', folder)
-        copy('dataProcessing/utils.py', folder)
-        copy('dataProcessing/transforms.py', folder)
+        copy('./src/t4t_headstamp/training/model_utils.py', folder)
+        copy('./src/t4t_headstamp/training/engine.py', folder)
+        copy('./src/t4t_headstamp/dataProcessing/coco_utils.py', folder)
+        copy('./src/t4t_headstamp/dataProcessing/utils.py', folder)
+        copy('./src/t4t_headstamp/dataProcessing/transforms.py', folder)
+
+        # remove the intermediate checkpoints
+        import glob
+        checkpoints = glob.glob(folder+'/model_*.pth')
+        for filePath in checkpoints:
+            try:
+                os.remove(filePath)
+            except:
+                print("Error while deleting file : ", filePath)
+
         from azureml.core.model import Model
 
         logging.info("Registering Model")

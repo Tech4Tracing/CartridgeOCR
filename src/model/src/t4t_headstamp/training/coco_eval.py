@@ -19,7 +19,7 @@ import pycocotools.mask as mask_util
 
 from collections import defaultdict
 
-import dataProcessing.utils as utils
+import t4t_headstamp.dataProcessing.utils as utils
 
 
 class CocoEvaluator(object):

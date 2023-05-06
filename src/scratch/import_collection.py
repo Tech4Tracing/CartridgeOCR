@@ -4,6 +4,8 @@ import logging
 import os
 import json
 
+# TODO: upload should set the prediction status for the image correctly.
+
 parser = argparse.ArgumentParser()
 parser.add_argument('--collection_name', required=True)
 parser.add_argument('--cookie', type=str, required=True)
@@ -20,6 +22,7 @@ base_url = f"{args.root_url}/api/v0/"
 collections_url = base_url + "collections"
 image_url = base_url + "images"
 annotations_url = base_url + "annotations"
+predictions_url = base_url + "predictions"
 
 # check for existence first
 collections = requests.get(collections_url, headers={"Cookie": f"{args.cookie}"})
@@ -52,41 +55,74 @@ logging.info(f'Created collection: {collection_result.json()}')
 collection_id = collection_result.json()["id"]
 
 # upload the images
-images = filter(lambda x: x.lower().split('.')[-1] in ['jpg','png'], os.listdir(args.collection_folder))
-image_map = {}
-for image in images:
-    with open(os.path.join(args.collection_folder, image), "rb") as f:
-        files = {"file":(image, f, 'application-type')}
-        mime = 'image/jpeg' if image.lower().split('.')[-1] == 'jpg' else 'image/png'
-        payload = {"collection_id": collection_id, "mime_type": mime}
+images_path = os.path.join(args.collection_folder, "images.json")
+if not os.path.exists(images_path):
+    logging.error("No images.json file found, skipping import")
+else:
+    with open(images_path, 'r', encoding='utf-8') as in_images:
+        images = json.load(in_images)
+    logging.info(f'Images: {len(images["images"])}')
+    
+for image in images['images']:
+    if 'filename' in image['extra_data']:
+        image_fn = image['extra_data']['filename']
+    else:
+        image_fn = f'{image["id"]}.jpg'
 
-        image_result = requests.post(image_url, headers={"Cookie": f"{args.cookie}"}, 
+    image_id = None
+    logging.info(f'Importing image {image["id"]} from {image_fn}. Extra data: {image["extra_data"]} Prediction status: {image["prediction_status"]}')
+    with open(os.path.join(args.collection_folder, image_fn), "rb") as f:
+        files = {"file":(image_fn, f, 'application-type')}
+        mime = 'image/jpeg' if image_fn.lower().split('.')[-1] == 'jpg' else 'image/png'
+        payload = {
+            "collection_id": collection_id, 
+            "mime_type": mime, 
+            "predict": False,
+            "extra_data": json.dumps(image['extra_data']),
+            "prediction_status": json.dumps(image['prediction_status'])
+        }
+
+        image_result = requests.post(image_url, 
+                                     headers={"Cookie": f"{args.cookie}"}, 
                                      files = files, data = payload)                                      
         if image_result.status_code != 201:
-            raise Exception(f"Failed to upload image {image}: {image_result.text}")
+            raise Exception(f"Failed to upload image {image_fn}: {image_result.text}")
         logging.info(f'Uploaded image {image}: {image_result.json()}')
-        image_map[image] = image_result.json()['id']
-
-# upload the annotations
-annotations_path = os.path.join(args.collection_folder, "annotations.json")
-if not os.path.exists(annotations_path):
-    logging.warning("No annotations.json file found, skipping annotations")
-    exit(0)
-
-with open(annotations_path, 'r', encoding='utf-8') as in_annot:
-    annotations = json.load(in_annot)
-logging.info(f'Annotations: {annotations.keys()}')
-for a in annotations['annotations']:
-    logging.info(f'Importing annotation {a}')
-    orig_image_id = a['image_id']
-    new_image_id = image_map[f'{orig_image_id}.jpg']
-    a['image_id'] = new_image_id
-    a['geometry'] = json.loads(a['geometry'])
-    a['metadata_'] = json.loads(a['metadata_'])
-    del a['id']
-    annotation_result = requests.post(annotations_url, headers={"Cookie": f"{args.cookie}"}, json=a)
+        image_id = image_result.json()['id']
     
-    if annotation_result.status_code != 201:
-        raise Exception(f"Failed to create annotation: {annotation_result.text}")
+    # 2. Upload predictions
+    predictions_map = {}
+    for p in image['predictions']:
+        logging.info(f'Importing predictions {p}')        
+        p['image_id'] = image_id
+        for f in ['casing_box', 'primer_box']:
+            p[f] = json.loads(p[f])
+        orig_prediction_id = p['id']
+        del p['id']
+        prediction_result = requests.post(predictions_url, headers={"Cookie": f"{args.cookie}"}, json=p)
+        
+        if prediction_result.status_code != 201:
+            raise Exception(f"Failed to create prediction: {prediction_result.text}")
 
-    logging.info(f'Created annotation: {annotation_result.json()}')
+        logging.info(f'Created prediction: {prediction_result.json()}')
+        predictions_map[orig_prediction_id] = prediction_result.json()['id']
+
+
+    # 3. Upload annotations
+    for a in image['annotations']:
+        logging.info(f'Importing annotation {a}')        
+        a['image_id'] = image_id
+        a['geometry'] = json.loads(a['geometry'])
+        a['metadata_'] = json.loads(a['metadata_'])
+        orig_prediction_id = a['prediction_id']
+        assert(orig_prediction_id in predictions_map)
+        new_prediction_id = predictions_map[orig_prediction_id]
+        a['prediction_id'] = new_prediction_id
+        del a['id']
+        annotation_result = requests.post(annotations_url, headers={"Cookie": f"{args.cookie}"}, json=a)
+        
+        if annotation_result.status_code != 201:
+            raise Exception(f"Failed to create annotation: {annotation_result.text}")
+
+        logging.info(f'Created annotation: {annotation_result.json()}')
+
