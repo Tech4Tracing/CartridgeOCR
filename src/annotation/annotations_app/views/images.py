@@ -20,8 +20,8 @@ from annotations_app.utils import t4t_login_required
 
 from sqlalchemy import and_, desc
 
-assert 'PREDICTION_ENDPOINT' in os.environ
-prediction_endpoint_uri = os.environ['PREDICTION_ENDPOINT']+'/api/v0/headstamp_predict'            
+#assert 'PREDICTION_ENDPOINT' in os.environ
+#prediction_endpoint_uri = os.environ['PREDICTION_ENDPOINT']+'/api/v0/headstamp_predict'            
 
 @app.route("/api/v0/images", methods=["POST"])
 @t4t_login_required
@@ -143,7 +143,7 @@ def image_post():
     # we need an image id before we can kick off the prediction task
     # and we want a task id for future reference. Maybe we could do without it?
     # for unfortunately we have to run a second transaction
-    result=predict_headstamps.delay(prediction_endpoint_uri, current_user.id, image_in_db.id, b64encode(image_data).decode('utf-8'))
+    result=predict_headstamps.delay(current_user.id, image_in_db.id, b64encode(image_data).decode('utf-8'))
     logging.info(f'Prediction task: {result.task_id}')
     
     prediction_status = {

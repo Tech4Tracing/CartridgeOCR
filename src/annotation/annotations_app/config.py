@@ -26,6 +26,9 @@ class Config:
 
     CELERY_BROKER_URL = os.environ.get("CELERY_BROKER_URL") or "pyamqp://rabbitmq:5672"
 
+    MODEL_FOLDER = os.environ.get("MODEL_FOLDER", None)
+    MODEL_SNAPSHOT_NAME = os.environ.get("MODEL_SNAPSHOT_NAME", None)
+
 LOGGING_CONFIG = {
     'version': 1,
     'disable_existing_loggers': True,

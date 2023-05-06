@@ -1,0 +1,10 @@
+Pillow
+numpy
+azureml-core
+torch
+torchvision
+pycocotools
+azureml-sdk
+azure-storage-blob
+azureml-contrib-services
+scipy
