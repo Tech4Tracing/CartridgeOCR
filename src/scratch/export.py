@@ -6,12 +6,11 @@ import json
 
 parser = argparse.ArgumentParser()
 
-# TODO: import script to reload exported data
+# TODO: if we don't specify a collection id we should export individual collections and enable re-importing them
 
 parser.add_argument('--collection_id', type=str, default=None, required=False)
 parser.add_argument('output_folder', type=str)
 parser.add_argument('--overwrite', action='store_true', default=False, required=False)
-parser.add_argument('--include_unannotated', action='store_true', default=False)
 parser.add_argument('--cookie', type=str, required=True)
 
 args = parser.parse_args()
@@ -20,43 +19,29 @@ os.makedirs(args.output_folder, exist_ok=args.overwrite)
 
 # Get annotations from the backend
 # http://127.0.0.1:8080/api/v0/annotations
+root = "http://127.0.0.1:8080/api/v0"
 
-url = "http://127.0.0.1:8080/api/v0/annotations"
+images_url = f"{root}/images"
 if args.collection_id:
-    url += f"?collection_id={args.collection_id}"
+    images_url += f"?collection_id={args.collection_id}"
+imagelist = requests.get(images_url, headers={"Cookie": f"{args.cookie}"})   
+if imagelist.status_code != 200:
+    raise Exception(f"Failed to get images: {imagelist.text}")
 
-annotations = requests.get(url, headers={"Cookie": f"{args.cookie}"})
-if annotations.status_code != 200:
-    raise Exception(f"Failed to get annotations: {annotations.text}")
+with open(args.output_folder + "/images.json", "w") as f:
+    json.dump(imagelist.json(), f)
 
-o = annotations.json()
-with open(args.output_folder + "/annotations.json", "w") as f:
-    json.dump(o, f)
-
-images = set()
-if not args.include_unannotated:
-    for a in o["annotations"]:
-        images.add(a["image_id"])
-else:
-    url = "http://127.0.0.1:8080/api/v0/images"
-    if args.collection_id:
-        url += f"?collection_id={args.collection_id}"
-
-    imagelist = requests.get(url, headers={"Cookie": f"{args.cookie}"})
-    if imagelist.status_code != 200:
-        raise Exception(f"Failed to get images: {annotations.text}")
-
-    for i in imagelist.json()["images"]:
-        images.add(i["id"])
-
-print(f"Found {len(o['annotations'])} annotations for {len(images)} images")
-
-for i in images:
-    url = f"http://127.0.0.1:8080/api/v0/images/{i}/binary"
+for i in imagelist.json()["images"]:
+    url = f"http://127.0.0.1:8080/api/v0/images/{i['id']}/binary"
     image = requests.get(url, headers={"Cookie": f"{args.cookie}"})
     if image.status_code != 200:
         raise Exception(f"Failed to get image {i}: {image.text}")
     else:
         # TODO: we can't assume this will always be a jpg image.
-        with open(args.output_folder + f"/{i}.jpg", "wb") as f:
+        if 'filename' in i['extra_data']:
+            image_fn = i['extra_data']['filename']
+        else:
+            image_fn = f"{i['id']}.jpg"
+        with open(os.path.join(args.output_folder, image_fn), "wb") as f:
             f.write(image.content)
+

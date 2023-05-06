@@ -167,7 +167,7 @@ def prediction_post():
 @app.route("/api/v0/predictions/<string:prediction_id>", methods=["PUT"])
 @t4t_login_required
 def prediction_replace(prediction_id):
-    """Replace/update annotation
+    """Replace/update prediction
     ---
     put:
         parameters:
