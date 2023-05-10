@@ -8,7 +8,7 @@ import base64
 import json
 import logging
 # TODO: Isolate PIL to inside inference.py?
-from PIL import Image
+from PIL import Image, ImageOps
 
 
 def parse_boolean(value):
@@ -85,7 +85,9 @@ if __name__ == '__main__':
                         #  'detections': <list of detections, each with schema:
                         # {'casing': {'box':<rectangle>, 'confidence': <float>},
                         #  'primer': {'box': <rectangle>, 'confidence': <float>}}>
-                        img = Image.open(path).convert('RGB')                  
+                        img = Image.open(path)
+                        img = ImageOps.exif_transpose(img)
+                        img = img.convert('RGB')                  
                         width, height = img.size
                         for i, detection in enumerate(result['detections']):
                             output_file = os.path.join(args.output_images, '{}_{}.png'.format(os.path.basename(f), i))
