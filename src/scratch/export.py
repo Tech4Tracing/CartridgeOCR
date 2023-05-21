@@ -39,9 +39,9 @@ for i in imagelist.json()["images"]:
         raise Exception(f"Failed to get image {i}: {image.text}")
     else:
         # TODO: we can't assume this will always be a jpg image.
-        if 'filename' in i['extra_data']:
-            image_fn = i['extra_data']['filename']
-        else:
+        image_fn = (list(filter(i['notes'], lambda n: n['note_key']=='filename')) 
+                    or [{'note_value':None}])[0]['note_value']
+        if not image_fn:
             image_fn = f"{i['id']}.jpg"
         with open(os.path.join(args.output_folder, image_fn), "wb") as f:
             f.write(image.content)
