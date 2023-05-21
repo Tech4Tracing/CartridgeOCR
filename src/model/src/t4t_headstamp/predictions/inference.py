@@ -4,9 +4,10 @@ import io
 import base64
 import json
 import logging
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageOps
 import torch.utils.data
 import torchvision
+import traceback
 from azureml.core.model import Model
 from t4t_headstamp.training.model_utils import rt, isEllipseOverlap, isContained, get_transform, load_snapshot
 
@@ -67,7 +68,7 @@ class Inference():
                         if isContained(primer, casing[0]):
                             detectionsOut.append((casing, (primer,score)))
                             if canvas:
-                                canvas.ellipse(casing, outline='red', fill=(255,0,0,50), width=5)
+                                canvas.ellipse(casing[0], outline='red', fill=(255,0,0,50), width=5)
                                 canvas.ellipse(primer, outline='yellow', fill=(255,255,0,50), width=5)
                             # remove the casing from casingsOut so we don't reassign it.
                             toRemove = casing
@@ -142,7 +143,8 @@ class Inference():
             # Convert request from base64 to a PIL Image
             img_bytes = base64.b64decode(encodedImage)  # img_bytes is a binary image
             img_file = io.BytesIO(img_bytes)            # convert image to file-like object
-            img = Image.open(img_file)                  # img is now PIL Image object
+            img = Image.open(img_file)
+            img = ImageOps.exif_transpose(img)                  # re-orients and strips exif data
             width, height = img.size
             if width > self.max_width:
                 logging.info(f'Resizing from {width}')
@@ -190,5 +192,6 @@ class Inference():
             }
 
         except Exception as ex:
+            traceback.print_exc()
             logging.error(f'Exception: {ex}')
             return {'error': str(ex)}

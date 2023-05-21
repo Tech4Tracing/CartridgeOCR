@@ -42,6 +42,11 @@ class CollectionsListSchema(Schema):
     total = fields.Int()
     collections = fields.List(fields.Nested(CollectionDisplaySchema))
 
+class NoteDisplaySchema(Schema):
+    id = fields.Str()
+    prediction_id = fields.Str()
+    note_key = fields.Str()
+    note_value = fields.Str()
 
 class AnnotationDisplaySchema(Schema):
     id = fields.Str()
@@ -99,6 +104,7 @@ class ImageDisplaySchema(Schema):
     # Helpful but noisy
     annotations = fields.List(fields.Nested(AnnotationDisplaySchema))
     predictions = fields.List(fields.Nested(HeadstampPredictionDisplaySchema))
+    notes = fields.List(fields.Nested(NoteDisplaySchema))
 
     #@post_load
     #def deserialize_extra_data(self, data):
@@ -113,8 +119,8 @@ class ImageDisplaySchema(Schema):
     def dump(self, *args, **kwargs):
         result = super().dump(*args, **kwargs)
         #print('dump', type(result))
-        if result.get("extra_data"):
-            result["extra_data"] = json.loads(result["extra_data"])
+        #if result.get("extra_data"):
+        #    result["extra_data"] = json.loads(result["extra_data"])
         if result.get("prediction_status"):
             result["prediction_status"] = json.loads(result["prediction_status"])
         return result

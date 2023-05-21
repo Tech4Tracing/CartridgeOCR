@@ -10,7 +10,11 @@ from sqlalchemy.orm import relationship
 from sqlalchemy import and_, or_
 
 # Add the echo option below to enable SQL query logging
-db = SQLAlchemy(engine_options={'pool_size': 10, 'max_overflow': 20}) #, engine_options={"echo": True})
+db = SQLAlchemy(engine_options={
+    'pool_size': 10, 
+    'max_overflow': 20, 
+    'pool_pre_ping': True
+    }) #, engine_options={"echo": True})
 
 # hack to support postgres without too much pain
 def generate_uuid():
@@ -36,6 +40,20 @@ class Annotation(BaseModel):
     annotation = db.Column(Text)
     prediction_id = db.Column(String(36), nullable=True) #, ForeignKey("predictions.id"), nullable=True)
     metadata_ = db.Column('metadata', Text)
+
+    def __str__(self):
+        return self.id
+
+
+class Note(BaseModel):
+    __tablename__ = 'notes'
+
+    id = db.Column(String(36), primary_key=True, default=generate_uuid)
+    image_id = db.Column(String(36), ForeignKey("images.id"))
+    image = relationship("Image", back_populates="notes")
+    prediction_id = db.Column(String(36), nullable=True)
+    note_key = db.Column(String(255))
+    note_value = db.Column(Text)
 
     def __str__(self):
         return self.id
@@ -180,12 +198,13 @@ class Image(BaseModel):
     size = db.Column(Integer)
     file_hash = db.Column(String(255), default="")
     storageKey = db.Column(String(1024))
-    extra_data = db.Column(Text)
+    #extra_data = db.Column(Text)
     prediction_status = db.Column(Text)
 
     collection = relationship("ImageCollection", back_populates="images")
     annotations = relationship("Annotation", back_populates="image")
     predictions = relationship("HeadstampPrediction", back_populates="image")
+    notes = relationship("Note", back_populates="image")
 
     def __str__(self):
         return self.id

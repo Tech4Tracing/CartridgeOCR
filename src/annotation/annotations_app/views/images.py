@@ -11,7 +11,7 @@ from flask_login import current_user
 from annotations_app.flask_app import app, db, celery
 from annotations_app import schemas
 from annotations_app.config import logging
-from annotations_app.models.base import ImageCollection, Image, Annotation, HeadstampPrediction
+from annotations_app.models.base import ImageCollection, Image, Annotation, HeadstampPrediction, Note
 from annotations_app.repos.azure_storage_provider import (
     AzureStorageProvider as StorageProvider,
 )
@@ -130,15 +130,20 @@ def image_post():
     if 'filename' not in extra_data:
       extra_data['filename'] = request.files["file"].filename
     
-    # Trigger prediction task
-    # TODO: set ignore_result=True once db persistence is established.
+    notes = []
+    for key in extra_data:
+        prediction_id = None
+        if type(extra_data[key]) == dict and 'prediction_id' in extra_data['key']:
+            prediction_id = extra_data[key]['prediction_id']            
+        notes.append(Note(prediction_id=prediction_id, note_key=key, note_value=extra_data[key]))
     
     image_in_db = Image(
         mimetype=mime,
         size=size,
         storageKey=storage_file_key,
         collection_id=collection_in_db.id,
-        extra_data=json.dumps(extra_data),
+        notes = notes,        
+        #extra_data=json.dumps(extra_data),
         prediction_status=json.dumps({'status':'staging'}),
     )
     
@@ -147,9 +152,10 @@ def image_post():
     db.session.commit()
     db.session.refresh(image_in_db)
     logging.info(image_in_db.prediction_status)
+    
     # we need an image id before we can kick off the prediction task
     # and we want a task id for future reference. Maybe we could do without it?
-    # for unfortunately we have to run a second transaction
+    # unfortunately we have to run a second transaction
     prediction_status = None
     do_prediction = parse_boolean(request.form.get('predict', 'true'))    
     logging.info(f"image upload do_prediction: {do_prediction} {type(do_prediction)}")
@@ -445,13 +451,15 @@ def image_update(image_id: str):
     # TODO: validate the payload.
     # TODO: escape quotes and other dangerous chars
     payload = request.get_json()
-    extra_data = payload['extra_data'] if 'extra_data' in payload else {}
+    extra_data = payload['extra_data'] if 'extra_data' in payload else []
+    assert isinstance(extra_data, list), "extra_data must be a list"
     if not image_id:
         abort(400, description="image_id parameter is required")
 
     image_in_db = Image.get_image_or_abort(image_id, current_user.id)  # ensure exists and available
 
-    image_in_db.extra_data = json.dumps(extra_data)
+    #image_in_db.extra_data = json.dumps(extra_data)
+    image_in_db.notes = [Note(n) for n in extra_data]
 
     db.session.commit()
     db.session.refresh(image_in_db)
