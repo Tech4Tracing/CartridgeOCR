@@ -4,7 +4,12 @@ FROM mcr.microsoft.com/azureml/minimal-ubuntu20.04-py38-cpu-inference:latest
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONPATH=/app
-ARG T4T_WHL=t4t_headstamp-0.0.1-py3-none-any.whl
+# To prep the wheel file, run:
+# pushd ../model
+# python setup.py sdist bdist_wheel
+# cp dist/t4t_headstamp-0.0.2-py3-none-any.whl ../annotation
+# popd
+ARG T4T_WHL=t4t_headstamp-0.0.2-py3-none-any.whl
 
 
 # Install requirements

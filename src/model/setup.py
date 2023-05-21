@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
     name="t4t_headstamp",                     # This is the name of the package
-    version="0.0.1",                        # The initial release version
+    version="0.0.2",                        # The initial release version
     author="Robert Sim",                     # Full name of the author
     author_email="robert.sim@tech4tracing.org",
     description="Tech4Tracing Headstamp Detector",

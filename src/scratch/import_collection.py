@@ -64,13 +64,13 @@ else:
     logging.info(f'Images: {len(images["images"])}')
     
 for image in images['images']:
-    if 'filename' in image['extra_data']:
-        image_fn = image['extra_data']['filename']
-    else:
+    image_fn = (list(filter(i['notes'], lambda n: n['note_key']=='filename')) 
+                    or [{'note_value':None}])[0]['note_value']
+    if not image_fn:
         image_fn = f'{image["id"]}.jpg'
 
     image_id = None
-    logging.info(f'Importing image {image["id"]} from {image_fn}. Extra data: {image["extra_data"]} Prediction status: {image["prediction_status"]}')
+    logging.info(f'Importing image {image["id"]} from {image_fn}. Extra data: {image["notes"]} Prediction status: {image["prediction_status"]}')
     with open(os.path.join(args.collection_folder, image_fn), "rb") as f:
         files = {"file":(image_fn, f, 'application-type')}
         mime = 'image/jpeg' if image_fn.lower().split('.')[-1] == 'jpg' else 'image/png'
@@ -78,7 +78,7 @@ for image in images['images']:
             "collection_id": collection_id, 
             "mime_type": mime, 
             "predict": False,
-            "extra_data": json.dumps(image['extra_data']),
+            "extra_data": json.dumps(image['notes']),
             "prediction_status": json.dumps(image['prediction_status'])
         }
 
