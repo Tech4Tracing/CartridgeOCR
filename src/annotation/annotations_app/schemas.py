@@ -74,6 +74,28 @@ class AnnotationDisplaySchema(Schema):
                 result["created_at"] = result["created_at"].rstrip(" +00:00") + "Z"
         return result
 
+class AmmunitionDisplaySchema(Schema):
+    id = fields.Str()
+    caliber = fields.Str()
+    cartridge_type = fields.Str()
+    casing_material = fields.Str()
+    country = fields.Str()
+    manufacturer = fields.Str()
+    year_start = fields.Int()
+    year_end = fields.Int()
+    headstamp_markings = fields.Str()
+    projectile = fields.Str()
+    casing_description = fields.Str()
+    primer = fields.Str()
+    data_source = fields.Str()
+    notes = fields.Str()
+    created_date = fields.Str()
+    updated_date = fields.Str()
+    created_by = fields.Str()
+    updated_by = fields.Str()
+    headstamp_image = fields.Str()
+    profile_image = fields.Str()
+    
 
 class HeadstampPredictionDisplaySchema(Schema):
     id = fields.Str()
@@ -143,6 +165,10 @@ class ImageListSchema(Schema):
 class AnnotationListSchema(Schema):
     total = fields.Int()
     annotations = fields.List(fields.Nested(AnnotationDisplaySchema))
+
+class AmmunitionListSchema(Schema):
+    total = fields.Int()
+    ammunitions = fields.List(fields.Nested(AmmunitionDisplaySchema))
 
 class HeadstampPredictionListSchema(Schema):
     total = fields.Int()

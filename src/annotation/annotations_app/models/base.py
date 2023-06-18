@@ -262,3 +262,36 @@ class HeadstampPrediction(BaseModel):
     
     def __str__(self):
         return self.id
+
+
+
+class Ammunition(BaseModel):
+    __tablename__ = 'ammunition'
+
+    id = db.Column(String(36), primary_key=True, default=generate_uuid)
+    caliber = db.Column(String(255))
+    cartridge_type = db.Column(String(255))
+    casing_material = db.Column(String(255))
+    country = db.Column(String(255))
+    manufacturer = db.Column(String(255))
+    year_start = db.Column(Integer)
+    year_end = db.Column(Integer)
+    headstamp_markings = db.Column(String(255))
+    projectile = db.Column(String(255))
+    casing_description = db.Column(String(255))
+    primer = db.Column(String(255))
+    data_source = db.Column(String(255))
+    headstamp_image_id = db.column(String(36))
+    profile_image_id = db.column(String(36))
+    notes = db.Column(Text)
+    created_date = db.Column(DateTime(timezone=True), default=datetime.datetime.utcnow)
+    updated_date = db.Column(DateTime(timezone=True), default=datetime.datetime.utcnow)
+    created_by = db.Column(String(255))
+    updated_by = db.Column(String(255))
+
+    #headstamp_image = relationship("Image", back_populates="ammunition")
+    #profile_image = relationship("Image", back_populates="ammunition")
+
+    def __str__(self):
+        return self.id
+
