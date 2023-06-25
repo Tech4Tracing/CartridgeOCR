@@ -281,8 +281,8 @@ class Ammunition(BaseModel):
     casing_description = db.Column(String(255))
     primer = db.Column(String(255))
     data_source = db.Column(String(255))
-    headstamp_image_id = db.column(String(36))
-    profile_image_id = db.column(String(36))
+    headstamp_image = db.Column(String(36))
+    profile_image = db.Column(String(36))
     notes = db.Column(Text)
     created_date = db.Column(DateTime(timezone=True), default=datetime.datetime.utcnow)
     updated_date = db.Column(DateTime(timezone=True), default=datetime.datetime.utcnow)
@@ -294,4 +294,3 @@ class Ammunition(BaseModel):
 
     def __str__(self):
         return self.id
-

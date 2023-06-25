@@ -1,7 +1,7 @@
 from flask import jsonify, render_template
 
 from annotations_app.flask_app import app, spec
-from annotations_app.views import users, collections, images, annotations, predictions
+from annotations_app.views import users, collections, images, annotations, predictions, ammunition
 from annotations_app.utils import t4t_login_required
 
 @app.route("/api/v0/openapi.json", methods=["GET"])
@@ -46,5 +46,13 @@ with app.test_request_context():
     spec.path(view=predictions.prediction_post)
     spec.path(view=predictions.prediction_replace)
     spec.path(view=predictions.prediction_delete)
+    spec.path(view=ammunition.ammunition_list)
+    spec.path(view=ammunition.ammunition_detail)
+    spec.path(view=ammunition.ammunition_post)
+    spec.path(view=ammunition.ammunition_replace)
+    spec.path(view=ammunition.ammunition_delete)
+
+
+
     
     

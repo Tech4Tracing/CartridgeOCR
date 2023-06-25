@@ -47,15 +47,39 @@ def ammunition_list():
 
     total = queryset.count()
     results = queryset.order_by(
-        "created_at", "id",
+        "created_date", "id",
     )
 
     return schemas.AmmunitionListSchema().dump(
         {
             "total": total,
-            "ammuniitions": results,
+            "ammunitions": results,
         }
     )
+
+
+@app.route("/api/v0/ammunition/<string:ammunition_id>", methods=["GET"])
+@t4t_login_required
+def ammunition_detail(ammunition_id: str):
+    """Return requested ammunition information as JSON
+    ---
+    get:
+      parameters:
+        - in: path
+          name: ammunition_id
+          schema:
+            type: string
+          required: true
+          description: Unique ammunition ID
+      responses:
+        200:
+          description: JSON with the ammunition info
+          content:
+            application/json:
+              schema: AmmunitionDisplaySchema
+    """
+    ammunition_in_db = Ammunition.query.filter(Ammunition.id == ammunition_id).first_or_404()
+    return schemas.AmmunitionDisplaySchema().dump(ammunition_in_db)
 
 
 # TODO: geometry and metadata types
@@ -145,8 +169,8 @@ def ammunition_post():
 
 @app.route("/api/v0/ammunition/<string:ammunition_id>", methods=["PUT"])
 @t4t_login_required
-def annotation_replace(ammunition_id):
-    """Replace/update annotation
+def ammunition_replace(ammunition_id):
+    """Replace/update ammunition
     ---
     put:
         parameters:
