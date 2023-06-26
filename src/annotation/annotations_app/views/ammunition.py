@@ -265,7 +265,7 @@ def ammunition_replace(ammunition_id):
     
     db.session.commit()
     db.session.refresh(ammunition_in_db)
-    return schemas.AnnotationDisplaySchema().dump(ammunition_in_db)
+    return schemas.AmmunitionDisplaySchema().dump(ammunition_in_db)
 
 
 @app.route("/api/v0/ammunition/<string:ammunition_id>", methods=["DELETE"])
