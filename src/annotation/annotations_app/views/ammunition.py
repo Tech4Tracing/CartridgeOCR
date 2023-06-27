@@ -261,7 +261,7 @@ def ammunition_replace(ammunition_id):
     ammunition_in_db.headstamp_image = req.get('headstamp_image', None) or ammunition_in_db.headstamp_image
     ammunition_in_db.profile_image = req.get('profile_image', None) or ammunition_in_db.profile_image
     ammunition_in_db.updated_by = current_user.id
-    ammunition_in_db.updated_at = datetime.datetime.utcnow()
+    ammunition_in_db.updated_date = datetime.datetime.utcnow()
     
     db.session.commit()
     db.session.refresh(ammunition_in_db)
