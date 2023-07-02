@@ -3,14 +3,15 @@ from flask_login import current_user
 
 from annotations_app.flask_app import app, db
 from annotations_app import schemas
-from annotations_app.models.base import ImageCollection, Image, User, UserScope
+from annotations_app.models.base import (
+    ImageCollection, Image, User, UserScope, PUBLIC_SCOPE_USER_EMAIL, PUBLIC_SCOPE_USER_ID
+)
 from annotations_app.repos.azure_storage_provider import (
     AzureStorageProvider as StorageProvider,
 )
 from annotations_app.utils import parse_boolean, t4t_login_required
 
 import logging
-
 
 @app.route("/api/v0/collections", methods=["GET"])
 @t4t_login_required
@@ -204,9 +205,10 @@ def collections_guests_add(collection_id):
     user_scope = req['access_level']
     user = User.get_user_by_email(user_email)
     
-    if user is None or user.id==current_user.id:
-        abort(400, description="Invalid user email")
-        
+    if user is None or user.id==current_user.id or \
+      (user.id == PUBLIC_SCOPE_USER_ID and not current_user.is_superuser):
+      abort(400, description="Invalid user email")
+
     if user_scope not in ['read', 'write']:
         abort(400, description="Invalid access_level: must be read or write")
 

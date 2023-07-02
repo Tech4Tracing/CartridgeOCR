@@ -6,7 +6,7 @@ from flask_login import current_user
 from annotations_app.flask_app import app, db
 from annotations_app import schemas
 from annotations_app.config import logging
-from annotations_app.models.base import Ammunition, Image
+from annotations_app.models.base import Ammunition, Image, User
 from annotations_app.utils import t4t_login_required
 from sqlalchemy import and_
 import datetime
@@ -164,7 +164,7 @@ def ammunition_post():
     db.session.add(ammunition_in_db)
     db.session.commit()
     db.session.refresh(ammunition_in_db)
-    return schemas.AnnotationDisplaySchema().dump(ammunition_in_db), 201
+    return schemas.AmmunitionDisplaySchema().dump(ammunition_in_db), 201
 
 
 @app.route("/api/v0/ammunition/<string:ammunition_id>", methods=["PUT"])

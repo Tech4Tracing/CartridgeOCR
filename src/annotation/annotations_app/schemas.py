@@ -91,8 +91,8 @@ class AmmunitionDisplaySchema(Schema):
     notes = fields.Str()
     created_date = fields.Str()
     updated_date = fields.Str()
-    created_by = fields.Str()
-    updated_by = fields.Str()
+    created_by_email = fields.Str()
+    updated_by_email = fields.Str()
     headstamp_image = fields.Str()
     profile_image = fields.Str()
     

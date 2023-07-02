@@ -9,6 +9,11 @@ from sqlalchemy import Boolean, ForeignKey, Integer, Text, String, DateTime, Flo
 from sqlalchemy.orm import relationship
 from sqlalchemy import and_, or_
 
+
+PUBLIC_SCOPE_USER_EMAIL = "public@tech4tracing.org"
+PUBLIC_SCOPE_USER_ID = "00000000-0000-0000-0000-000000000000" 
+
+
 # Add the echo option below to enable SQL query logging
 db = SQLAlchemy(engine_options={
     'pool_size': 10, 
@@ -160,7 +165,9 @@ class ImageCollection(BaseModel):
             or_(ImageCollection.user_id == current_user_id,
                 and_(include_guest_access, 
                      ImageCollection.userscopes.any(
-                        and_(UserScope.user_id==current_user_id,
+                        and_(
+                            or_(UserScope.user_id==current_user_id, 
+                                UserScope.user_id==PUBLIC_SCOPE_USER_ID),
                             or_(include_readonly, 
                                 UserScope.access_level == 'write')
                             )
@@ -294,3 +301,11 @@ class Ammunition(BaseModel):
 
     def __str__(self):
         return self.id
+
+    @property
+    def created_by_email(self):
+        return User.query.get(self.created_by).email
+    
+    @property
+    def updated_by_email(self):
+        return User.query.get(self.updated_by).email
