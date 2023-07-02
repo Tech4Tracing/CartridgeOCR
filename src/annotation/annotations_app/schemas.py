@@ -89,6 +89,7 @@ class AmmunitionDisplaySchema(Schema):
     primer = fields.Str()
     data_source = fields.Str()
     notes = fields.Str()
+    reference_collection = fields.Str()
     created_date = fields.Str()
     updated_date = fields.Str()
     created_by_email = fields.Str()

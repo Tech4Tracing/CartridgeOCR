@@ -6,8 +6,8 @@ from flask_login import current_user
 from annotations_app.flask_app import app, db
 from annotations_app import schemas
 from annotations_app.config import logging
-from annotations_app.models.base import Ammunition, Image, User
-from annotations_app.utils import t4t_login_required
+from annotations_app.models.base import Ammunition, Image, User, ImageCollection, UserScope, PUBLIC_SCOPE_USER_ID
+from annotations_app.utils import t4t_login_required, superuser_required
 from sqlalchemy import and_
 import datetime
 
@@ -82,9 +82,50 @@ def ammunition_detail(ammunition_id: str):
     return schemas.AmmunitionDisplaySchema().dump(ammunition_in_db)
 
 
-# TODO: geometry and metadata types
+def validate_or_create_reference_collection(req):
+    reference_collection = req.get('reference_collection', None)
+    if reference_collection:
+        collection = ImageCollection.get_collection_or_abort(reference_collection, current_user.id, include_guest_access=True)
+        public_scope = any(filter(lambda x: x.user_id == PUBLIC_SCOPE_USER_ID, collection.userscopes))
+        if (not public_scope):
+            abort(400, "Reference collection must have a public scope")
+    if req.get('headstamp_image', None):
+        hs_image = Image.get_image_or_abort(req['headstamp_image'], current_user.id, include_guest_access=True)  # ensure exists and available
+        if reference_collection and hs_image.collection_id != reference_collection:
+            abort(400, "Headstamp and profile images must be from the same valid reference collection")
+        reference_collection = hs_image.collection_id
+    if req.get('profile_image', None):
+        pr_image = Image.get_image_or_abort(req['profile_image'], current_user.id, include_guest_access=True)
+        if reference_collection and pr_image.collection_id != reference_collection:
+            abort(400, "Headstamp and profile images must be from the same reference collection")
+        reference_collection = pr_image.collection_id
+    
+    if reference_collection is None:
+        # First try finding a reference collection        
+        reference_collection_in_db = ImageCollection.get_reference_collections().first()
+        if reference_collection_in_db is not None:
+            reference_collection = reference_collection_in_db.id
+        else:  # Not found so create one
+            reference_collection = ImageCollection(
+                user_id=current_user.id,            
+                name="Ammunition Reference Collection",            
+            )
+            db.session.add(reference_collection)
+            db.session.commit()
+            db.session.refresh(reference_collection)
+            userscope_in_db = UserScope(
+                user_id=PUBLIC_SCOPE_USER_ID,
+                imagecollection_id=reference_collection.id,            
+                access_level='read',
+            )
+            db.session.add(userscope_in_db)
+            db.session.commit()
+            logging.info("Created reference collection %s", reference_collection.id)
+            reference_collection = reference_collection.id
+    return reference_collection
+
 @app.route("/api/v0/ammunition", methods=["POST"])
-@t4t_login_required
+@superuser_required
 def ammunition_post():
     """Create annotation for image
     ---
@@ -121,6 +162,8 @@ def ammunition_post():
                     type: string
                   notes:
                     type: string
+                  reference_collection:
+                    type: string
                   headstamp_image:
                     type: string
                   profile_image:
@@ -135,12 +178,8 @@ def ammunition_post():
     logging.info("Uploading ammunition for user %s", current_user.id)
 
     req = request.get_json()
-
-    if req.get('headstamp_image', None):
-        Image.get_image_or_abort(req['headstamp_image'], current_user.id, include_guest_access=True)  # ensure exists and available
-    if req.get('profile_image', None):
-        Image.get_image_or_abort(req['profile_image'], current_user.id, include_guest_access=True)
-
+    reference_collection = validate_or_create_reference_collection(req)
+    logging.info(f"reference collection: {reference_collection}")
     # create database object if succesfull
     ammunition_in_db = Ammunition(
         caliber=req.get('caliber', None),
@@ -156,6 +195,7 @@ def ammunition_post():
         primer=req.get('primer', None),
         data_source=req.get('data_source', None),
         notes=req.get('notes', None),
+        reference_collection=reference_collection,
         headstamp_image=req.get('headstamp_image', None),
         profile_image=req.get('profile_image', None),
         created_by = current_user.id,
@@ -210,6 +250,8 @@ def ammunition_replace(ammunition_id):
                     type: string
                   data_source:
                     type: string
+                  reference_collection:
+                    type: string
                   notes:
                     type: string
                   headstamp_image:
@@ -240,10 +282,8 @@ def ammunition_replace(ammunition_id):
     if not ammunition_in_db:
         abort(404)
 
-    if req.get('headstamp_image', None):
-        Image.get_image_or_abort(req['headstamp_image'], current_user.id, include_guest_access=True)  # ensure exists and available
-    if req.get('profile_image', None):
-        Image.get_image_or_abort(req['profile_image'], current_user.id, include_guest_access=True)
+    reference_collection = validate_or_create_reference_collection(req)
+    logging.info(f"reference collection: {reference_collection}")
     
     ammunition_in_db.caliber = req.get('caliber', None) or ammunition_in_db.caliber
     ammunition_in_db.cartridge_type = req.get('cartridge_type', None) or ammunition_in_db.cartridge_type
@@ -258,6 +298,7 @@ def ammunition_replace(ammunition_id):
     ammunition_in_db.primer = req.get('primer', None) or ammunition_in_db.primer
     ammunition_in_db.data_source = req.get('data_source', None) or ammunition_in_db.data_source
     ammunition_in_db.notes = req.get('notes', None) or ammunition_in_db.notes
+    ammunition_in_db.reference_collection = reference_collection or ammunition_in_db.reference_collection
     ammunition_in_db.headstamp_image = req.get('headstamp_image', None) or ammunition_in_db.headstamp_image
     ammunition_in_db.profile_image = req.get('profile_image', None) or ammunition_in_db.profile_image
     ammunition_in_db.updated_by = current_user.id

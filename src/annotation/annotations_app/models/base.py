@@ -177,6 +177,15 @@ class ImageCollection(BaseModel):
         )
 
     @staticmethod
+    def get_reference_collections():
+        from annotations_app.flask_app import db
+        return db.session.query(ImageCollection).filter(
+            ImageCollection.userscopes.any(
+                UserScope.user_id==PUBLIC_SCOPE_USER_ID
+            )            
+        )    
+
+    @staticmethod
     def get_collection_or_abort(collection_id, current_user_id, include_guest_access=False, include_readonly=False):
         """
         Either return first(single) collection or raise 404 exception
@@ -291,6 +300,7 @@ class Ammunition(BaseModel):
     headstamp_image = db.Column(String(36))
     profile_image = db.Column(String(36))
     notes = db.Column(Text)
+    reference_collection = db.Column(String(36))
     created_date = db.Column(DateTime(timezone=True), default=datetime.datetime.utcnow)
     updated_date = db.Column(DateTime(timezone=True), default=datetime.datetime.utcnow)
     created_by = db.Column(String(255))
