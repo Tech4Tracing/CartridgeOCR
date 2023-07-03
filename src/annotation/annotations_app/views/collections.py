@@ -134,6 +134,15 @@ def collection_delete(collection_id: str):
         storage_provider = StorageProvider()
         storage_provider.delete_file(image_in_db.storageKey)
         db.session.delete(image_in_db)
+    
+    # Delete all user scopes associated with this collection
+    scopes_in_db = db.session.query(UserScope).filter(
+          UserScope.imagecollection_id == collection_in_db.id,           
+        ).all()
+
+    for scope in scopes_in_db:
+      db.session.delete(scope)
+
     db.session.delete(collection_in_db)
     db.session.commit()
     return ("", 204)

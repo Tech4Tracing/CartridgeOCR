@@ -275,6 +275,23 @@ def image_delete(image_id: str):
     """
     # TODO: clean up any orphaned annotations
     image_in_db = Image.get_image_or_abort(image_id, current_user.id, include_guest_access=True)
+    
+    # Delete all notes and predictions associated with this image.
+    # TODO: do we also need to do this for annotations?
+    notes_in_db = db.session.query(Note).filter(
+          Note.image_id == image_in_db.id,           
+        ).all()
+
+    for note in notes_in_db:
+      db.session.delete(note)
+
+    predictions_in_db = db.session.query(HeadstampPrediction).filter(
+          HeadstampPrediction.image_id == image_in_db.id,           
+        ).all()
+
+    for prediction in predictions_in_db:
+      db.session.delete(prediction)
+
     storage_provider = StorageProvider()
     storage_provider.delete_file(image_in_db.storageKey)
     db.session.delete(image_in_db)
@@ -457,8 +474,7 @@ def image_update(image_id: str):
         abort(400, description="image_id parameter is required")
 
     image_in_db = Image.get_image_or_abort(image_id, current_user.id)  # ensure exists and available
-
-    #image_in_db.extra_data = json.dumps(extra_data)
+    logging.info(f'updating image {image_id} with extra_data {extra_data}')
     image_in_db.notes = [Note(n) for n in extra_data]
 
     db.session.commit()
