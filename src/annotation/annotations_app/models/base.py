@@ -319,3 +319,24 @@ class Ammunition(BaseModel):
     @property
     def updated_by_email(self):
         return User.query.get(self.updated_by).email
+    
+    
+    @staticmethod
+    def get_or_abort(ammunition_id):
+        """
+        Either return first(single) image or raises an 404 exception which is handled elsewhere
+        """
+        from flask import abort
+        from annotations_app.flask_app import db
+
+        
+        ammunition_in_db = (
+            db.session.query(Ammunition)
+            .filter(
+                Ammunition.id == ammunition_id,
+            )
+            .first()
+        )
+        if not ammunition_in_db:
+            abort(404, description="Ammunition not found")
+        return ammunition_in_db

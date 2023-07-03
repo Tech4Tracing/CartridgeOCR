@@ -8,7 +8,7 @@ from annotations_app import schemas
 from annotations_app.config import logging
 from annotations_app.models.base import Ammunition, Image, User, ImageCollection, UserScope, PUBLIC_SCOPE_USER_ID
 from annotations_app.utils import t4t_login_required, superuser_required
-from sqlalchemy import and_
+from sqlalchemy import and_, desc
 import datetime
 
 # TODO: what kinds of top-level filters will we want here?
@@ -78,7 +78,7 @@ def ammunition_detail(ammunition_id: str):
             application/json:
               schema: AmmunitionDisplaySchema
     """
-    ammunition_in_db = Ammunition.query.filter(Ammunition.id == ammunition_id).first_or_404()
+    ammunition_in_db = Ammunition.get_or_abort(ammunition_id)
     return schemas.AmmunitionDisplaySchema().dump(ammunition_in_db)
 
 
@@ -272,15 +272,7 @@ def ammunition_replace(ammunition_id):
     req = request.get_json()
 
     
-    ammunition_in_db = (
-        db.session.query(Ammunition)
-        .filter(
-            Ammunition.id == ammunition_id,            
-        )
-        .first()
-    )
-    if not ammunition_in_db:
-        abort(404)
+    ammunition_in_db = Ammunition.get_or_abort(ammunition_id)
 
     reference_collection = validate_or_create_reference_collection(req)
     logging.info(f"reference collection: {reference_collection}")
@@ -329,17 +321,62 @@ def ammunition_delete(ammunition_id):
     logging.info("DELETE ammunition request for user %s", current_user.id)
     
     # TODO: this may orphan the headstamp and profile images.  Should we delete them too?
-    ammunition_in_db = (
-        db.session.query(Ammunition)
-        .filter(
-            Ammunition.id == ammunition_id,            
-        )
-        .first()
-    )
-
-    if not ammunition_in_db:
-        abort(404)
+    ammunition_in_db = Ammunition.get_or_abort(ammunition_id)
 
     db.session.delete(ammunition_in_db)
     db.session.commit()
     return ("", 204)
+
+
+
+@app.route("/api/v0/ammunition/<string:ammunition_id>/navigation", methods=["GET"])
+@t4t_login_required
+def ammunition_navigation(ammunition_id):
+    """Get adjacent ammunition records in the database, for navigation
+    ---
+    get:
+      parameters:
+        - in: path
+          name: ammunition_id
+          schema:
+            type: string
+          required: true
+          description: Unique ammunition ID
+        - in: query
+          name: sort_by
+          schema:
+            type: string
+          required: false
+          description: Sort by field (created_at, id)
+      responses:
+        200:
+          description: Previous and next ammunition in the database
+          content:
+            application/json:
+              schema: NavigationSchema
+    """
+    ammunition_in_db=Ammunition.get_or_abort(ammunition_id)
+
+    sort_by = request.args.get("sort_by", "created_date")
+    if sort_by not in ["created_date", "id"]:
+        abort(400, description="Invalid sort_by parameter")
+
+    # TODO: is there a cleaner way?
+    if sort_by == "created_date":
+        next_id = db.session.query(Ammunition.id).filter(
+            Ammunition.created_date > ammunition_in_db.created_date
+        ).order_by(Ammunition.created_date).limit(1).scalar()
+        prev_id = db.session.query(Ammunition.id).filter(
+            Ammunition.created_date < ammunition_in_db.created_date
+        ).order_by(desc(Ammunition.created_date)).limit(1).scalar()
+    else: # sort_by == "id"
+        next_id = db.session.query(Ammunition.id).filter(
+          Ammunition.id > ammunition_id
+        ).order_by(Ammunition.id).limit(1).scalar()
+        prev_id = db.session.query(Ammunition.id).filter(
+          Ammunition.id < ammunition_id
+        ).order_by(desc(Ammunition.id)).limit(1).scalar()
+    return schemas.NavigationSchema().dump({
+        "next": next_id,
+        "prev": prev_id,
+    }), 200

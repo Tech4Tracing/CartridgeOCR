@@ -208,6 +208,6 @@ class ErrorSchema(Schema):
 class Errors(Schema):
     errors = fields.List(fields.Nested(ErrorSchema))
 
-class ImageNavigationSchema(Schema):
+class NavigationSchema(Schema):
     prev = fields.Str()
     next = fields.Str()

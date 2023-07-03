@@ -51,6 +51,7 @@ with app.test_request_context():
     spec.path(view=ammunition.ammunition_post)
     spec.path(view=ammunition.ammunition_replace)
     spec.path(view=ammunition.ammunition_delete)
+    spec.path(view=ammunition.ammunition_navigation)
 
 
 

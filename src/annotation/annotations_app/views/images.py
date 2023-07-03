@@ -491,7 +491,7 @@ def image_navigation(image_id):
           description: Previous and next image in the database
           content:
             application/json:
-              schema: ImageNavigationSchema
+              schema: NavigationSchema
     """
     image=Image.get_image_or_abort(image_id, current_user.id, include_guest_access=True, include_readonly=True)  # just to ensure the image exists
 
@@ -510,11 +510,11 @@ def image_navigation(image_id):
     else: # sort_by == "id"
         next_id = db.session.query(Image.id).filter(
           and_(Image.collection_id==image.collection_id, Image.id > image_id)
-        ).order_by(Image.created_at).limit(1).scalar()
+        ).order_by(Image.id).limit(1).scalar()
         prev_id = db.session.query(Image.id).filter(
           and_(Image.collection_id==image.collection_id, Image.id < image_id)
-        ).order_by(desc(Image.created_at)).limit(1).scalar()
-    return schemas.ImageNavigationSchema().dump({
+        ).order_by(desc(Image.id)).limit(1).scalar()
+    return schemas.NavigationSchema().dump({
         "next": next_id,
         "prev": prev_id,
     }), 200
