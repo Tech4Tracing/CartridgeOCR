@@ -3,14 +3,15 @@ from flask_login import current_user
 
 from annotations_app.flask_app import app, db
 from annotations_app import schemas
-from annotations_app.models.base import ImageCollection, Image, User, UserScope
+from annotations_app.models.base import (
+    ImageCollection, Image, User, UserScope, PUBLIC_SCOPE_USER_EMAIL, PUBLIC_SCOPE_USER_ID
+)
 from annotations_app.repos.azure_storage_provider import (
     AzureStorageProvider as StorageProvider,
 )
 from annotations_app.utils import parse_boolean, t4t_login_required
 
 import logging
-
 
 @app.route("/api/v0/collections", methods=["GET"])
 @t4t_login_required
@@ -133,6 +134,15 @@ def collection_delete(collection_id: str):
         storage_provider = StorageProvider()
         storage_provider.delete_file(image_in_db.storageKey)
         db.session.delete(image_in_db)
+    
+    # Delete all user scopes associated with this collection
+    scopes_in_db = db.session.query(UserScope).filter(
+          UserScope.imagecollection_id == collection_in_db.id,           
+        ).all()
+
+    for scope in scopes_in_db:
+      db.session.delete(scope)
+
     db.session.delete(collection_in_db)
     db.session.commit()
     return ("", 204)
@@ -204,9 +214,10 @@ def collections_guests_add(collection_id):
     user_scope = req['access_level']
     user = User.get_user_by_email(user_email)
     
-    if user is None or user.id==current_user.id:
-        abort(400, description="Invalid user email")
-        
+    if user is None or user.id==current_user.id or \
+      (user.id == PUBLIC_SCOPE_USER_ID and not current_user.is_superuser):
+      abort(400, description="Invalid user email")
+
     if user_scope not in ['read', 'write']:
         abort(400, description="Invalid access_level: must be read or write")
 

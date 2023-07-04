@@ -9,6 +9,11 @@ from sqlalchemy import Boolean, ForeignKey, Integer, Text, String, DateTime, Flo
 from sqlalchemy.orm import relationship
 from sqlalchemy import and_, or_
 
+
+PUBLIC_SCOPE_USER_EMAIL = "public@tech4tracing.org"
+PUBLIC_SCOPE_USER_ID = "00000000-0000-0000-0000-000000000000" 
+
+
 # Add the echo option below to enable SQL query logging
 db = SQLAlchemy(engine_options={
     'pool_size': 10, 
@@ -160,7 +165,9 @@ class ImageCollection(BaseModel):
             or_(ImageCollection.user_id == current_user_id,
                 and_(include_guest_access, 
                      ImageCollection.userscopes.any(
-                        and_(UserScope.user_id==current_user_id,
+                        and_(
+                            or_(UserScope.user_id==current_user_id, 
+                                UserScope.user_id==PUBLIC_SCOPE_USER_ID),
                             or_(include_readonly, 
                                 UserScope.access_level == 'write')
                             )
@@ -168,6 +175,15 @@ class ImageCollection(BaseModel):
                     )
                ),
         )
+
+    @staticmethod
+    def get_reference_collections():
+        from annotations_app.flask_app import db
+        return db.session.query(ImageCollection).filter(
+            ImageCollection.userscopes.any(
+                UserScope.user_id==PUBLIC_SCOPE_USER_ID
+            )            
+        )    
 
     @staticmethod
     def get_collection_or_abort(collection_id, current_user_id, include_guest_access=False, include_readonly=False):
@@ -262,3 +278,65 @@ class HeadstampPrediction(BaseModel):
     
     def __str__(self):
         return self.id
+
+
+
+class Ammunition(BaseModel):
+    __tablename__ = 'ammunition'
+
+    id = db.Column(String(36), primary_key=True, default=generate_uuid)
+    caliber = db.Column(String(255))
+    cartridge_type = db.Column(String(255))
+    casing_material = db.Column(String(255))
+    country = db.Column(String(255))
+    manufacturer = db.Column(String(255))
+    year_start = db.Column(Integer)
+    year_end = db.Column(Integer)
+    headstamp_markings = db.Column(String(255))
+    projectile = db.Column(String(255))
+    casing_description = db.Column(String(255))
+    primer = db.Column(String(255))
+    data_source = db.Column(String(255))
+    headstamp_image = db.Column(String(36))
+    profile_image = db.Column(String(36))
+    notes = db.Column(Text)
+    reference_collection = db.Column(String(36))
+    created_date = db.Column(DateTime(timezone=True), default=datetime.datetime.utcnow)
+    updated_date = db.Column(DateTime(timezone=True), default=datetime.datetime.utcnow)
+    created_by = db.Column(String(255))
+    updated_by = db.Column(String(255))
+
+    #headstamp_image = relationship("Image", back_populates="ammunition")
+    #profile_image = relationship("Image", back_populates="ammunition")
+
+    def __str__(self):
+        return self.id
+
+    @property
+    def created_by_email(self):
+        return User.query.get(self.created_by).email
+    
+    @property
+    def updated_by_email(self):
+        return User.query.get(self.updated_by).email
+    
+    
+    @staticmethod
+    def get_or_abort(ammunition_id):
+        """
+        Either return first(single) image or raises an 404 exception which is handled elsewhere
+        """
+        from flask import abort
+        from annotations_app.flask_app import db
+
+        
+        ammunition_in_db = (
+            db.session.query(Ammunition)
+            .filter(
+                Ammunition.id == ammunition_id,
+            )
+            .first()
+        )
+        if not ammunition_in_db:
+            abort(404, description="Ammunition not found")
+        return ammunition_in_db
