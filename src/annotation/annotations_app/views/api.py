@@ -1,7 +1,8 @@
 from flask import jsonify, render_template
 
 from annotations_app.flask_app import app, spec
-from annotations_app.views import users, collections, images, annotations, predictions, ammunition
+from annotations_app.views import users, collections, images, \
+    annotations, predictions, ammunition, search
 from annotations_app.utils import t4t_login_required
 
 @app.route("/api/v0/openapi.json", methods=["GET"])
@@ -52,6 +53,7 @@ with app.test_request_context():
     spec.path(view=ammunition.ammunition_replace)
     spec.path(view=ammunition.ammunition_delete)
     spec.path(view=ammunition.ammunition_navigation)
+    spec.path(view=search.simple_search)
 
 
 
