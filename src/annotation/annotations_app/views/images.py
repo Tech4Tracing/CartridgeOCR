@@ -18,6 +18,9 @@ from annotations_app.repos.azure_storage_provider import (
 from annotations_app.tasks.predict import predict_headstamps
 from annotations_app.utils import t4t_login_required, parse_boolean
 
+from PIL import Image as PILImage
+MAX_DIMENSION = 400 # for thumbnailing
+
 from sqlalchemy import and_, desc
 
 #assert 'PREDICTION_ENDPOINT' in os.environ
@@ -113,11 +116,31 @@ def image_post():
     readable_file = BytesIO(
         image_data
     )  # all goes to memory, which is fine for images for most cases
+
     storage_provider = StorageProvider()
     storage_file_key, size = storage_provider.upload_file(
         current_user.id, readable_file, request.files["file"].filename
     )
 
+    readable_file.seek(0)
+    image_bits = PILImage.open(readable_file)                  # img is now PIL Image object    
+    width, height = image_bits.size
+    thumbnail_file_key = None
+    if min(width,height) > MAX_DIMENSION:  # will need some experimentation
+        if width<height:
+            newsize = (MAX_DIMENSION, int(MAX_DIMENSION / width * height))
+        else:
+            newsize = (int(MAX_DIMENSION / height * width), MAX_DIMENSION)
+        logging.info(f'Resizing thumbnail from {width,height} to {newsize}')
+        thumbnail = image_bits.resize(newsize)
+        thumbnail_buf = BytesIO()
+        thumbnail.save(thumbnail_buf, format='JPEG')
+        thumbnail_buf.seek(0)
+        thumbnail_file_key, size = storage_provider.upload_file(
+          current_user.id, thumbnail_buf, 'thumb_'+request.files["file"].filename
+        )
+
+        
     # create database object if succesfull
 
     default_mimetype = mimetypes.guess_type(
@@ -141,6 +164,7 @@ def image_post():
         mimetype=mime,
         size=size,
         storageKey=storage_file_key,
+        thumbnailStorageKey=thumbnail_file_key,
         collection_id=collection_in_db.id,
         notes = notes,        
         #extra_data=json.dumps(extra_data),
@@ -294,6 +318,9 @@ def image_delete(image_id: str):
 
     storage_provider = StorageProvider()
     storage_provider.delete_file(image_in_db.storageKey)
+    if image_in_db.thumbnailStorageKey:
+        storage_provider.delete_file(image_in_db.thumbnailStorageKey)
+
     db.session.delete(image_in_db)
     db.session.commit()
     return ("", 204)
@@ -308,24 +335,34 @@ def image_retrieve(image_id: str):
       parameters:
         - in: path
           name: image_id
-          schema:
+          schema: 
             type: string
           required: true
           description: Unique image ID
+        - in: query
+          name: thumbnail
+          schema:
+            type: string
+          required: false
+          description: whether to return the thumbnail or the full image
+
       responses:
         200:
           description: Binary image content
     """
     image_in_db = Image.get_image_or_abort(image_id, current_user.id, include_guest_access=True, include_readonly=True)
 
+    return_thumbnail = parse_boolean(request.args.get("thumbnail", "false"))
+    return_thumbnail = return_thumbnail and image_in_db.thumbnailStorageKey
+
     storage_provider = StorageProvider()
     stored_file_buffer = storage_provider.retrieve_file_buffer(
-        image_in_db.storageKey,
+        image_in_db.thumbnailStorageKey if return_thumbnail else image_in_db.storageKey
     )
     return send_file(
         BytesIO(stored_file_buffer),
         download_name=image_in_db.filename,
-        mimetype=image_in_db.mimetype,
+        mimetype="image/jpeg" if return_thumbnail else image_in_db.mimetype,
         as_attachment=False,
     )
 
@@ -343,18 +380,27 @@ def image_link(image_id: str):
             type: string
           required: true
           description: Unique image ID
+        - in: query
+          name: thumbnail
+          schema:
+            type: string
+          required: false
+          description: whether to link the thumbnail or the full image
+
       responses:
         302:
           description: Redirect user to the real image location
     """
     image_in_db = Image.get_image_or_abort(image_id, current_user.id, include_guest_access=True, include_readonly=True)
+    return_thumbnail = parse_boolean(request.args.get("thumbnail", "false"))
+    return_thumbnail = return_thumbnail and image_in_db.thumbnailStorageKey
 
     storage_provider = StorageProvider()
 
     return redirect(
         storage_provider.get_file_presigned_link(
-            storage_key=image_in_db.storageKey,
-            content_type=image_in_db.mimetype,
+            image_in_db.thumbnailStorageKey if (return_thumbnail) else image_in_db.storageKey,
+            content_type="image/jpeg" if return_thumbnail else image_in_db.mimetype,
         )
     )
 
