@@ -521,7 +521,28 @@ def image_update(image_id: str):
 
     image_in_db = Image.get_image_or_abort(image_id, current_user.id)  # ensure exists and available
     logging.info(f'updating image {image_id} with extra_data {extra_data}')
-    image_in_db.notes = [Note(n) for n in extra_data]
+    
+    existing_notes = {note.id: note for note in image_in_db.notes}
+
+    # Step 2-4: Update existing notes and add new notes
+    updated_notes = []
+    for data in extra_data:
+        note_id = data.get("id")
+
+        if note_id in existing_notes:
+            # Update existing note
+            existing_notes[note_id].note_key = data['note_key']
+            existing_notes[note_id].note_value = data['note_value']
+            existing_notes[note_id].prediction_id = data['prediction_id']
+            existing_notes[note_id].update()
+            updated_notes.append(existing_notes[note_id])
+        else:
+            # Create new note
+            new_note = Note(**data)
+            updated_notes.append(new_note)
+
+    # Set the updated notes to the image
+    image_in_db.notes = updated_notes
 
     db.session.commit()
     db.session.refresh(image_in_db)
