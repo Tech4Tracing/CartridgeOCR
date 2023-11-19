@@ -214,6 +214,7 @@ class Image(BaseModel):
     size = db.Column(Integer)
     file_hash = db.Column(String(255), default="")
     storageKey = db.Column(String(1024))
+    thumbnailStorageKey = db.Column(String(1024))
     #extra_data = db.Column(Text)
     prediction_status = db.Column(Text)
 
