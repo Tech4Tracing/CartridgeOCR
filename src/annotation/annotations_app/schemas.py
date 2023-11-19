@@ -211,3 +211,11 @@ class Errors(Schema):
 class NavigationSchema(Schema):
     prev = fields.Str()
     next = fields.Str()
+
+class PredictionStatusSchema(Schema):
+    task_id = fields.Str()
+    status = fields.Str()
+    # TODO: DateTime
+    updated = fields.Str()
+    result = fields.Str()
+    

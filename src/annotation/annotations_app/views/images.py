@@ -601,3 +601,52 @@ def image_navigation(image_id):
         "next": next_id,
         "prev": prev_id,
     }), 200
+
+@app.route("/api/v0/images/<string:image_id>/predict", methods=["POST"])
+@t4t_login_required
+def image_predict(image_id: str):
+    """Re-trigger image headstamp prediction.  
+    ---
+    post:
+      parameters:
+        - in: path
+          name: image_id
+          schema:
+            type: string
+          required: true
+          description: Unique image ID
+
+      responses:
+        201:
+          description: JSON with the task info
+          content:
+            application/json:
+              schema: PredictionStatusSchema
+    """
+    logging.info(f"predict image {image_id}. This clears all prior predictions and annotations")
+    image=Image.get_image_or_abort(image_id, current_user.id, include_guest_access=True, include_readonly=False)  # just to ensure the image exists
+
+    image.predictions = []
+    image.annotations = []
+    db.session.commit()
+
+    storage_provider = StorageProvider()
+    stored_file_buffer = storage_provider.retrieve_file_buffer(
+        image.storageKey
+    )
+
+
+    result=predict_headstamps.delay(current_user.id, image.id, b64encode(stored_file_buffer).decode('utf-8'))
+    logging.info(f'Prediction task: {result.task_id}')
+    
+    prediction_status = {
+      'task_id': result.task_id,
+      'status': 'pending', 
+      'updated': str(datetime.datetime.utcnow()), 
+      'result': 'None'
+    }
+
+    image.prediction_status = json.dumps(prediction_status)
+    db.session.commit()
+
+    return schemas.PredictionStatusSchema().dump(prediction_status), 201
