@@ -35,7 +35,7 @@ def predict_headstamps(#endpoint,
         result = inf.run(json.dumps({'image': image_base64, 'render': False}))
         logger.info(f"Prediction response: {result}")
 
-        image_in_db = Image.get_image_or_abort(image_id, user_id)  # ensure exists and available
+        image_in_db = Image.get_image_or_abort(image_id, user_id, include_guest_access=True)  # ensure exists and available
 
         if 'detections' in result:
             for detection in result['detections']:
