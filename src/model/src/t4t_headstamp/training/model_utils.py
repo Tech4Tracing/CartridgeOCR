@@ -12,8 +12,8 @@ def rt(p):
     return os.path.join('../', p)
 
 
-def get_instance_segmentation_model(num_classes):
-    model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=True)
+def get_instance_segmentation_model(num_classes, load_pretrained=True):
+    model = torchvision.models.detection.maskrcnn_resnet50_fpn(pretrained=load_pretrained, progress=False)
     in_features = model.roi_heads.box_predictor.cls_score.in_features
     model.roi_heads.box_predictor = FastRCNNPredictor(in_features, num_classes)
     in_features_mask = model.roi_heads.mask_predictor.conv5_mask.in_channels
@@ -89,6 +89,6 @@ def load_snapshot(checkpoint):
     '''Loads a snapshot. Call model.to(device) to move to GPU'''
     cp = torch.load(checkpoint, map_location=torch.device('cpu'))
     num_classes = 3
-    model = get_instance_segmentation_model(num_classes)
+    model = get_instance_segmentation_model(num_classes, load_pretrained=False)
     model.load_state_dict(cp['model'])
     return model

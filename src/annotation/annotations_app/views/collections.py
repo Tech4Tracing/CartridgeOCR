@@ -133,6 +133,9 @@ def collection_delete(collection_id: str):
       for image_in_db in images_in_db:
         storage_provider = StorageProvider()
         storage_provider.delete_file(image_in_db.storageKey)
+        # There is an issue with the foreign key that I don't understand so we delete the notes like this:
+        for note in image_in_db.notes:
+            db.session.delete(note)
         db.session.delete(image_in_db)
     
     # Delete all user scopes associated with this collection

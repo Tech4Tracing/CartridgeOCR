@@ -7,9 +7,9 @@ ENV PYTHONPATH=/app
 # To prep the wheel file, run:
 # pushd ../model
 # python setup.py sdist bdist_wheel
-# cp dist/t4t_headstamp-0.0.2-py3-none-any.whl ../annotation
+# cp dist/t4t_headstamp-0.0.3-py3-none-any.whl ../annotation
 # popd
-ARG T4T_WHL=t4t_headstamp-0.0.2-py3-none-any.whl
+ARG T4T_WHL=t4t_headstamp-0.0.3-py3-none-any.whl
 
 
 # Install requirements

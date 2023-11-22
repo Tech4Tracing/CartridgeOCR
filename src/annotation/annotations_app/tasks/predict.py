@@ -7,6 +7,9 @@ import json
 #import logging
 from annotations_app.models.base import ImageCollection, Image, HeadstampPrediction
 from annotations_app.config import Config
+from annotations_app.repos.azure_storage_provider import (
+    AzureStorageProvider as StorageProvider,
+)
 from celery.utils.log import get_task_logger
 
 logger = get_task_logger(__name__)
@@ -14,10 +17,10 @@ logger = get_task_logger(__name__)
 
 @celery.task(ignore_result=True) #bind=True, name="predict_image", max_retries=3, default_retry_delay=10)
 def predict_headstamps(#endpoint, 
-    user_id, image_id, image_base64):
+    user_id, image_id, storageKey): #, image_base64):
     logger = get_task_logger(__name__)
     try: 
-        logger.info(f"predict_headstamps {user_id} {image_id} image_len: {len(image_base64)}")
+        logger.info(f"predict_headstamps {user_id} {image_id}")
         from annotations_app.tasks.celery import inf
         logger.info("imported inference model")
         # remote prediction
@@ -29,13 +32,18 @@ def predict_headstamps(#endpoint,
         # response = requests.post(endpoint, headers=headers, json=payload)
         # result = json.loads(response.text)
         # TODO: failure cases
-
+        storage_provider = StorageProvider()
+        stored_file_buffer = storage_provider.retrieve_file_buffer(
+            storageKey
+        )
+        image_base64 = b64encode(stored_file_buffer).decode("utf-8")
+        
         # local prediction        
         logger.info('starting prediction task')
         result = inf.run(json.dumps({'image': image_base64, 'render': False}))
         logger.info(f"Prediction response: {result}")
 
-        image_in_db = Image.get_image_or_abort(image_id, user_id)  # ensure exists and available
+        image_in_db = Image.get_image_or_abort(image_id, user_id, include_guest_access=True)  # ensure exists and available
 
         if 'detections' in result:
             for detection in result['detections']:
