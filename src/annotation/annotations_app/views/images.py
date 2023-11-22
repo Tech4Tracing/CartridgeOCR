@@ -184,7 +184,7 @@ def image_post():
     do_prediction = parse_boolean(request.form.get('predict', 'true'))    
     logging.info(f"image upload do_prediction: {do_prediction} {type(do_prediction)}")
     if do_prediction:
-        result=predict_headstamps.delay(current_user.id, image_in_db.id, b64encode(image_data).decode('utf-8'))
+        result=predict_headstamps.delay(current_user.id, image_in_db.id, thumbnail_file_key or storage_file_key) #b64encode(image_data).decode('utf-8'))
         logging.info(f'Prediction task: {result.task_id}')
         
         prediction_status = {
@@ -630,13 +630,7 @@ def image_predict(image_id: str):
     image.annotations = []
     db.session.commit()
 
-    storage_provider = StorageProvider()
-    stored_file_buffer = storage_provider.retrieve_file_buffer(
-        image.storageKey
-    )
-
-
-    result=predict_headstamps.delay(current_user.id, image.id, b64encode(stored_file_buffer).decode('utf-8'))
+    result=predict_headstamps.delay(current_user.id, image.id, image.thumbnailStorageKey or image.storageKey)
     logging.info(f'Prediction task: {result.task_id}')
     
     prediction_status = {

@@ -4,7 +4,7 @@ FROM pytorch/pytorch:1.8.0-cuda11.1-cudnn8-runtime
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONPATH=/app
-ARG T4T_WHL=t4t_headstamp-0.0.1-py3-none-any.whl
+ARG T4T_WHL=t4t_headstamp-0.0.3-py3-none-any.whl
 
 # uvicorn/uvloop/pymssql and other requirements
 #RUN apk add gcc g++ musl-dev python3-dev libffi-dev openssl-dev make freetds-dev
