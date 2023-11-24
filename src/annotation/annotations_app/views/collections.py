@@ -130,9 +130,14 @@ def collection_delete(collection_id: str):
       images_in_db = db.session.query(Image).filter(
           Image.collection_id == collection_in_db.id,
       ).all()
+      storage_provider = StorageProvider()        
       for image_in_db in images_in_db:
-        storage_provider = StorageProvider()
-        storage_provider.delete_file(image_in_db.storageKey)
+        try:
+            storage_provider.delete_file(image_in_db.storageKey)
+            if image_in_db.thumbnailStorageKey:
+              storage_provider.delete_file(image_in_db.thumbnailStorageKey)
+        except Exception as e:
+            logging.error(f'Error deleting image {image_in_db.storageKey} {image_in_db.thumbnailStorageKey}: {e}')            
         # There is an issue with the foreign key that I don't understand so we delete the notes like this:
         for note in image_in_db.notes:
             db.session.delete(note)
