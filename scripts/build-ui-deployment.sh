@@ -15,3 +15,4 @@ cp -R src/t4t-annotation-UI/build/static/css \
     src/t4t-annotation-UI/build/manifest.json \
     src/annotation/annotations_app/static/
 cp src/t4t-annotation-UI/build/logo*.png src/annotation/annotations_app/static/
+cp src/t4t-annotation-UI/src/assets/*.pdf src/annotation/annotations_app/static/

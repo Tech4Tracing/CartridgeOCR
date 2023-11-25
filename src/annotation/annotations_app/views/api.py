@@ -42,6 +42,7 @@ with app.test_request_context():
     spec.path(view=users.users_list)
     spec.path(view=users.user_create)
     spec.path(view=users.user_update)
+    spec.path(view=users.user_delete)
     spec.path(view=predictions.get_status)
     spec.path(view=predictions.predictions_list)
     spec.path(view=predictions.prediction_post)

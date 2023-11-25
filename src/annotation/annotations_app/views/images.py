@@ -323,7 +323,7 @@ def image_delete(image_id: str):
 
     db.session.delete(image_in_db)
     db.session.commit()
-    return ("", 204)
+    return ("", 202)
 
 
 @app.route("/api/v0/images/<string:image_id>/binary", methods=["GET"])
