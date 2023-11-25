@@ -53,21 +53,39 @@ class User(UserMixin):
         if default_fields is None:
             default_fields = dict()
 
-        user_from_db = db.session.query(UserModel)
+        user_db = db.session.query(UserModel)
 
         if user_id:
-            user_from_db = user_from_db.filter(UserModel.id == user_id)
+            logging.info('Fetching user with id %s', user_id)
+            user_from_db = user_db.filter(UserModel.id == user_id)
         elif provider_id:
-            user_from_db = user_from_db.filter(
+            logging.info('Fetching user with providerid %s', provider_id)
+            user_from_db = user_db.filter(
                 UserModel.provider_id == provider_id
             )
+            # double-check the user doesn't exist by email-only
+            current_user = user_from_db.first() 
+            if (not current_user) and email:
+                logging.info('providerid not found, checking by email -  %s', email)            
+                user_from_db = user_db.filter(
+                    UserModel.email == email
+                )
+                current_user = user_from_db.first()
+                if current_user and current_user.provider_id == None:
+                    current_user.provider_id = provider_id
+                    db.session.commit()
+                    db.session.refresh(user_from_db)               
+
         elif email:
+            logging.info('Fetching user with email %s', email)
             # logic warning: if we use multiple auth providers it might be unsafe
-            user_from_db = user_from_db.filter(
+            user_from_db = user_db.filter(
                 UserModel.email == email
             )
+
         else:
             raise Exception("Please provide a way to retrieve the user")
+        
         user_from_db = user_from_db.first()
         if not user_from_db:
             logging.info(f"User {email,provider_id} not found in the database. Trying other options.")
@@ -87,7 +105,7 @@ class User(UserMixin):
                 )
                 logging.info("Superuser %s (%s) first login", superuser.email, superuser.provider_id)
                 return superuser
-            # to stub out a user, require that they have a provider_id and email
+            # to complete stubbing out a user, require that they have a provider_id and email
             elif email and provider_id:
                 logging.info("Stubbing out new user %s (%s)", email, provider_id)
                 newuser = User.create(

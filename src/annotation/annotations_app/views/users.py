@@ -3,9 +3,9 @@ from marshmallow import ValidationError
 
 from annotations_app.flask_app import app, db
 from annotations_app import schemas
-from annotations_app.models.base import User
+from annotations_app.models.base import User, ImageCollection, UserScope
 from annotations_app.utils import superuser_required
-
+from annotations_app.views.collections import collection_delete
 
 @app.route("/api/v0/users", methods=["GET"])
 @superuser_required
@@ -85,7 +85,7 @@ def user_create():
     db.session.add(user_in_db)
     db.session.commit()
     db.session.refresh(user_in_db)
-    return schemas.UserDisplaySchema().dump(user_in_db)
+    return schemas.UserDisplaySchema().dump(user_in_db), 201
 
 
 @app.route("/api/v0/users/<string:user_id>", methods=["PATCH", "PUT"])
@@ -145,4 +145,54 @@ def user_update(user_id):
 
     db.session.commit()
     db.session.refresh(user_in_db)
-    return schemas.UserDisplaySchema().dump(user_in_db)
+    return schemas.UserDisplaySchema().dump(user_in_db), 201
+
+
+@app.route("/api/v0/users/<string:user_id>", methods=["DELETE"])
+@superuser_required
+def user_delete(user_id: str):
+    """Remove a user
+    ---
+    delete:
+        parameters:
+        - in: path
+          name: user_id
+          schema:
+            type: string
+          required: true
+          description: User ID or email      
+        responses:
+            202:
+              description: Success              
+    """
+    
+    user_in_db = db.session.query(User).filter(User.id == user_id).first()
+    if not user_in_db:
+        user_in_db = db.session.query(User).filter(User.email == user_id).first()
+
+    if not user_in_db:
+        return (
+            schemas.Errors().dump(
+                {
+                    "errors": [
+                        {
+                            "title": "NotFound",
+                            "detail": "No user with given ID",
+                        }
+                    ]
+                }
+            ),
+            404,
+        )
+    
+    for scope in db.session.query(UserScope).filter(UserScope.user_id == user_in_db.id):
+        db.session.delete(scope)
+    collections_to_delete = []
+    for collection in db.session.query(ImageCollection).filter(ImageCollection.user_id == user_in_db.id):
+        collections_to_delete.append(collection.id)
+    for collection_id in collections_to_delete:
+        delete_collection(collection_id)
+    db.session.delete(user_in_db)
+    db.session.commit()
+    
+    return ("",202)
