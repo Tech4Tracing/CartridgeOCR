@@ -85,7 +85,7 @@ def user_create():
     db.session.add(user_in_db)
     db.session.commit()
     db.session.refresh(user_in_db)
-    return schemas.UserDisplaySchema().dump(user_in_db)
+    return schemas.UserDisplaySchema().dump(user_in_db), 201
 
 
 @app.route("/api/v0/users/<string:user_id>", methods=["PATCH", "PUT"])
@@ -145,4 +145,4 @@ def user_update(user_id):
 
     db.session.commit()
     db.session.refresh(user_in_db)
-    return schemas.UserDisplaySchema().dump(user_in_db)
+    return schemas.UserDisplaySchema().dump(user_in_db), 201
