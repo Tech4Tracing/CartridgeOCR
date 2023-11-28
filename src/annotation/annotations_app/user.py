@@ -74,7 +74,7 @@ class User(UserMixin):
                 if current_user and current_user.provider_id == None:
                     current_user.provider_id = provider_id
                     db.session.commit()
-                    db.session.refresh(user_from_db)               
+                    db.session.refresh(current_user) # is this necessary?               
 
         elif email:
             logging.info('Fetching user with email %s', email)
