@@ -58,7 +58,7 @@ if __name__ == '__main__':
 
         # TODO
         def is_image(path):
-            return path.lower().endswith('.jpg')
+            return path.lower().endswith('.jpg') or path.lower().endswith('.jpeg')
 
         if os.path.isdir(args.input_file_or_folder):
             if (args.render_images or args.extract_headstamp_images) and args.output_images is not None:
