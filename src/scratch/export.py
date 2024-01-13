@@ -39,7 +39,7 @@ for i in imagelist.json()["images"]:
         raise Exception(f"Failed to get image {i}: {image.text}")
     else:
         # TODO: we can't assume this will always be a jpg image.
-        image_fn = (list(filter(i['notes'], lambda n: n['note_key']=='filename')) 
+        image_fn = (list(filter(lambda n: n['note_key']=='filename', i['notes'])) 
                     or [{'note_value':None}])[0]['note_value']
         if not image_fn:
             image_fn = f"{i['id']}.jpg"
